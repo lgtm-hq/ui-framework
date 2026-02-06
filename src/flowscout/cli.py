@@ -1,0 +1,393 @@
+"""CLI entry point for flowscout."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import os
+import webbrowser
+from datetime import datetime, timezone
+from pathlib import Path
+
+import click
+from rich.console import Console
+from rich.table import Table
+
+from flowscout import __version__
+from flowscout.analysis.graph import ExplorationGraph, ExplorationResult
+from flowscout.codegen.playwright_tests import generate_test_suite
+from flowscout.core.browser import BrowserManager
+from flowscout.core.navigator import Navigator
+from flowscout.core.state import ExplorerConfig, ExplorationStrategy
+from flowscout.reporting.html import HTMLReporter
+from flowscout.reporting.terminal import TerminalReporter
+from flowscout.storage.db import FlowscoutDB
+
+console = Console()
+
+DEFAULT_DB_PATH = ".flowscout/history.db"
+
+
+@click.group()
+@click.version_option(version=__version__, prog_name="flowscout")
+def main() -> None:
+    """Flowscout — LLM-free automated web path exploration."""
+
+
+@main.command()
+@click.argument("url")
+@click.option(
+    "--max-depth", "-d", default=3, help="Maximum traversal depth from start URL."
+)
+@click.option(
+    "--max-states", "-s", default=50, help="Maximum unique states to discover."
+)
+@click.option("--max-actions", "-a", default=20, help="Maximum actions per state.")
+@click.option(
+    "--headless/--no-headless", default=True, help="Run browser in headless mode."
+)
+@click.option(
+    "--timeout", "-t", default=10000, help="Navigation timeout in milliseconds."
+)
+@click.option(
+    "--output-dir", "-o", default="./reports", help="Output directory for reports."
+)
+@click.option(
+    "--screenshot/--no-screenshot",
+    default=False,
+    help="Take screenshots of each state.",
+)
+@click.option(
+    "--strategy",
+    type=click.Choice(["bfs", "dfs", "priority"]),
+    default="priority",
+    help="Exploration strategy.",
+)
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output.")
+@click.option(
+    "--generate-tests",
+    "-g",
+    is_flag=True,
+    help="Generate Playwright test suite from results.",
+)
+@click.option(
+    "--test-framework",
+    type=click.Choice(["pytest", "playwright"]),
+    default="pytest",
+    help="Test framework for code generation.",
+)
+@click.option("--bdd", is_flag=True, help="Generate Gherkin .feature file.")
+@click.option("--narrative", is_flag=True, help="Generate Markdown narrative report.")
+@click.option(
+    "--db-path", default=DEFAULT_DB_PATH, help="SQLite database path for history."
+)
+@click.option("--no-db", is_flag=True, help="Skip saving to database.")
+def explore(
+    url: str,
+    max_depth: int,
+    max_states: int,
+    max_actions: int,
+    headless: bool,
+    timeout: int,
+    output_dir: str,
+    screenshot: bool,
+    strategy: str,
+    verbose: bool,
+    generate_tests: bool,
+    test_framework: str,
+    bdd: bool,
+    narrative: bool,
+    db_path: str,
+    no_db: bool,
+) -> None:
+    """Explore a web application starting from URL."""
+    config = ExplorerConfig(
+        start_url=url,
+        max_depth=max_depth,
+        max_states=max_states,
+        max_actions_per_state=max_actions,
+        headless=headless,
+        timeout_ms=timeout,
+        output_dir=output_dir,
+        take_screenshots=screenshot,
+        strategy=ExplorationStrategy(strategy),
+        verbose=verbose,
+    )
+
+    asyncio.run(
+        _run_exploration(
+            config,
+            generate_tests=generate_tests,
+            test_framework=test_framework,
+            generate_bdd=bdd,
+            generate_narrative=narrative,
+            db_path=db_path,
+            save_to_db=not no_db,
+        )
+    )
+
+
+async def _run_exploration(
+    config: ExplorerConfig,
+    *,
+    generate_tests: bool = False,
+    test_framework: str = "pytest",
+    generate_bdd: bool = False,
+    generate_narrative: bool = False,
+    db_path: str = DEFAULT_DB_PATH,
+    save_to_db: bool = True,
+) -> None:
+    """Run the exploration."""
+    browser = BrowserManager(config)
+    graph = ExplorationGraph()
+    terminal = TerminalReporter(verbose=config.verbose)
+
+    navigator = Navigator(
+        browser=browser,
+        graph=graph,
+        config=config,
+        terminal=terminal,
+    )
+
+    db: FlowscoutDB | None = None
+    try:
+        await browser.launch()
+        result = await navigator.explore(config.start_url)
+
+        now = datetime.now(timezone.utc)
+        # Build hierarchical report directory:
+        # reports/<year>/<month-no>.<month-name>/<dd-mm-yyyy>/<hh.mm.ss>/
+        run_dir = (
+            Path(config.output_dir)
+            / now.strftime("%Y")
+            / now.strftime("%m.%B")
+            / now.strftime("%d-%m-%Y")
+            / now.strftime("%H.%M.%S")
+        )
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate HTML report
+        report_path = str(run_dir / "report.html")
+        reporter = HTMLReporter()
+        reporter.generate(result, report_path)
+        console.print(f"\n  [green]Report saved:[/green] {report_path}")
+
+        # Save JSON
+        json_path = str(run_dir / "result.json")
+        Path(json_path).write_text(result.model_dump_json(indent=2))
+        console.print(f"  [green]JSON saved:[/green] {json_path}")
+
+        # Save to database
+        if save_to_db:
+            db = FlowscoutDB(db_path)
+            run_id = db.save_run(result)
+            console.print(f"  [green]DB saved:[/green] {db_path} (run: {run_id})")
+
+            # Show cross-run insights if we have history
+            _print_cross_run_insights(db, run_id, config.start_url)
+
+        # Generate tests
+        if generate_tests:
+            ext = ".py" if test_framework == "pytest" else ".spec.ts"
+            test_path = str(run_dir / f"tests{ext}")
+            generate_test_suite(result, test_path, framework=test_framework)
+            console.print(f"  [green]Tests generated:[/green] {test_path}")
+
+        # Generate BDD feature file
+        if generate_bdd:
+            from flowscout.codegen.bdd import generate_feature_file
+
+            feature_path = str(run_dir / "exploration.feature")
+            generate_feature_file(result, feature_path)
+            console.print(f"  [green]Feature file:[/green] {feature_path}")
+
+        # Generate narrative report
+        if generate_narrative:
+            from flowscout.codegen.bdd import generate_markdown_report
+
+            md_path = str(run_dir / "report.md")
+            generate_markdown_report(result, md_path)
+            console.print(f"  [green]Narrative report:[/green] {md_path}")
+
+        # Print verdict summary
+        pass_count = sum(1 for r in result.results if r.verdict == "pass")
+        fail_count = sum(1 for r in result.results if r.verdict == "fail")
+        if pass_count or fail_count:
+            console.print(
+                f"\n  Verdict: [green]{pass_count} passed[/green], [red]{fail_count} failed[/red]"
+            )
+
+    except KeyboardInterrupt:
+        console.print("\n  [yellow]Interrupted by user[/yellow]")
+    except Exception as exc:
+        console.print(f"\n  [red]Error:[/red] {exc}")
+        raise
+    finally:
+        await browser.close()
+        if db:
+            db.close()
+
+
+def _print_cross_run_insights(db: FlowscoutDB, run_id: str, start_url: str) -> None:
+    """Print cross-run insights if we have prior runs."""
+    runs = db.list_runs(start_url=start_url)
+    if len(runs) < 2:
+        return
+
+    console.print()
+
+    # New states
+    new_states = db.get_new_states_since(run_id)
+    if new_states:
+        console.print(f"  [cyan]New states this run:[/cyan] {len(new_states)}")
+        for s in new_states[:5]:
+            console.print(f"    [green]+[/green] {s['title'] or s['url']}")
+
+    # Disappeared states
+    disappeared = db.get_disappeared_states(run_id)
+    if disappeared:
+        console.print(
+            f"  [yellow]States missing vs previous:[/yellow] {len(disappeared)}"
+        )
+        for s in disappeared[:5]:
+            console.print(f"    [red]-[/red] {s['title'] or s['url']}")
+
+    # Flaky actions
+    flaky = db.get_flaky_actions(start_url)
+    if flaky:
+        console.print(
+            f"  [yellow]Flaky actions (inconsistent outcomes):[/yellow] {len(flaky)}"
+        )
+        for f in flaky[:3]:
+            console.print(
+                f"    [yellow]~[/yellow] {f['label']} — outcomes: {f['outcomes_seen']}"
+            )
+
+
+@main.command()
+@click.argument("report_path", type=click.Path(exists=True))
+def serve(report_path: str) -> None:
+    """Open an HTML report in the browser."""
+    abs_path = os.path.abspath(report_path)
+    console.print(f"  Opening {abs_path}")
+    webbrowser.open(f"file://{abs_path}")
+
+
+@main.command()
+@click.option("--url", "-u", default=None, help="Filter by start URL.")
+@click.option("--limit", "-n", default=20, help="Maximum runs to show.")
+@click.option("--db-path", default=DEFAULT_DB_PATH, help="SQLite database path.")
+def history(url: str | None, limit: int, db_path: str) -> None:
+    """Show exploration history from the database."""
+    db = FlowscoutDB(db_path)
+    try:
+        runs = db.list_runs(start_url=url, limit=limit)
+        if not runs:
+            console.print("  [dim]No runs found[/dim]")
+            return
+
+        table = Table(title="Exploration History", border_style="cyan")
+        table.add_column("Run ID", style="bold cyan")
+        table.add_column("URL", max_width=50)
+        table.add_column("Started", style="dim")
+        table.add_column("Duration", justify="right")
+        table.add_column("States", justify="right")
+        table.add_column("Actions", justify="right")
+        table.add_column("Flows", justify="right")
+
+        for run in runs:
+            table.add_row(
+                run["run_id"],
+                run["start_url"][:50],
+                run["started_at"][:19],
+                f"{run['duration_seconds']:.1f}s",
+                str(run["total_states"]),
+                str(run["total_actions"]),
+                str(run["total_flows"]),
+            )
+
+        console.print(table)
+    finally:
+        db.close()
+
+
+@main.command()
+@click.option("--url", "-u", required=True, help="Start URL to analyze.")
+@click.option("--db-path", default=DEFAULT_DB_PATH, help="SQLite database path.")
+def reliability(url: str, db_path: str) -> None:
+    """Show action reliability across runs."""
+    db = FlowscoutDB(db_path)
+    try:
+        actions = db.get_action_reliability(start_url=url)
+        if not actions:
+            console.print("  [dim]No data found[/dim]")
+            return
+
+        table = Table(title=f"Action Reliability — {url}", border_style="cyan")
+        table.add_column("Action", max_width=50)
+        table.add_column("Attempts", justify="right")
+        table.add_column("Nav", justify="right", style="green")
+        table.add_column("DOM", justify="right", style="yellow")
+        table.add_column("Errors", justify="right", style="red")
+        table.add_column("No Change", justify="right", style="dim")
+
+        for a in actions:
+            table.add_row(
+                a["label"][:50],
+                str(a["total_attempts"]),
+                str(a["navigations"]),
+                str(a["dom_changes"]),
+                str(a["errors"]),
+                str(a["no_changes"]),
+            )
+
+        console.print(table)
+
+        # Flaky actions
+        flaky = db.get_flaky_actions(url)
+        if flaky:
+            console.print()
+            flaky_table = Table(title="Flaky Actions", border_style="yellow")
+            flaky_table.add_column("Action", max_width=50)
+            flaky_table.add_column("Runs Seen", justify="right")
+            flaky_table.add_column("Outcomes")
+
+            for f in flaky:
+                flaky_table.add_row(
+                    f["label"][:50],
+                    str(f["runs_seen"]),
+                    f["outcomes_seen"],
+                )
+
+            console.print(flaky_table)
+    finally:
+        db.close()
+
+
+@main.command()
+@click.argument("json_path", type=click.Path(exists=True))
+@click.option("--output", "-o", default=None, help="Output test file path.")
+@click.option(
+    "--framework",
+    type=click.Choice(["pytest", "playwright", "bdd"]),
+    default="pytest",
+    help="Test framework (pytest, playwright, or bdd for Gherkin output).",
+)
+def generate(json_path: str, output: str | None, framework: str) -> None:
+    """Generate test suite from a JSON exploration result."""
+    data = json.loads(Path(json_path).read_text())
+    result = ExplorationResult.model_validate(data)
+
+    if framework == "bdd":
+        from flowscout.codegen.bdd import generate_feature_file
+
+        if output is None:
+            output = json_path.replace(".json", ".feature")
+        generate_feature_file(result, output)
+        console.print(f"  [green]Feature file generated:[/green] {output}")
+    else:
+        if output is None:
+            ext = ".py" if framework == "pytest" else ".spec.ts"
+            output = json_path.replace(".json", f"_tests{ext}")
+        generate_test_suite(result, output, framework=framework)
+        console.print(f"  [green]Tests generated:[/green] {output}")
