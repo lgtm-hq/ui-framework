@@ -131,6 +131,7 @@
     '[role="link"]',
     '[role="menuitem"]',
     '[role="option"]',
+    '[role="search"]',
     'input:not([type="hidden"])',
     "select",
     "textarea",

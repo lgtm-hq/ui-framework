@@ -636,15 +636,36 @@ REPORT_TEMPLATE = Template("""\
             color: var(--text-primary);
             font-weight: 500;
         }
-        .narrative-step .step-expected {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
-        }
+        .narrative-step .step-expected,
         .narrative-step .step-actual {
-            color: var(--text-secondary);
             font-size: 0.75rem;
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
         }
+        .step-tag {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 0.125rem 0.375rem;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .step-tag.expected {
+            color: #a78bfa;
+            background: rgba(167, 139, 250, 0.12);
+            border: 1px solid rgba(167, 139, 250, 0.25);
+        }
+        .step-tag.actual {
+            color: #67e8f9;
+            background: rgba(103, 232, 249, 0.10);
+            border: 1px solid rgba(103, 232, 249, 0.20);
+        }
+        .narrative-step .step-expected .step-text { color: rgba(167, 139, 250, 0.7); }
+        .narrative-step .step-actual .step-text { color: rgba(103, 232, 249, 0.7); }
 
         .gherkin-toggle {
             font-family: var(--font-mono);
@@ -888,8 +909,8 @@ REPORT_TEMPLATE = Template("""\
                                     {{ step.step_number }}. {{ step.action_description }}
                                     {% if step.verdict %}<span class="verdict {{ step.verdict.value }}">{{ step.verdict.value }}</span>{% endif %}
                                 </div>
-                                {% if step.expected %}<div class="step-expected">Expected: {{ step.expected }}</div>{% endif %}
-                                {% if step.actual %}<div class="step-actual">Actual: {{ step.actual }}</div>{% endif %}
+                                {% if step.expected %}<div class="step-expected"><span class="step-tag expected">Expected</span><span class="step-text">{{ step.expected }}</span></div>{% endif %}
+                                {% if step.actual %}<div class="step-actual"><span class="step-tag actual">Actual</span><span class="step-text">{{ step.actual }}</span></div>{% endif %}
                             </div>
                             {% endfor %}
                         </div>

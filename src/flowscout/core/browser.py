@@ -220,10 +220,31 @@ class BrowserManager:
                     await asyncio.sleep(0.3)
                 await page.click(action.target_selector, timeout=timeout)
 
+                # Search triggers: click reveals hidden inputs — find, fill, submit
+                if action.metadata.get("is_search") == "true":
+                    await asyncio.sleep(0.3)
+                    selectors = [
+                        "input[type='search']:visible",
+                        "input[placeholder*='earch']:visible",
+                        "input[aria-label*='earch']:visible",
+                    ]
+                    for sel in selectors:
+                        try:
+                            inp = page.locator(sel).first
+                            if await inp.is_visible(timeout=1000):
+                                await inp.fill("test query")
+                                await inp.press("Enter")
+                                break
+                        except Exception:
+                            continue
+
             case ActionType.FILL:
                 await page.fill(
                     action.target_selector, action.value or "", timeout=timeout
                 )
+                # Search inputs need Enter to trigger the search
+                if action.metadata.get("element_type") == "input_search":
+                    await page.press(action.target_selector, "Enter")
 
             case ActionType.SELECT_OPTION:
                 await page.select_option(

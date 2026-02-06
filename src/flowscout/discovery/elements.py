@@ -65,6 +65,7 @@ A11Y_ROLE_MAP: dict[str, ElementType] = {
     "button": ElementType.BUTTON,
     "textbox": ElementType.INPUT_TEXT,
     "searchbox": ElementType.INPUT_SEARCH,
+    "search": ElementType.GENERIC_CLICKABLE,
     "combobox": ElementType.SELECT,
     "listbox": ElementType.SELECT,
     "tab": ElementType.TAB,
@@ -182,6 +183,10 @@ def compute_priority(element: InteractiveElement, base_url: str = "") -> int:
         if any(w in text for w in ("get started", "explore", "view", "open", "show")):
             return 20
         return 30
+
+    # Search widgets — clicking reveals search input, a key interactive path
+    if element.aria_role == "search":
+        return 18
 
     # Form inputs
     if etype in (

@@ -15,12 +15,36 @@ from flowscout.core.state import ExplorerConfig, PageState
 from flowscout.discovery.actions import (
     Action,
     ActionResult,
+    ActionType,
     OutcomeType,
     generate_actions,
     generate_form_submit_actions,
 )
 from flowscout.discovery.elements import discover_elements
 from flowscout.reporting.terminal import TerminalReporter
+
+
+# After this many consecutive click actions, prefer a non-click if available
+_DIVERSITY_INTERVAL = 5
+
+# Action types that count as "interactive" (non-navigation) diversity
+_DIVERSE_TYPES = frozenset({
+    ActionType.FILL,
+    ActionType.SELECT_OPTION,
+    ActionType.CHECK,
+    ActionType.UNCHECK,
+    ActionType.SUBMIT_FORM,
+})
+
+# Individual input actions preferred over form submits for diversity picks
+# (filling a search box or selecting an option is more interesting than
+# a composite submit which may timeout on forms without clear submit buttons)
+_INPUT_TYPES = frozenset({
+    ActionType.FILL,
+    ActionType.SELECT_OPTION,
+    ActionType.CHECK,
+    ActionType.UNCHECK,
+})
 
 
 class _FrontierItem:
@@ -56,6 +80,7 @@ class Navigator:
             lambda: defaultdict(int)
         )
         self._total_actions_executed = 0
+        self._click_streak = 0
         self._verdict_computer = VerdictComputer()
         self._narrative_generator = NarrativeGenerator()
 
@@ -83,7 +108,7 @@ class Navigator:
                 self.terminal.log_info("Stopping: limits reached")
                 break
 
-            item = heapq.heappop(self._frontier)
+            item = self._pop_diverse()
             action = item.action
             source_state_id = item.source_state_id
 
@@ -182,17 +207,30 @@ class Navigator:
         form_actions = generate_form_submit_actions(elements)
         actions.extend(form_actions)
 
+        # Partition into click vs interactive (fill/select/check/submit/search)
+        # to ensure diverse action types get reserved frontier slots.
+        # Search-trigger clicks (role="search") are treated as diverse so they
+        # don't get drowned out by navigation links.
+        def _is_diverse(a: Action) -> bool:
+            if a.action_type in _DIVERSE_TYPES:
+                return True
+            if a.metadata.get("is_search") == "true":
+                return True
+            return False
+
+        click_actions = [a for a in actions if not _is_diverse(a)]
+        diverse_actions = [a for a in actions if _is_diverse(a)]
+
+        budget = self.config.max_actions_per_state
+        # Reserve up to 30% of slots for diverse actions (minimum 1 if any exist)
+        diverse_reserve = min(len(diverse_actions), max(1, budget * 3 // 10))
+        click_budget = budget - diverse_reserve if diverse_actions else budget
+
         enqueued = 0
-        for action in actions:
-            if (
-                self._state_action_count[state.state_id]
-                >= self.config.max_actions_per_state
-            ):
-                break
 
-            # Apply smart deprioritization
+        def _enqueue(action: Action) -> None:
+            nonlocal enqueued
             priority = self._adjusted_priority(action)
-
             self.graph.add_action(action)
             heapq.heappush(
                 self._frontier, _FrontierItem(priority, action, state.state_id)
@@ -200,8 +238,21 @@ class Navigator:
             self._state_action_count[state.state_id] += 1
             enqueued += 1
 
+        # Enqueue click actions up to their budget
+        for action in click_actions:
+            if enqueued >= click_budget:
+                break
+            _enqueue(action)
+
+        # Enqueue diverse actions (fill, select, check, submit)
+        for action in diverse_actions:
+            if self._state_action_count[state.state_id] >= budget:
+                break
+            _enqueue(action)
+
         self.terminal.log_info(
-            f"  Enqueued {enqueued} actions (frontier size: {len(self._frontier)})"
+            f"  Enqueued {enqueued} actions "
+            f"({len(diverse_actions)} interactive, frontier size: {len(self._frontier)})"
         )
 
     async def _navigate_to_state(self, target_state_id: str) -> bool:
@@ -317,6 +368,62 @@ class Navigator:
                 step_verdicts=step_verdicts,
             )
             flow.narrative = narrative
+
+    @staticmethod
+    def _is_diverse_item(item: _FrontierItem) -> bool:
+        """Check if a frontier item is a diverse (non-navigation) action."""
+        if item.action.action_type in _DIVERSE_TYPES:
+            return True
+        if item.action.metadata.get("is_search") == "true":
+            return True
+        return False
+
+    def _pop_diverse(self) -> _FrontierItem:
+        """Pop from frontier with diversity awareness.
+
+        After ``_DIVERSITY_INTERVAL`` consecutive click actions, prefer a
+        non-click action if one exists.  Prefers individual input actions
+        and search triggers over composite SUBMIT_FORM.
+        """
+        if self._click_streak >= _DIVERSITY_INTERVAL:
+            best_idx: int | None = None
+            best_priority = float("inf")
+
+            # First pass: prefer input actions + search triggers
+            for i, candidate in enumerate(self._frontier):
+                if candidate.priority < best_priority and (
+                    candidate.action.action_type in _INPUT_TYPES
+                    or candidate.action.metadata.get("is_search") == "true"
+                ):
+                    best_idx = i
+                    best_priority = candidate.priority
+
+            # Fallback: any diverse type (including SUBMIT_FORM)
+            if best_idx is None:
+                for i, candidate in enumerate(self._frontier):
+                    if (
+                        self._is_diverse_item(candidate)
+                        and candidate.priority < best_priority
+                    ):
+                        best_idx = i
+                        best_priority = candidate.priority
+
+            if best_idx is not None:
+                item = self._frontier[best_idx]
+                # Remove from heap: swap with last, pop, re-heapify
+                self._frontier[best_idx] = self._frontier[-1]
+                self._frontier.pop()
+                if self._frontier:
+                    heapq.heapify(self._frontier)
+                self._click_streak = 0
+                return item
+
+        item = heapq.heappop(self._frontier)
+        if item.action.action_type == ActionType.CLICK and not self._is_diverse_item(item):
+            self._click_streak += 1
+        else:
+            self._click_streak = 0
+        return item
 
     def _should_stop(self) -> bool:
         """Check termination conditions."""

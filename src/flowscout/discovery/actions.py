@@ -140,6 +140,10 @@ def _actions_for_element(
             if elem.href.startswith("javascript:"):
                 return []
 
+        click_meta: dict[str, str] = {}
+        if elem.aria_role == "search":
+            click_meta["is_search"] = "true"
+
         actions.append(
             _make(
                 ActionType.CLICK,
@@ -150,12 +154,14 @@ def _actions_for_element(
                 ),
                 priority=elem.priority,
                 source_element_id=elem.element_id,
+                metadata=click_meta,
             )
         )
 
     # Fillable inputs → FILL with heuristic value
     elif etype in _FILLABLE_TYPES:
         value = generate_input_value(elem, scenario="valid")
+        meta: dict[str, str] = {"element_type": etype.value}
         actions.append(
             _make(
                 ActionType.FILL,
@@ -165,6 +171,7 @@ def _actions_for_element(
                 value=value,
                 priority=elem.priority,
                 source_element_id=elem.element_id,
+                metadata=meta,
             )
         )
 
