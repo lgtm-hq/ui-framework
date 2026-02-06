@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
 import networkx as nx
 
 from flowscout.core.state import PageState
-from flowscout.discovery.actions import Action, ActionResult, OutcomeType
+from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
 if TYPE_CHECKING:
     pass
@@ -28,6 +29,8 @@ class Flow(BaseModel):
     depth: int = 0
     verdict: Any = None  # JourneyVerdict | None
     narrative: Any = None  # FlowNarrative | None
+    category: str = ""
+    tags: list[str] = Field(default_factory=list)
 
 
 class ExplorationResult(BaseModel):
@@ -146,6 +149,10 @@ class ExplorationGraph:
         except nx.NetworkXError:
             pass
 
+        # Assign categories and tags
+        for flow in flows:
+            flow.category, flow.tags = self._categorize_flow(flow)
+
         return flows
 
     def _path_to_flow(self, node_path: list[str], index: int) -> Flow:
@@ -224,6 +231,44 @@ class ExplorationGraph:
             is_cycle=True,
             depth=len(cycle_nodes),
         )
+
+    def _categorize_flow(self, flow: Flow) -> tuple[str, list[str]]:
+        """Assign a category and interaction tags to a flow."""
+        # Category from starting state's title (generic — works on any site)
+        start_state = self.states.get(flow.state_ids[0]) if flow.state_ids else None
+        category = "Other"
+        if start_state:
+            title = start_state.title or ""
+            if title:
+                category = title
+            else:
+                # Fallback: last path segment from URL
+                parsed = urlparse(start_state.url)
+                path = parsed.path.rstrip("/")
+                category = path.split("/")[-1] if path else "Home"
+
+        # Tags from action types used
+        tags: set[str] = set()
+        for aid in flow.action_ids:
+            action = self.actions.get(aid)
+            if not action:
+                continue
+            if action.metadata.get("is_search") == "true":
+                tags.add("search")
+            elif action.metadata.get("requires_open"):
+                tags.add("dropdown")
+            elif action.action_type == ActionType.CLICK:
+                tags.add("navigation")
+            elif action.action_type == ActionType.FILL:
+                tags.add("form")
+            elif action.action_type == ActionType.SELECT_OPTION:
+                tags.add("dropdown")
+            elif action.action_type in (ActionType.CHECK, ActionType.UNCHECK):
+                tags.add("form")
+            elif action.action_type == ActionType.SUBMIT_FORM:
+                tags.add("form")
+
+        return category, sorted(tags)
 
     def to_serializable(self) -> dict:
         """Export graph as a JSON-serializable dict for reporting."""

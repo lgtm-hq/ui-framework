@@ -66,9 +66,25 @@ class TestComputePriority:
     @pytest.mark.parametrize(
         ("elem_kwargs", "base_url", "expected_priority"),
         [
-            ({"element_type": ElementType.LINK, "tag": "a", "href": "/themes/"}, "https://example.com", 10),
-            ({"element_type": ElementType.LINK, "tag": "a", "href": "https://github.com/other"}, "https://example.com", 90),
-            ({"element_type": ElementType.LINK, "tag": "a", "href": "#section"}, None, 40),
+            (
+                {"element_type": ElementType.LINK, "tag": "a", "href": "/themes/"},
+                "https://example.com",
+                10,
+            ),
+            (
+                {
+                    "element_type": ElementType.LINK,
+                    "tag": "a",
+                    "href": "https://github.com/other",
+                },
+                "https://example.com",
+                90,
+            ),
+            (
+                {"element_type": ElementType.LINK, "tag": "a", "href": "#section"},
+                None,
+                40,
+            ),
             ({"label": "Submit form"}, None, 15),
             ({"label": "Login"}, None, 15),
             ({"label": "Click me"}, None, 30),

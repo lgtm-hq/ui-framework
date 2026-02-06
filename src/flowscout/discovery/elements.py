@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 from enum import StrEnum, auto
 from hashlib import md5
 
 from pydantic import BaseModel, Field
-
 
 _CSS_BLOCK_RE = re.compile(r"\.[a-zA-Z0-9_-]+(?::[\w-]+)?\s*\{[^}]*\}")
 _BRACE_RE = re.compile(r"\{[^}]*\}")
@@ -205,9 +205,9 @@ def compute_priority(element: InteractiveElement, base_url: str = "") -> int:
     if etype == ElementType.SELECT:
         return 40
 
-    # Dropdown options (explored via their trigger)
+    # Dropdown options — high value interactive actions (select from a dropdown)
     if etype == ElementType.DROPDOWN_OPTION:
-        return 45
+        return 15
 
     # Checkboxes, radios, toggles
     if etype in (
@@ -281,12 +281,130 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
     # Layer 3: Pattern detection — detect dropdown trigger/option relationships
     elements = _detect_dropdown_patterns(elements)
 
+    # Layer 4: Click-to-reveal — open dropdown triggers to discover hidden options
+    elements = await _discover_dropdown_options(page, elements)
+
     # Compute priorities
     base_url = str(await page.evaluate("() => window.location.origin"))  # type: ignore[union-attr]
     for elem in elements:
         elem.priority = compute_priority(elem, base_url)
 
     return elements
+
+
+_MAX_REVEAL_TRIGGERS = 5
+_OPTION_ROLES = frozenset({"option", "menuitem", "menuitemradio", "menuitemcheckbox"})
+
+
+async def _discover_dropdown_options(
+    page: object,
+    elements: list[InteractiveElement],
+) -> list[InteractiveElement]:
+    """Click dropdown triggers to discover hidden options.
+
+    Many React apps (downshift, headless-ui, radix) render dropdown options
+    inside display:none containers. This clicks each visible trigger, re-runs
+    discovery to find the now-visible options, then closes the dropdown.
+    """
+    # Dropdown triggers + SELECT elements with no native options (custom comboboxes)
+    triggers = [
+        e
+        for e in elements
+        if e.is_visible
+        and (
+            e.element_type == ElementType.DROPDOWN_TRIGGER
+            or (
+                e.element_type == ElementType.SELECT
+                and not e.options
+                and e.tag != "select"
+            )
+        )
+    ]
+    if not triggers:
+        return elements
+
+    # Check if visible dropdown options already exist (use list — model not hashable)
+    visible_options = [
+        e
+        for e in elements
+        if e.element_type == ElementType.DROPDOWN_OPTION and e.is_visible
+    ]
+
+    seen_selectors = {e.selector for e in elements}
+    new_elements = list(elements)
+
+    for trigger in triggers[:_MAX_REVEAL_TRIGGERS]:
+        # Skip triggers that already have associated visible options
+        trigger_prefix = (
+            trigger.selector.rsplit(" > ", 1)[0] if " > " in trigger.selector else ""
+        )
+        if trigger_prefix and any(
+            opt.selector.startswith(trigger_prefix) for opt in visible_options
+        ):
+            continue
+
+        try:
+            # Click the trigger to open the dropdown
+            await page.click(trigger.selector, timeout=3000)  # type: ignore[union-attr]
+            await asyncio.sleep(0.35)
+
+            # Re-run discovery to find newly visible elements
+            raw_elements = await page.evaluate(DISCOVERY_JS)  # type: ignore[union-attr]
+
+            for raw in raw_elements:
+                if not raw.get("visible", False):
+                    continue
+                selector = raw["selector"]
+                if selector in seen_selectors:
+                    continue
+
+                role = raw.get("role", "")
+                # Accept elements with option-like roles
+                if role not in _OPTION_ROLES:
+                    continue
+
+                label = _sanitize_label(raw.get("label", ""))
+                elem = InteractiveElement(
+                    element_id=build_element_id(selector, label),
+                    element_type=ElementType.DROPDOWN_OPTION,
+                    selector=selector,
+                    label=label,
+                    tag=raw["tag"],
+                    href=raw.get("href"),
+                    input_type=raw.get("input_type"),
+                    is_required=raw.get("required", False),
+                    is_disabled=raw.get("disabled", False),
+                    is_visible=True,
+                    aria_role=role,
+                    aria_label=raw.get("aria_label"),
+                    placeholder=raw.get("placeholder"),
+                    name=raw.get("name"),
+                    value=raw.get("value"),
+                    options=raw.get("options", []),
+                    parent_form_selector=raw.get("parent_form"),
+                    bounding_box=raw.get("bbox"),
+                    data_attributes={
+                        **raw.get("data_attrs", {}),
+                        "requires_open": trigger.selector,
+                    },
+                )
+                new_elements.append(elem)
+                seen_selectors.add(selector)
+
+            # Close the dropdown: Escape, then fallback to re-clicking trigger
+            try:
+                await page.keyboard.press("Escape")  # type: ignore[union-attr]
+            except Exception:
+                try:
+                    await page.click(trigger.selector, timeout=2000)  # type: ignore[union-attr]
+                except Exception:
+                    pass
+            await asyncio.sleep(0.2)
+
+        except Exception:
+            continue
+
+    return new_elements
 
 
 def _enrich_from_a11y(

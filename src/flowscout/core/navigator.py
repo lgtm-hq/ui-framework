@@ -23,28 +23,31 @@ from flowscout.discovery.actions import (
 from flowscout.discovery.elements import discover_elements
 from flowscout.reporting.terminal import TerminalReporter
 
-
 # After this many consecutive click actions, prefer a non-click if available
 _DIVERSITY_INTERVAL = 5
 
 # Action types that count as "interactive" (non-navigation) diversity
-_DIVERSE_TYPES = frozenset({
-    ActionType.FILL,
-    ActionType.SELECT_OPTION,
-    ActionType.CHECK,
-    ActionType.UNCHECK,
-    ActionType.SUBMIT_FORM,
-})
+_DIVERSE_TYPES = frozenset(
+    {
+        ActionType.FILL,
+        ActionType.SELECT_OPTION,
+        ActionType.CHECK,
+        ActionType.UNCHECK,
+        ActionType.SUBMIT_FORM,
+    }
+)
 
 # Individual input actions preferred over form submits for diversity picks
 # (filling a search box or selecting an option is more interesting than
 # a composite submit which may timeout on forms without clear submit buttons)
-_INPUT_TYPES = frozenset({
-    ActionType.FILL,
-    ActionType.SELECT_OPTION,
-    ActionType.CHECK,
-    ActionType.UNCHECK,
-})
+_INPUT_TYPES = frozenset(
+    {
+        ActionType.FILL,
+        ActionType.SELECT_OPTION,
+        ActionType.CHECK,
+        ActionType.UNCHECK,
+    }
+)
 
 
 class _FrontierItem:
@@ -81,6 +84,7 @@ class Navigator:
         )
         self._total_actions_executed = 0
         self._click_streak = 0
+        self._last_diverse_category: str | None = None
         self._verdict_computer = VerdictComputer()
         self._narrative_generator = NarrativeGenerator()
 
@@ -131,9 +135,10 @@ class Navigator:
             result = await self.browser.execute_action(action)
             self._total_actions_executed += 1
 
-            # Capture resulting state
+            # Capture resulting state — only increment depth on page navigation
             source_state = self.graph.states[source_state_id]
-            new_depth = source_state.depth + 1
+            url_changed = result.url_before != result.url_after
+            new_depth = source_state.depth + (1 if url_changed else 0)
             target_state = await self.browser.capture_state(depth=new_depth)
             result.source_state_id = source_state_id
             result.target_state_id = target_state.state_id
@@ -215,6 +220,8 @@ class Navigator:
             if a.action_type in _DIVERSE_TYPES:
                 return True
             if a.metadata.get("is_search") == "true":
+                return True
+            if a.metadata.get("requires_open"):
                 return True
             return False
 
@@ -376,29 +383,56 @@ class Navigator:
             return True
         if item.action.metadata.get("is_search") == "true":
             return True
+        if item.action.metadata.get("requires_open"):
+            return True
         return False
+
+    @staticmethod
+    def _diverse_category(item: _FrontierItem) -> str | None:
+        """Classify a frontier item's diverse category for rotation."""
+        if item.action.metadata.get("is_search") == "true":
+            return "search"
+        if item.action.metadata.get("requires_open"):
+            return "dropdown"
+        if item.action.action_type in _INPUT_TYPES:
+            return "input"
+        if item.action.action_type in _DIVERSE_TYPES:
+            return "form"
+        return None
 
     def _pop_diverse(self) -> _FrontierItem:
         """Pop from frontier with diversity awareness.
 
         After ``_DIVERSITY_INTERVAL`` consecutive click actions, prefer a
-        non-click action if one exists.  Prefers individual input actions
-        and search triggers over composite SUBMIT_FORM.
+        non-click action if one exists.  Rotates between diverse categories
+        (search, dropdown, input, form) to prevent one type from monopolizing.
         """
         if self._click_streak >= _DIVERSITY_INTERVAL:
             best_idx: int | None = None
             best_priority = float("inf")
 
-            # First pass: prefer input actions + search triggers
+            # First pass: prefer a DIFFERENT category than the last pick
             for i, candidate in enumerate(self._frontier):
-                if candidate.priority < best_priority and (
-                    candidate.action.action_type in _INPUT_TYPES
-                    or candidate.action.metadata.get("is_search") == "true"
-                ):
+                cat = self._diverse_category(candidate)
+                if cat is None:
+                    continue
+                if cat == self._last_diverse_category:
+                    continue  # Skip same category as last pick
+                if candidate.priority < best_priority:
                     best_idx = i
                     best_priority = candidate.priority
 
-            # Fallback: any diverse type (including SUBMIT_FORM)
+            # Second pass: any diverse candidate (no category restriction)
+            if best_idx is None:
+                for i, candidate in enumerate(self._frontier):
+                    cat = self._diverse_category(candidate)
+                    if cat is None:
+                        continue
+                    if candidate.priority < best_priority:
+                        best_idx = i
+                        best_priority = candidate.priority
+
+            # Third pass: any diverse type (including SUBMIT_FORM)
             if best_idx is None:
                 for i, candidate in enumerate(self._frontier):
                     if (
@@ -410,6 +444,7 @@ class Navigator:
 
             if best_idx is not None:
                 item = self._frontier[best_idx]
+                self._last_diverse_category = self._diverse_category(item)
                 # Remove from heap: swap with last, pop, re-heapify
                 self._frontier[best_idx] = self._frontier[-1]
                 self._frontier.pop()
@@ -419,7 +454,9 @@ class Navigator:
                 return item
 
         item = heapq.heappop(self._frontier)
-        if item.action.action_type == ActionType.CLICK and not self._is_diverse_item(item):
+        if item.action.action_type == ActionType.CLICK and not self._is_diverse_item(
+            item
+        ):
             self._click_streak += 1
         else:
             self._click_streak = 0

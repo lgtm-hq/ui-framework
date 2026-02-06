@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 from flowscout.analysis.verdict import StepVerdict, Verdict
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
-from flowscout.discovery.intent import ActionIntent
+from flowscout.discovery.intent import ActionIntent, IntentClass
 
 
 class NarrativeStep(BaseModel):
@@ -155,17 +155,23 @@ class NarrativeGenerator:
         """Get the element label, stripping the action-type prefix."""
         label = action.label
         prefixes = (
-            "Click: ", "Fill: ", "Select ", "Check: ",
-            "Uncheck: ", "Submit: ", "Hover: ",
+            "Click: ",
+            "Fill: ",
+            "Select ",
+            "Check: ",
+            "Uncheck: ",
+            "Submit: ",
+            "Hover: ",
         )
         for prefix in prefixes:
             if label.startswith(prefix):
-                return label[len(prefix):]
+                return label[len(prefix) :]
         return label
 
     @staticmethod
     def _page_name(
-        state: PageState | None, fallback_url: str | None = None,
+        state: PageState | None,
+        fallback_url: str | None = None,
     ) -> str:
         """Get a human-readable page name from state title or URL."""
         if state and state.title:
@@ -178,16 +184,11 @@ class NarrativeGenerator:
         return "the next page"
 
     def _action_description(self, action: Action, result: ActionResult) -> str:
-        """Generate a plain-English action description."""
+        """Generate a context-aware plain-English action description."""
         label = self._clean_label(action)
         match action.action_type:
             case ActionType.CLICK:
-                if (
-                    "link" in action.label.lower()
-                    or action.metadata.get("element_type") == "link"
-                ):
-                    return f"Navigate to a new page by clicking the '{label}' link"
-                return f"Click the '{label}' element"
+                return self._describe_click(action, label)
             case ActionType.FILL:
                 return f"Enter '{action.value}' into the {label} field"
             case ActionType.SELECT_OPTION:
@@ -206,8 +207,34 @@ class NarrativeGenerator:
                 return f"Navigate directly to {action.value}"
         return f"Perform {action.action_type.value} on {label}"
 
+    def _describe_click(self, action: Action, label: str) -> str:
+        """Generate a context-aware description for a click action."""
+        # Dropdown option selection
+        if action.metadata.get("requires_open"):
+            return f"Select '{label}' from the dropdown"
+
+        # Search trigger
+        if action.metadata.get("is_search") == "true":
+            return "Search for 'test query'"
+
+        # Use intent for semantic context
+        intent = action.intent
+        if intent:
+            if intent.intent_class == IntentClass.SELECT:
+                return f"Select '{label}'"
+            if intent.intent_class == IntentClass.REVEAL:
+                return f"Open the '{label}' dropdown"
+            if intent.intent_class == IntentClass.TOGGLE:
+                return f"Toggle '{label}'"
+            if intent.intent_class == IntentClass.NAVIGATE:
+                return f"Navigate to '{label}'"
+
+        return f"Click the '{label}' element"
+
     def _outcome_description(
-        self, result: ActionResult, target_state: PageState | None,
+        self,
+        result: ActionResult,
+        target_state: PageState | None,
     ) -> str:
         """Generate a plain-English outcome description."""
         match result.outcome:
@@ -244,7 +271,7 @@ class NarrativeGenerator:
         label = self._clean_label(action)
         match action.action_type:
             case ActionType.CLICK:
-                return f'When I click the "{label}" element'
+                return self._gherkin_when_click(action, label)
             case ActionType.FILL:
                 return f'When I enter "{action.value}" into the "{label}" field'
             case ActionType.SELECT_OPTION:
@@ -263,8 +290,30 @@ class NarrativeGenerator:
                 return f'When I navigate to "{action.value}"'
         return f'When I perform {action.action_type.value} on "{label}"'
 
+    def _gherkin_when_click(self, action: Action, label: str) -> str:
+        """Generate a Gherkin When clause for click actions with context."""
+        if action.metadata.get("requires_open"):
+            return f'When I select "{label}" from the dropdown'
+        if action.metadata.get("is_search") == "true":
+            return 'When I search for "test query"'
+
+        intent = action.intent
+        if intent:
+            if intent.intent_class == IntentClass.SELECT:
+                return f'When I select "{label}"'
+            if intent.intent_class == IntentClass.REVEAL:
+                return f'When I open the "{label}" dropdown'
+            if intent.intent_class == IntentClass.TOGGLE:
+                return f'When I toggle "{label}"'
+            if intent.intent_class == IntentClass.NAVIGATE:
+                return f'When I navigate to "{label}"'
+
+        return f'When I click the "{label}" element'
+
     def _gherkin_then(
-        self, result: ActionResult, target_state: PageState | None,
+        self,
+        result: ActionResult,
+        target_state: PageState | None,
     ) -> str:
         """Generate a Gherkin Then clause."""
         match result.outcome:

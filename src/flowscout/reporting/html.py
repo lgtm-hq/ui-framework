@@ -692,6 +692,112 @@ REPORT_TEMPLATE = Template("""\
         }
         .gherkin-block.visible { display: block; }
 
+        /* === Flow filter bar === */
+        .flow-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .flow-filter-btn {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .flow-filter-btn:hover { border-color: var(--border-base); color: var(--text-secondary); }
+        .flow-filter-btn.active { color: var(--accent-green); border-color: var(--accent-green); background: var(--accent-green-dim); }
+        .flow-view-toggle {
+            margin-left: auto;
+            display: flex;
+            gap: 0.25rem;
+        }
+        .flow-view-btn {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            background: var(--bg-raised);
+            border: 1px solid var(--border-dim);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .flow-view-btn:hover { border-color: var(--border-base); }
+        .flow-view-btn.active { color: var(--accent-cyan); border-color: var(--accent-cyan-dim); }
+
+        /* === Flow groups === */
+        .flow-group { margin-bottom: 1rem; }
+        .flow-group-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 1rem;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            transition: background 0.15s ease;
+        }
+        .flow-group-header:hover { background: var(--bg-raised); }
+        .flow-group-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .flow-group-stats {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            align-items: center;
+        }
+        .flow-group-stat {
+            padding: 0.125rem 0.375rem;
+            border-radius: 3px;
+        }
+        .flow-group-stat.pass { color: var(--accent-green); background: var(--accent-green-dim); }
+        .flow-group-stat.fail { color: var(--accent-red); background: var(--accent-red-dim); }
+        .flow-group-stat.warn { color: var(--accent-amber); background: var(--accent-amber-dim); }
+        .flow-group-chevron {
+            width: 14px; height: 14px;
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .flow-group.collapsed .flow-group-chevron { transform: rotate(-90deg); }
+        .flow-group.collapsed .flow-group-body { display: none; }
+
+        /* === Flow tags === */
+        .flow-tags { display: flex; gap: 0.25rem; }
+        .flow-tag {
+            font-family: var(--font-mono);
+            font-size: 0.5625rem;
+            font-weight: 500;
+            padding: 0.125rem 0.375rem;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .flow-tag.navigation { color: var(--accent-green); background: var(--accent-green-dim); }
+        .flow-tag.search { color: var(--accent-cyan); background: var(--accent-cyan-dim); }
+        .flow-tag.form { color: var(--accent-amber); background: var(--accent-amber-dim); }
+        .flow-tag.dropdown { color: #c084fc; background: rgba(192, 132, 252, 0.12); }
+        .flow-tag.interaction { color: var(--text-muted); background: #4a5f7815; }
+
+        /* === Compact table === */
+        .flow-compact-table { display: none; }
+        .flow-compact-table.active { display: block; }
+        .flow-detail-view.hidden { display: none; }
+
         /* === Errors section === */
         .error-card {
             background: linear-gradient(135deg, #ff475708, #ff475703);
@@ -871,57 +977,127 @@ REPORT_TEMPLATE = Template("""\
                 <div class="section-count">{{ flows|length }}</div>
                 <div class="section-line"></div>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                {% for flow in flows %}
-                <details class="flow-card">
-                    <summary class="flow-summary">
-                        <div class="flow-summary-left">
-                            {% if flow.is_cycle %}
-                            <span class="flow-badge cycle">cycle</span>
-                            {% else %}
-                            <span class="flow-badge linear">linear</span>
-                            {% endif %}
-                            {% if flow.verdict %}
-                            <span class="verdict {{ flow.verdict.verdict.value }}">{{ flow.verdict.verdict.value }}</span>
-                            {% endif %}
-                            <span class="flow-name">{{ flow.name }}</span>
-                            <span class="flow-steps">{{ flow.depth }} step{{ 's' if flow.depth != 1 }}</span>
+
+            <!-- Filter + view controls -->
+            <div class="flow-controls">
+                <button class="flow-filter-btn active" data-filter="all" onclick="filterFlows('all')">All ({{ flows|length }})</button>
+                <button class="flow-filter-btn" data-filter="pass" onclick="filterFlows('pass')">Pass ({{ flow_counts.pass }})</button>
+                {% if flow_counts.fail %}<button class="flow-filter-btn" data-filter="fail" onclick="filterFlows('fail')">Fail ({{ flow_counts.fail }})</button>{% endif %}
+                {% if flow_counts.warn %}<button class="flow-filter-btn" data-filter="warn" onclick="filterFlows('warn')">Warn ({{ flow_counts.warn }})</button>{% endif %}
+                <div class="flow-view-toggle">
+                    <button class="flow-view-btn active" data-view="detail" onclick="toggleFlowView('detail')">Detailed</button>
+                    <button class="flow-view-btn" data-view="compact" onclick="toggleFlowView('compact')">Compact</button>
+                </div>
+            </div>
+
+            <!-- Detailed view (grouped) -->
+            <div class="flow-detail-view">
+                {% for category, group_flows in flow_groups.items() %}
+                <div class="flow-group" data-category="{{ category }}">
+                    <div class="flow-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                        <svg class="flow-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                        <span class="flow-group-name">{{ category }}</span>
+                        <div class="flow-group-stats">
+                            {% set gs = group_summaries[category] %}
+                            {% if gs.pass %}<span class="flow-group-stat pass">{{ gs.pass }} pass</span>{% endif %}
+                            {% if gs.fail %}<span class="flow-group-stat fail">{{ gs.fail }} fail</span>{% endif %}
+                            {% if gs.warn %}<span class="flow-group-stat warn">{{ gs.warn }} warn</span>{% endif %}
+                            <div class="section-count">{{ group_flows|length }}</div>
                         </div>
-                        <svg class="flow-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                    </summary>
-                    <div class="flow-detail">
-                        {% if not flow.narrative or not flow.narrative.steps %}
-                        <div class="flow-description">{{ flow.description }}</div>
-                        {% endif %}
-                        <div class="flow-chain">
-                            {% for sid in flow.state_ids %}
-                            <span class="flow-node" title="{{ sid }}">{{ states_by_id[sid].title if sid in states_by_id and states_by_id[sid].title else sid[:8] }}</span>
-                            {% if not loop.last %}
-                            <span class="flow-arrow-sep">&rarr;</span>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                        {% if flow.narrative and flow.narrative.steps %}
-                        <div style="margin-top: 0.75rem;">
-                            {% for step in flow.narrative.steps %}
-                            <div class="narrative-step">
-                                <div class="step-action">
-                                    {{ step.step_number }}. {{ step.action_description }}
-                                    {% if step.verdict %}<span class="verdict {{ step.verdict.value }}">{{ step.verdict.value }}</span>{% endif %}
-                                </div>
-                                {% if step.expected %}<div class="step-expected"><span class="step-tag expected">Expected</span><span class="step-text">{{ step.expected }}</span></div>{% endif %}
-                                {% if step.actual %}<div class="step-actual"><span class="step-tag actual">Actual</span><span class="step-text">{{ step.actual }}</span></div>{% endif %}
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        {% if flow.narrative and flow.narrative.gherkin %}
-                        <button class="gherkin-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">Toggle Gherkin</button>
-                        <div class="gherkin-block">{{ flow.narrative.gherkin }}</div>
-                        {% endif %}
                     </div>
-                </details>
+                    <div class="flow-group-body" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        {% for flow in group_flows %}
+                        <details class="flow-card" data-verdict="{{ flow.verdict.verdict.value if flow.verdict else 'inconclusive' }}">
+                            <summary class="flow-summary">
+                                <div class="flow-summary-left">
+                                    {% if flow.is_cycle %}
+                                    <span class="flow-badge cycle">cycle</span>
+                                    {% else %}
+                                    <span class="flow-badge linear">linear</span>
+                                    {% endif %}
+                                    {% if flow.verdict %}
+                                    <span class="verdict {{ flow.verdict.verdict.value }}">{{ flow.verdict.verdict.value }}</span>
+                                    {% endif %}
+                                    <span class="flow-name">{{ flow.name }}</span>
+                                    <span class="flow-steps">{{ flow.depth }} step{{ 's' if flow.depth != 1 }}</span>
+                                    {% if flow.tags %}
+                                    <div class="flow-tags">
+                                        {% for tag in flow.tags %}
+                                        <span class="flow-tag {{ tag }}">{{ tag }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <svg class="flow-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </summary>
+                            <div class="flow-detail">
+                                {% if not flow.narrative or not flow.narrative.steps %}
+                                <div class="flow-description">{{ flow.description }}</div>
+                                {% endif %}
+                                <div class="flow-chain">
+                                    {% for sid in flow.state_ids %}
+                                    <span class="flow-node" title="{{ sid }}">{{ states_by_id[sid].title if sid in states_by_id and states_by_id[sid].title else sid[:8] }}</span>
+                                    {% if not loop.last %}
+                                    <span class="flow-arrow-sep">&rarr;</span>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% if flow.narrative and flow.narrative.steps %}
+                                <div style="margin-top: 0.75rem;">
+                                    {% for step in flow.narrative.steps %}
+                                    <div class="narrative-step">
+                                        <div class="step-action">
+                                            {{ step.step_number }}. {{ step.action_description }}
+                                            {% if step.verdict %}<span class="verdict {{ step.verdict.value }}">{{ step.verdict.value }}</span>{% endif %}
+                                        </div>
+                                        {% if step.expected %}<div class="step-expected"><span class="step-tag expected">Expected</span><span class="step-text">{{ step.expected }}</span></div>{% endif %}
+                                        {% if step.actual %}<div class="step-actual"><span class="step-tag actual">Actual</span><span class="step-text">{{ step.actual }}</span></div>{% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if flow.narrative and flow.narrative.gherkin %}
+                                <button class="gherkin-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">Toggle Gherkin</button>
+                                <div class="gherkin-block">{{ flow.narrative.gherkin }}</div>
+                                {% endif %}
+                            </div>
+                        </details>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% endfor %}
+            </div>
+
+            <!-- Compact table view -->
+            <div class="flow-compact-table">
+                <div class="data-table-wrap">
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Flow</th>
+                                    <th>Type</th>
+                                    <th class="right">Steps</th>
+                                    <th>Tags</th>
+                                    <th>Verdict</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for flow in flows %}
+                                <tr data-verdict="{{ flow.verdict.verdict.value if flow.verdict else 'inconclusive' }}">
+                                    <td class="cell-dim">{{ loop.index }}</td>
+                                    <td>{{ flow.name }}</td>
+                                    <td><span class="flow-badge {{ 'cycle' if flow.is_cycle else 'linear' }}">{{ 'cycle' if flow.is_cycle else 'linear' }}</span></td>
+                                    <td class="cell-right">{{ flow.depth }}</td>
+                                    <td>{% for tag in flow.tags %}<span class="flow-tag {{ tag }}">{{ tag }}</span> {% endfor %}</td>
+                                    <td>{% if flow.verdict %}<span class="verdict {{ flow.verdict.verdict.value }}">{{ flow.verdict.verdict.value }}</span>{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1143,6 +1319,36 @@ REPORT_TEMPLATE = Template("""\
         });
     </script>
 
+    <script>
+        function filterFlows(verdict) {
+            document.querySelectorAll('.flow-filter-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.flow-filter-btn[data-filter="' + verdict + '"]').classList.add('active');
+            document.querySelectorAll('.flow-card').forEach(card => {
+                card.style.display = (verdict === 'all' || card.dataset.verdict === verdict) ? '' : 'none';
+            });
+            document.querySelectorAll('.flow-compact-table tbody tr').forEach(row => {
+                row.style.display = (verdict === 'all' || row.dataset.verdict === verdict) ? '' : 'none';
+            });
+            document.querySelectorAll('.flow-group').forEach(group => {
+                const visible = group.querySelectorAll('.flow-card:not([style*="display: none"])');
+                group.style.display = visible.length > 0 ? '' : 'none';
+            });
+        }
+        function toggleFlowView(view) {
+            document.querySelectorAll('.flow-view-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.flow-view-btn[data-view="' + view + '"]').classList.add('active');
+            const detail = document.querySelector('.flow-detail-view');
+            const compact = document.querySelector('.flow-compact-table');
+            if (view === 'compact') {
+                detail.classList.add('hidden');
+                compact.classList.add('active');
+            } else {
+                detail.classList.remove('hidden');
+                compact.classList.remove('active');
+            }
+        }
+    </script>
+
 </body>
 </html>
 """)
@@ -1153,6 +1359,8 @@ class HTMLReporter:
 
     def generate(self, result: ExplorationResult, output_path: str) -> None:
         """Generate the HTML report file."""
+        from collections import defaultdict
+
         from flowscout import __version__
 
         graph_data = _build_graph_data(result)
@@ -1173,6 +1381,51 @@ class HTMLReporter:
         # Build action label lookup
         action_labels = {aid: a.label for aid, a in result.actions.items()}
 
+        # Group flows by category
+        flow_groups: dict[str, list] = defaultdict(list)
+        for flow in result.flows:
+            flow_groups[flow.category or "Other"].append(flow)
+
+        # Compute per-group summaries
+        group_summaries: dict[str, dict[str, int]] = {}
+        for cat, group_flows in flow_groups.items():
+            group_summaries[cat] = {
+                "pass": sum(
+                    1
+                    for f in group_flows
+                    if f.verdict and f.verdict.verdict.value == "pass"
+                ),
+                "fail": sum(
+                    1
+                    for f in group_flows
+                    if f.verdict and f.verdict.verdict.value == "fail"
+                ),
+                "warn": sum(
+                    1
+                    for f in group_flows
+                    if f.verdict and f.verdict.verdict.value == "warn"
+                ),
+            }
+
+        # Overall verdict counts
+        flow_counts = {
+            "pass": sum(
+                1
+                for f in result.flows
+                if f.verdict and f.verdict.verdict.value == "pass"
+            ),
+            "fail": sum(
+                1
+                for f in result.flows
+                if f.verdict and f.verdict.verdict.value == "fail"
+            ),
+            "warn": sum(
+                1
+                for f in result.flows
+                if f.verdict and f.verdict.verdict.value == "warn"
+            ),
+        }
+
         html = REPORT_TEMPLATE.render(
             start_url=result.config.get("start_url", "unknown"),
             started_at=result.started_at,
@@ -1180,6 +1433,9 @@ class HTMLReporter:
             config_strategy=result.config.get("strategy", "priority"),
             stat_cards=stat_cards,
             flows=result.flows,
+            flow_groups=dict(flow_groups),
+            group_summaries=group_summaries,
+            flow_counts=flow_counts,
             states=list(result.states.values()),
             states_by_id=result.states,
             results=result.results,

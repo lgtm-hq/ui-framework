@@ -218,6 +218,9 @@ def _actions_for_element(
 
     # Dropdown options → CLICK with requires_open metadata
     elif etype == ElementType.DROPDOWN_OPTION:
+        option_meta: dict[str, str] = {}
+        if "requires_open" in elem.data_attributes:
+            option_meta["requires_open"] = elem.data_attributes["requires_open"]
         actions.append(
             _make(
                 ActionType.CLICK,
@@ -226,6 +229,7 @@ def _actions_for_element(
                 label=f"Select option: {elem.label}",
                 priority=elem.priority,
                 source_element_id=elem.element_id,
+                metadata=option_meta,
             )
         )
 
