@@ -869,10 +869,12 @@ REPORT_TEMPLATE = Template("""\
                         <svg class="flow-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                     </summary>
                     <div class="flow-detail">
+                        {% if not flow.narrative or not flow.narrative.steps %}
                         <div class="flow-description">{{ flow.description }}</div>
+                        {% endif %}
                         <div class="flow-chain">
                             {% for sid in flow.state_ids %}
-                            <span class="flow-node">{{ sid[:8] }}</span>
+                            <span class="flow-node" title="{{ sid }}">{{ states_by_id[sid].title if sid in states_by_id and states_by_id[sid].title else sid[:8] }}</span>
                             {% if not loop.last %}
                             <span class="flow-arrow-sep">&rarr;</span>
                             {% endif %}
@@ -1158,6 +1160,7 @@ class HTMLReporter:
             stat_cards=stat_cards,
             flows=result.flows,
             states=list(result.states.values()),
+            states_by_id=result.states,
             results=result.results,
             actions=action_labels,
             error_results=error_results,

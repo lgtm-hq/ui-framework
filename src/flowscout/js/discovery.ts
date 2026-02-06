@@ -70,6 +70,17 @@
     return parentSel + " > " + tag + ":nth-of-type(" + idx + ")";
   }
 
+  function sanitizeLabel(raw: string): string {
+    // Strip CSS block patterns: .class-name:pseudo { ... }
+    let text = raw.replace(/\.[a-zA-Z0-9_-]+(?::[\w-]+)?\s*\{[^}]*\}/g, "");
+    // Strip any remaining { ... } fragments
+    text = text.replace(/\{[^}]*\}/g, "");
+    // Collapse whitespace
+    text = text.trim().replace(/\s+/g, " ");
+    if (text.length <= 80) return text;
+    return text.substring(0, 77) + "...";
+  }
+
   function getLabel(el: Element): string {
     // Check aria-label first
     const ariaLabel = el.getAttribute("aria-label");
@@ -78,14 +89,16 @@
     // Check associated label
     if (el.id) {
       const label = document.querySelector(`label[for="${el.id}"]`);
-      if (label) return label.textContent!.trim();
+      if (label) {
+        const labelText = (label as HTMLElement).innerText || label.textContent || "";
+        return sanitizeLabel(labelText);
+      }
     }
 
-    // Check innerText (truncated)
-    const text = el.textContent || "";
-    const trimmed = text.trim().replace(/\s+/g, " ");
-    if (trimmed.length <= 80) return trimmed;
-    return trimmed.substring(0, 77) + "...";
+    // Use innerText (respects visibility, ignores CSS pseudo-elements)
+    // Fall back to textContent for non-HTMLElement nodes
+    const text = (el as HTMLElement).innerText || el.textContent || "";
+    return sanitizeLabel(text);
   }
 
   function isVisible(el: Element): boolean {

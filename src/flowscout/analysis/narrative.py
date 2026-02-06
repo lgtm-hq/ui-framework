@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
@@ -149,13 +150,40 @@ class NarrativeGenerator:
         lines.append(f"**Conclusion:** {narrative.conclusion}")
         return "\n".join(lines)
 
+    @staticmethod
+    def _clean_label(action: Action) -> str:
+        """Get the element label, stripping the action-type prefix."""
+        label = action.label
+        prefixes = (
+            "Click: ", "Fill: ", "Select ", "Check: ",
+            "Uncheck: ", "Submit: ", "Hover: ",
+        )
+        for prefix in prefixes:
+            if label.startswith(prefix):
+                return label[len(prefix):]
+        return label
+
+    @staticmethod
+    def _page_name(
+        state: PageState | None, fallback_url: str | None = None,
+    ) -> str:
+        """Get a human-readable page name from state title or URL."""
+        if state and state.title:
+            return state.title
+        url = (state.url if state else fallback_url) or ""
+        if url:
+            path = urlparse(url).path.rstrip("/")
+            if path:
+                return path.split("/")[-1] or url
+        return "the next page"
+
     def _action_description(self, action: Action, result: ActionResult) -> str:
         """Generate a plain-English action description."""
-        label = action.label
+        label = self._clean_label(action)
         match action.action_type:
             case ActionType.CLICK:
                 if (
-                    "link" in label.lower()
+                    "link" in action.label.lower()
                     or action.metadata.get("element_type") == "link"
                 ):
                     return f"Navigate to a new page by clicking the '{label}' link"
@@ -179,13 +207,13 @@ class NarrativeGenerator:
         return f"Perform {action.action_type.value} on {label}"
 
     def _outcome_description(
-        self, result: ActionResult, target_state: PageState | None
+        self, result: ActionResult, target_state: PageState | None,
     ) -> str:
         """Generate a plain-English outcome description."""
         match result.outcome:
             case OutcomeType.NAVIGATION:
-                title = target_state.title if target_state else result.url_after
-                return f"Page navigated to '{title}'"
+                name = self._page_name(target_state, result.url_after)
+                return f"Page navigated to '{name}'"
             case OutcomeType.DOM_CHANGE:
                 return "Page content updated"
             case OutcomeType.NO_CHANGE:
@@ -213,7 +241,7 @@ class NarrativeGenerator:
 
     def _gherkin_when(self, action: Action) -> str:
         """Generate a Gherkin When clause."""
-        label = action.label
+        label = self._clean_label(action)
         match action.action_type:
             case ActionType.CLICK:
                 return f'When I click the "{label}" element'
@@ -236,13 +264,13 @@ class NarrativeGenerator:
         return f'When I perform {action.action_type.value} on "{label}"'
 
     def _gherkin_then(
-        self, result: ActionResult, target_state: PageState | None
+        self, result: ActionResult, target_state: PageState | None,
     ) -> str:
         """Generate a Gherkin Then clause."""
         match result.outcome:
             case OutcomeType.NAVIGATION:
-                title = target_state.title if target_state else result.url_after
-                return f'Then the page should navigate to "{title}"'
+                name = self._page_name(target_state, result.url_after)
+                return f'Then the page should navigate to "{name}"'
             case OutcomeType.DOM_CHANGE:
                 return "Then the page content should update"
             case OutcomeType.NO_CHANGE:

@@ -2,10 +2,24 @@
 
 from __future__ import annotations
 
+import re
 from enum import StrEnum, auto
 from hashlib import md5
 
 from pydantic import BaseModel, Field
+
+
+_CSS_BLOCK_RE = re.compile(r"\.[a-zA-Z0-9_-]+(?::[\w-]+)?\s*\{[^}]*\}")
+_BRACE_RE = re.compile(r"\{[^}]*\}")
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def _sanitize_label(raw: str) -> str:
+    """Strip CSS pseudo-element declarations and other noise from element labels."""
+    cleaned = _CSS_BLOCK_RE.sub("", raw)
+    cleaned = _BRACE_RE.sub("", cleaned)
+    cleaned = _WHITESPACE_RE.sub(" ", cleaned).strip()
+    return cleaned
 
 
 class ElementType(StrEnum):
@@ -232,7 +246,7 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
             element_id=build_element_id(raw["selector"], raw.get("label", "")),
             element_type=etype,
             selector=raw["selector"],
-            label=raw.get("label", ""),
+            label=_sanitize_label(raw.get("label", "")),
             tag=raw["tag"],
             href=raw.get("href"),
             input_type=raw.get("input_type"),

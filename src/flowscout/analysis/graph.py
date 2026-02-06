@@ -160,13 +160,23 @@ class ExplorationGraph:
                 action_ids.append(edge.get("action_id", ""))
                 outcomes.append(OutcomeType(edge.get("outcome", "no_change")))
 
-        # Build a descriptive name from the actions
+        # Build a descriptive name from page titles
         action_labels = []
         for aid in action_ids:
             if aid in self.actions:
                 action_labels.append(self.actions[aid].label)
-        name = f"Flow {index}"
         description = " → ".join(action_labels) if action_labels else "Unknown flow"
+
+        start_state = self.states.get(node_path[0])
+        end_state = self.states.get(node_path[-1])
+        start_title = start_state.title if start_state and start_state.title else ""
+        end_title = end_state.title if end_state and end_state.title else ""
+        if start_title and end_title and start_title != end_title:
+            name = f"{start_title} \u2192 {end_title}"
+        elif end_title:
+            name = end_title
+        else:
+            name = f"Flow {index}"
 
         return Flow(
             flow_id=f"flow-{index}",
@@ -193,9 +203,20 @@ class ExplorationGraph:
                 action_ids.append(edge.get("action_id", ""))
                 outcomes.append(OutcomeType(edge.get("outcome", "no_change")))
 
+        # Build cycle name from state titles
+        cycle_titles = []
+        for sid in cycle_nodes:
+            state = self.states.get(sid)
+            if state and state.title:
+                cycle_titles.append(state.title)
+        if cycle_titles:
+            cycle_name = " \u2194 ".join(dict.fromkeys(cycle_titles))
+        else:
+            cycle_name = f"Cycle {index}"
+
         return Flow(
             flow_id=f"cycle-{index}",
-            name=f"Cycle {index}",
+            name=cycle_name,
             description=f"Cycle through {len(cycle_nodes)} states",
             state_ids=closed,
             action_ids=action_ids,
