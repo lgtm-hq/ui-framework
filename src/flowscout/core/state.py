@@ -25,10 +25,14 @@ class ExplorerConfig(BaseModel):
     max_actions_per_state: int = Field(default=20, ge=1)
     headless: bool = True
     timeout_ms: int = Field(default=10000, ge=1000)
+    action_timeout_ms: int = Field(default=5000, ge=500)
+    stability_timeout_ms: int = Field(default=2000, ge=200)
+    load_wait_timeout_ms: int = Field(default=3000, ge=500)
     output_dir: str = "./reports"
     take_screenshots: bool = False
     strategy: ExplorationStrategy = ExplorationStrategy.PRIORITY
     verbose: bool = False
+    smart_mode: bool = False
 
 
 class PageState(BaseModel):

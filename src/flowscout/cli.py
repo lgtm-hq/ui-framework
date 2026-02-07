@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import webbrowser
 from datetime import datetime, timezone
@@ -82,6 +83,11 @@ def main() -> None:
     "--db-path", default=DEFAULT_DB_PATH, help="SQLite database path for history."
 )
 @click.option("--no-db", is_flag=True, help="Skip saving to database.")
+@click.option(
+    "--smart",
+    is_flag=True,
+    help="Enable smart mode: archetype recognition, contextual input, coverage-aware exploration.",
+)
 def explore(
     url: str,
     max_depth: int,
@@ -99,6 +105,7 @@ def explore(
     narrative: bool,
     db_path: str,
     no_db: bool,
+    smart: bool,
 ) -> None:
     """Explore a web application starting from URL."""
     config = ExplorerConfig(
@@ -112,6 +119,7 @@ def explore(
         take_screenshots=screenshot,
         strategy=ExplorationStrategy(strategy),
         verbose=verbose,
+        smart_mode=smart,
     )
 
     asyncio.run(
@@ -138,6 +146,22 @@ async def _run_exploration(
     save_to_db: bool = True,
 ) -> None:
     """Run the exploration."""
+    # Configure logging
+    log_dir = Path(".flowscout")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_level = logging.DEBUG if config.verbose else logging.WARNING
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        handlers=[logging.FileHandler(log_dir / "debug.log", mode="a")],
+        force=True,
+    )
+    if config.verbose:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        console_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+        logging.getLogger("flowscout").addHandler(console_handler)
+
     browser = BrowserManager(config)
     graph = ExplorationGraph()
     terminal = TerminalReporter(verbose=config.verbose)
@@ -193,6 +217,33 @@ async def _run_exploration(
             generate_test_suite(result, test_path, framework=test_framework)
             console.print(f"  [green]Tests generated:[/green] {test_path}")
 
+        # Generate POM classes + POM-based tests when smart mode is on
+        if config.smart_mode and generate_tests and result.page_catalogs:
+            from flowscout.codegen.page_objects import generate_page_objects
+            from flowscout.codegen.pom_tests import generate_pom_tests
+
+            pom_dir = str(run_dir / "pages")
+            pom_paths = generate_page_objects(
+                result.page_catalogs,
+                pom_dir,
+                framework=test_framework,
+                base_url=config.start_url,
+            )
+            if pom_paths:
+                console.print(
+                    f"  [green]POM classes generated:[/green] {len(pom_paths)} files in {pom_dir}"
+                )
+
+                pom_ext = ".py" if test_framework == "pytest" else ".spec.ts"
+                pom_test_path = str(run_dir / f"pom_tests{pom_ext}")
+                generate_pom_tests(
+                    result,
+                    result.page_catalogs,
+                    pom_test_path,
+                    framework=test_framework,
+                )
+                console.print(f"  [green]POM tests generated:[/green] {pom_test_path}")
+
         # Generate BDD feature file
         if generate_bdd:
             from flowscout.codegen.bdd import generate_feature_file
@@ -208,6 +259,16 @@ async def _run_exploration(
             md_path = str(run_dir / "report.md")
             generate_markdown_report(result, md_path)
             console.print(f"  [green]Narrative report:[/green] {md_path}")
+
+        # Print smart mode summary
+        if config.smart_mode and result.archetypes:
+            console.print("\n  [bold magenta]Smart Mode Summary[/bold magenta]")
+            for arch, count in sorted(result.archetypes.items()):
+                console.print(f"    @ {arch}: {count} instances")
+            if result.coverage:
+                features = result.coverage.get("features_tested", [])
+                if features:
+                    console.print(f"    Features: {', '.join(features)}")
 
         # Print verdict summary
         pass_count = sum(1 for r in result.results if r.verdict == "pass")

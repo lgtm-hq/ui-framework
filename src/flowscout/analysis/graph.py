@@ -31,6 +31,8 @@ class Flow(BaseModel):
     narrative: Any = None  # FlowNarrative | None
     category: str = ""
     tags: list[str] = Field(default_factory=list)
+    flow_template: str = ""
+    archetype_sequence: list[str] = Field(default_factory=list)
 
 
 class ExplorationResult(BaseModel):
@@ -45,6 +47,9 @@ class ExplorationResult(BaseModel):
     results: list[ActionResult] = Field(default_factory=list)
     flows: list[Flow] = Field(default_factory=list)
     stats: dict[str, int] = Field(default_factory=dict)
+    page_catalogs: dict[str, Any] = Field(default_factory=dict)
+    coverage: dict = Field(default_factory=dict)
+    archetypes: dict = Field(default_factory=dict)
 
 
 class ExplorationGraph:

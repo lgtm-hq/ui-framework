@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import heapq
+import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
 from flowscout.analysis.narrative import NarrativeGenerator
@@ -22,6 +25,9 @@ from flowscout.discovery.actions import (
 )
 from flowscout.discovery.elements import discover_elements
 from flowscout.reporting.terminal import TerminalReporter
+
+# Lazy import for smart planner (only needed in smart mode)
+SmartPlanner = None  # type: ignore[assignment]
 
 # After this many consecutive click actions, prefer a non-click if available
 _DIVERSITY_INTERVAL = 5
@@ -88,6 +94,12 @@ class Navigator:
         self._verdict_computer = VerdictComputer()
         self._narrative_generator = NarrativeGenerator()
 
+        # Smart planner (only active in smart mode)
+        self._smart_planner = None
+        if config.smart_mode:
+            from flowscout.smart.planner import SmartPlanner as _SmartPlanner
+            self._smart_planner = _SmartPlanner()
+
     async def explore(self, start_url: str) -> ExplorationResult:
         """Main exploration loop."""
         started_at = datetime.now(timezone.utc).isoformat()
@@ -105,6 +117,7 @@ class Navigator:
 
         # 3. Discover actions from initial state
         await self._discover_and_enqueue(initial_state)
+        await self._apply_smart_advice(initial_state)
 
         # 4. Main exploration loop
         while self._frontier:
@@ -168,6 +181,7 @@ class Navigator:
             if is_new_state and new_depth < self.config.max_depth:
                 self.terminal.log_state_discovered(target_state, is_new=True)
                 await self._discover_and_enqueue(target_state)
+                await self._apply_smart_advice(target_state)
             elif is_new_state:
                 self.terminal.log_state_discovered(target_state, is_new=True)
                 self.terminal.log_info(
@@ -192,8 +206,82 @@ class Navigator:
             stats=stats,
         )
 
+        # Attach smart mode data
+        if self._smart_planner:
+            result.page_catalogs = self._smart_planner.get_all_catalogs()
+            result.coverage = self._smart_planner.coverage.summary()
+            result.archetypes = self._smart_planner.registry.archetype_distribution()
+
         self.terminal.print_summary(result)
         return result
+
+    async def _apply_smart_advice(self, state: PageState) -> None:
+        """Run the smart planner and apply its advice to the frontier."""
+        if not self._smart_planner:
+            return
+        try:
+            advice = await self._smart_planner.on_state_discovered(
+                state, self.browser, self.graph
+            )
+        except Exception:
+            logger.debug("Smart planner failed for %s", state.state_id, exc_info=True)
+            return
+
+        # Log archetype discovery
+        analysis = self._smart_planner.get_analysis(state.state_id)
+        if analysis:
+            is_novel = self._smart_planner.registry.instance_count(
+                analysis.structural_signature
+            ) == 1
+            self.terminal.log_archetype(
+                state.state_id,
+                analysis.archetype.value,
+                analysis.archetype_confidence,
+                is_novel,
+            )
+
+            if advice.content_expectations:
+                self.terminal.log_expectation_result(advice.content_expectations)
+
+        # Apply priority overrides to frontier
+        if advice.priority_overrides:
+            saturated_priority = advice.priority_overrides.get("__saturated__")
+            search_priority = advice.priority_overrides.get("__search_action__")
+            content_priority = advice.priority_overrides.get("__content_items__")
+
+            modified = False
+            for item in self._frontier:
+                if item.source_state_id != state.state_id:
+                    continue
+
+                # Boost search actions
+                if search_priority is not None:
+                    if item.action.metadata.get("is_search") == "true":
+                        item.priority = search_priority
+                        modified = True
+                    elif (
+                        item.action.metadata.get("element_type") == "input_search"
+                    ):
+                        item.priority = search_priority
+                        modified = True
+
+                # Boost content item clicks (non-nav, non-search clicks on listings)
+                if content_priority is not None:
+                    if (
+                        item.action.action_type == ActionType.CLICK
+                        and not item.action.metadata.get("is_search")
+                        and item.action.metadata.get("element_type") != "input_search"
+                    ):
+                        item.priority = min(item.priority, content_priority)
+                        modified = True
+
+                # Deprioritize saturated archetypes
+                if saturated_priority is not None and advice.is_archetype_saturated:
+                    item.priority = max(item.priority, saturated_priority)
+                    modified = True
+
+            if modified:
+                heapq.heapify(self._frontier)
 
     async def _discover_and_enqueue(self, state: PageState) -> None:
         """Discover interactive elements and add their actions to the frontier."""
@@ -276,7 +364,7 @@ class Navigator:
             ):
                 return True
         except Exception:
-            pass
+            logger.debug("Could not capture current state for comparison", exc_info=True)
 
         target = self.graph.states[target_state_id]
 
@@ -287,7 +375,7 @@ class Navigator:
             if current_state.fingerprint == target.fingerprint:
                 return True
         except Exception:
-            pass
+            logger.debug("Direct navigation to %s failed", target.url, exc_info=True)
 
         # If direct navigation didn't reproduce the state, try replaying path
         path = self.graph.find_path_from_root(target_state_id)
@@ -305,13 +393,16 @@ class Navigator:
 
                 return True
             except Exception:
-                pass
+                logger.debug(
+                    "Path replay to %s failed", target_state_id, exc_info=True,
+                )
 
         # Last resort: just navigate to the URL and hope for the best
         try:
             await self.browser.navigate(target.url)
             return True
         except Exception:
+            logger.debug("Last-resort navigation to %s failed", target.url, exc_info=True)
             return False
 
     def _compute_flow_verdicts_and_narratives(self, flows: list[Flow]) -> None:
@@ -470,6 +561,8 @@ class Navigator:
             self._total_actions_executed
             >= self.config.max_states * self.config.max_actions_per_state
         ):
+            return True
+        if self._smart_planner and self._smart_planner.coverage.is_saturated():
             return True
         return False
 

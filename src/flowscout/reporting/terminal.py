@@ -10,6 +10,7 @@ from rich.table import Table
 from rich.text import Text
 
 if TYPE_CHECKING:
+    from flowscout.analysis.expectations import ExpectationResult
     from flowscout.analysis.graph import ExplorationResult
     from flowscout.core.state import ExplorerConfig, PageState
     from flowscout.discovery.actions import Action, ActionResult
@@ -37,6 +38,11 @@ class TerminalReporter:
 
     def print_banner(self, url: str, config: ExplorerConfig) -> None:
         """Print startup banner with configuration summary."""
+        smart_label = (
+            "[bold magenta]Smart mode:[/bold magenta] ON"
+            if config.smart_mode
+            else ""
+        )
         lines = [
             f"[bold]URL:[/bold] {url}",
             f"[bold]Strategy:[/bold] {config.strategy.value}",
@@ -46,6 +52,8 @@ class TerminalReporter:
             f"[bold]Headless:[/bold] {config.headless}  |  "
             f"[bold]Screenshots:[/bold] {config.take_screenshots}",
         ]
+        if smart_label:
+            lines.append(smart_label)
         panel = Panel(
             "\n".join(lines),
             title="[bold cyan]flowscout[/bold cyan]",
@@ -106,6 +114,44 @@ class TerminalReporter:
     def log_warning(self, message: str) -> None:
         """Log a warning message."""
         self.console.print(f"  [yellow]WARNING:[/yellow] {message}")
+
+    def log_archetype(
+        self,
+        state_id: str,
+        archetype: str,
+        confidence: float,
+        is_novel: bool,
+    ) -> None:
+        """Log archetype classification for a state."""
+        sid = state_id[:8]
+        pct = f"{confidence * 100:.0f}%"
+        novelty = "[green]new archetype[/green]" if is_novel else "[dim]known[/dim]"
+        self.console.print(
+            f"  [magenta]@[/magenta] [dim]({sid})[/dim] {archetype} ({pct}) — {novelty}",
+        )
+
+    def log_coverage_status(self, coverage: dict) -> None:
+        """Log current coverage status."""
+        archetypes = len(coverage.get("archetypes_seen", {}))
+        features = len(coverage.get("features_tested", []))
+        sigs = coverage.get("signatures_seen", 0)
+        saturated = coverage.get("is_saturated", False)
+        status = "[green]saturated[/green]" if saturated else "[dim]exploring[/dim]"
+        self.console.print(
+            f"  [magenta]Coverage:[/magenta] {archetypes} archetypes, "
+            f"{features} features, {sigs} templates — {status}",
+        )
+
+    def log_expectation_result(self, result: ExpectationResult) -> None:
+        """Log content expectation check result."""
+        if result.total_count == 0:
+            return
+        passed = result.pass_count
+        total = result.total_count
+        color = "green" if passed == total else "yellow" if passed > 0 else "red"
+        self.console.print(
+            f"  [magenta]Content:[/magenta] [{color}]{passed}/{total}[/{color}] expectations met",
+        )
 
     def print_summary(self, result: ExplorationResult) -> None:
         """Print the final exploration summary."""
