@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from flowscout.discovery.context import ContextStore
     from flowscout.discovery.elements import InteractiveElement
 
 # Pattern key → {scenario → value}
@@ -84,16 +85,25 @@ TYPE_TO_PATTERN: dict[str, str] = {
 def generate_input_value(
     element: InteractiveElement,
     scenario: str = "valid",
+    *,
+    context_store: ContextStore | None = None,
 ) -> str:
     """Generate a value for an input field based on heuristics.
 
     Resolution order:
+    0. Context store (for search fields in smart mode)
     1. HTML5 input type (email, tel, number, url, date, search, password)
     2. Field name/id pattern matching
     3. Placeholder text analysis
     4. ARIA label analysis
     5. Fallback based on input type
     """
+    # 0. Smart mode: use context store for search fields
+    if context_store is not None and scenario == "valid" and _is_search_field(element):
+        query = context_store.get_search_query()
+        if query:
+            return query
+
     # 1. Check HTML5 type
     if element.input_type and element.input_type in TYPE_TO_PATTERN:
         pattern_key = TYPE_TO_PATTERN[element.input_type]
@@ -119,3 +129,16 @@ def generate_input_value(
     if scenario == "valid":
         return "test input value"
     return ""
+
+
+def _is_search_field(element: InteractiveElement) -> bool:
+    """Check if an element is a search-related input field."""
+    if element.input_type == "search":
+        return True
+    identifiers = " ".join(
+        filter(
+            None,
+            [element.name, element.aria_label, element.placeholder, element.label],
+        ),
+    ).lower()
+    return any(kw in identifiers for kw in ("search", "query", " q "))
