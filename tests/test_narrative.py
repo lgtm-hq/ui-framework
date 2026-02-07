@@ -58,7 +58,7 @@ class TestNarrateStep:
         step = generator.narrate_step(
             action, result, _make_state(), _make_state("s2", title="Login"), 1
         )
-        assert "Click" in step.action_description
+        assert step.action_description == "Click the 'Login' element"
         assert step.step_number == 1
 
     def test_fill_description(self, generator):

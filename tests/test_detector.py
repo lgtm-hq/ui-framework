@@ -1,5 +1,7 @@
 """Tests for outcome detection."""
 
+import pytest
+
 from flowscout.analysis.detector import OutcomeDetector
 from flowscout.discovery.actions import OutcomeType
 
@@ -131,3 +133,46 @@ class TestOutcomeDetector:
             network_errors=[],
         )
         assert result == OutcomeType.CONSOLE_ERROR
+
+
+class _FakePage:
+    """Minimal page stub for testing find_error_messages."""
+
+    def __init__(self, return_value):
+        self._return_value = return_value
+
+    async def evaluate(self, js, *args):
+        return self._return_value
+
+
+class TestFindErrorMessages:
+    @pytest.mark.asyncio
+    async def test_returns_error_texts(self):
+        page = _FakePage(["Email is required", "Password too short"])
+        detector = OutcomeDetector()
+        errors = await detector.find_error_messages(page)
+        assert errors == ["Email is required", "Password too short"]
+
+    @pytest.mark.asyncio
+    async def test_filters_empty_strings(self):
+        page = _FakePage(["Error", "", "Another error"])
+        detector = OutcomeDetector()
+        errors = await detector.find_error_messages(page)
+        assert errors == ["Error", "Another error"]
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_exception(self):
+        class _ErrorPage:
+            async def evaluate(self, js, *args):
+                raise RuntimeError("Page crashed")
+
+        detector = OutcomeDetector()
+        errors = await detector.find_error_messages(_ErrorPage())
+        assert errors == []
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_when_no_errors(self):
+        page = _FakePage([])
+        detector = OutcomeDetector()
+        errors = await detector.find_error_messages(page)
+        assert errors == []

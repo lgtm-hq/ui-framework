@@ -343,6 +343,7 @@ def _action_to_playwright(action: Action, *, timeout: int = 5000) -> list[str]:
 
 def _generate_playwright_suite(result: ExplorationResult) -> str:
     """Generate a Playwright Test (JS/TS style) suite."""
+    _used_names.clear()
     start_url = result.config.get("start_url", "https://example.com")
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 

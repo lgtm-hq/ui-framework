@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from flowscout.discovery.actions import OutcomeType
+
+logger = logging.getLogger(__name__)
 
 # CSS selectors that indicate error states
 ERROR_SELECTORS = [
@@ -99,4 +103,5 @@ class OutcomeDetector:
             errors = await page.evaluate(FIND_ERRORS_JS, self.error_selectors)  # type: ignore[union-attr]
             return [e for e in errors if e]
         except Exception:
+            logger.debug("Error scanning for error messages", exc_info=True)
             return []

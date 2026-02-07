@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from flowscout.analysis.graph import ExplorationResult
 
@@ -93,6 +96,8 @@ CREATE INDEX IF NOT EXISTS idx_runs_start_url ON runs(start_url);
 """
 
 
+_KNOWN_TABLES = frozenset({"runs", "states", "actions", "results", "flows"})
+
 _MIGRATIONS: list[tuple[str, str, str]] = [
     ("results", "verdict", "ALTER TABLE results ADD COLUMN verdict TEXT DEFAULT ''"),
     (
@@ -133,6 +138,9 @@ class FlowscoutDB:
     def _apply_migrations(self) -> None:
         """Apply schema migrations (add columns if they don't exist)."""
         for table, column, sql in _MIGRATIONS:
+            if table not in _KNOWN_TABLES:
+                logger.warning("Skipping migration for unknown table: %s", table)
+                continue
             try:
                 cols = [
                     row[1]
@@ -143,7 +151,7 @@ class FlowscoutDB:
                 if column not in cols:
                     self._conn.execute(sql)  # type: ignore[union-attr]
             except Exception:
-                pass
+                logger.debug("Migration failed for %s.%s", table, column, exc_info=True)
 
     def close(self) -> None:
         if self._conn:
@@ -257,7 +265,7 @@ class FlowscoutDB:
                 try:
                     narrative_json = flow.narrative.model_dump_json()
                 except Exception:
-                    pass
+                    logger.debug("Failed to serialize narrative", exc_info=True)
 
             self.conn.execute(
                 """INSERT OR REPLACE INTO flows

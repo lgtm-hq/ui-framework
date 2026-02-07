@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import re
 from enum import StrEnum, auto
 from hashlib import md5
+
+logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel, Field
 
@@ -276,7 +279,7 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
         if a11y_snapshot:
             _enrich_from_a11y(elements, a11y_snapshot)
     except Exception:
-        pass  # Accessibility tree may not be available
+        logger.debug("Accessibility tree enrichment failed", exc_info=True)
 
     # Layer 3: Pattern detection — detect dropdown trigger/option relationships
     elements = _detect_dropdown_patterns(elements)
@@ -395,13 +398,17 @@ async def _discover_dropdown_options(
             try:
                 await page.keyboard.press("Escape")  # type: ignore[union-attr]
             except Exception:
+                logger.debug("Failed to close dropdown via Escape", exc_info=True)
                 try:
                     await page.click(trigger.selector, timeout=2000)  # type: ignore[union-attr]
                 except Exception:
-                    pass
+                    logger.debug("Failed to close dropdown by re-clicking", exc_info=True)
             await asyncio.sleep(0.2)
 
         except Exception:
+            logger.debug(
+                "Dropdown discovery failed for %s", trigger.selector, exc_info=True,
+            )
             continue
 
     return new_elements

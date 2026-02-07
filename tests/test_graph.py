@@ -110,7 +110,7 @@ class TestExplorationGraph:
 
         flows = graph.extract_flows()
         linear_flows = [f for f in flows if not f.is_cycle]
-        assert len(linear_flows) >= 1
+        assert len(linear_flows) == 1
         # Should have a flow from s1 to s3
         long_flow = [f for f in linear_flows if len(f.state_ids) == 3]
         assert len(long_flow) == 1

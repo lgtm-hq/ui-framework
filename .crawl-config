@@ -1,0 +1,20 @@
+# Crawl runtime defaults consumed by `ui-flow crawl` and `just crawl <site-url>`.
+# CLI flags always override values from this file.
+
+max_depth = 2
+max_states = 30
+max_actions_per_state = 15
+navigation_timeout_ms = 10000
+action_timeout_ms = 5000
+
+headless = true
+capture_screenshots = true
+persist_history = true
+
+output_dir = "reports"
+db_path = ".ui_flow/history.db"
+# screenshots_dir = "reports/screenshots"
+
+# Optional credentials for login scenario permutations:
+# username = "valid-user"
+# password = "valid-pass"

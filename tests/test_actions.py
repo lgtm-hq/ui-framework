@@ -1,9 +1,12 @@
 """Tests for action generation."""
 
+import json
+
 from flowscout.discovery.actions import (
     ActionType,
     build_action_id,
     generate_actions,
+    generate_form_submit_actions,
 )
 from flowscout.discovery.elements import ElementType, InteractiveElement
 
@@ -156,4 +159,114 @@ class TestEdgeCases:
         actions = generate_actions([elem])
         assert len(actions) == 1
         assert actions[0].intent is not None
-        assert actions[0].intent.intent_class is not None
+        assert actions[0].intent.intent_class == "navigate"
+        assert "navigate" in actions[0].intent.expected_effect.lower()
+
+
+class TestGenerateFormSubmitActions:
+    def test_groups_elements_by_form(self):
+        email = _make_elem(
+            element_id="e1",
+            element_type=ElementType.INPUT_EMAIL,
+            tag="input",
+            input_type="email",
+            name="email",
+            selector='#form input[name="email"]',
+            parent_form_selector="#form",
+        )
+        submit = _make_elem(
+            element_id="s1",
+            selector="#form button",
+            label="Submit",
+            parent_form_selector="#form",
+        )
+        actions = generate_form_submit_actions([email, submit])
+        assert len(actions) == 2
+        assert all(a.action_type == ActionType.SUBMIT_FORM for a in actions)
+
+    def test_field_values_contain_input_data(self):
+        email = _make_elem(
+            element_id="e1",
+            element_type=ElementType.INPUT_EMAIL,
+            tag="input",
+            input_type="email",
+            name="email",
+            selector='#f input[name="email"]',
+            parent_form_selector="#f",
+        )
+        submit = _make_elem(
+            element_id="s1",
+            selector="#f button",
+            label="Submit",
+            parent_form_selector="#f",
+        )
+        actions = generate_form_submit_actions([email, submit])
+        fields = json.loads(actions[0].metadata["field_values_json"])
+        assert '#f input[name="email"]' in fields
+        assert "@" in fields['#f input[name="email"]']
+
+    def test_invalid_submission_empties_required(self):
+        email = _make_elem(
+            element_id="e1",
+            element_type=ElementType.INPUT_EMAIL,
+            tag="input",
+            input_type="email",
+            name="email",
+            selector='#f input[name="email"]',
+            parent_form_selector="#f",
+            is_required=True,
+        )
+        submit = _make_elem(
+            element_id="s1",
+            selector="#f button",
+            label="Submit",
+            parent_form_selector="#f",
+        )
+        actions = generate_form_submit_actions([email, submit])
+        invalid = [a for a in actions if a.metadata.get("scenario") == "invalid"]
+        assert len(invalid) == 1
+        fields = json.loads(invalid[0].metadata["field_values_json"])
+        assert fields['#f input[name="email"]'] == ""
+
+    def test_no_elements_returns_empty(self):
+        assert generate_form_submit_actions([]) == []
+
+    def test_form_without_explicit_submit(self):
+        email = _make_elem(
+            element_id="e1",
+            element_type=ElementType.INPUT_EMAIL,
+            tag="input",
+            input_type="email",
+            name="email",
+            selector='#f input[name="email"]',
+            parent_form_selector="#f",
+        )
+        btn = _make_elem(
+            element_id="b1",
+            selector="#f button",
+            label="Go",
+            parent_form_selector="#f",
+        )
+        actions = generate_form_submit_actions([email, btn])
+        assert len(actions) >= 1
+
+    def test_intent_is_submit(self):
+        email = _make_elem(
+            element_id="e1",
+            element_type=ElementType.INPUT_EMAIL,
+            tag="input",
+            input_type="email",
+            name="email",
+            selector='#f input[name="email"]',
+            parent_form_selector="#f",
+        )
+        submit = _make_elem(
+            element_id="s1",
+            selector="#f button",
+            label="Submit",
+            parent_form_selector="#f",
+        )
+        actions = generate_form_submit_actions([email, submit])
+        for action in actions:
+            assert action.intent is not None
+            assert action.intent.intent_class == "submit"

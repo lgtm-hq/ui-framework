@@ -67,6 +67,9 @@ class TestGenerateFeatureFile:
             generate_feature_file(_make_result([flow]), path)
             content = Path(path).read_text()
             assert content.startswith("Feature:")
+            scenario_lines = [l for l in content.split("\n") if "Scenario:" in l]
+            assert len(scenario_lines) >= 1
+            assert scenario_lines[0].startswith("  Scenario:")
 
 
 class TestGenerateMarkdownReport:

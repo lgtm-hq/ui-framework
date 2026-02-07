@@ -25,6 +25,8 @@ class NarrativeStep(BaseModel):
     verdict: Verdict | None = None
     gherkin_when: str = ""
     gherkin_then: str = ""
+    target_selector: str = ""
+    element_type: str = ""
 
 
 class FlowNarrative(BaseModel):
@@ -35,6 +37,44 @@ class FlowNarrative(BaseModel):
     steps: list[NarrativeStep] = Field(default_factory=list)
     conclusion: str = ""
     gherkin: str = ""
+
+
+def _is_css_selector(text: str) -> bool:
+    """Detect if text looks like a CSS selector rather than a human label."""
+    indicators = (
+        " > ",
+        "nth-of-type",
+        "nth-child",
+        "#__",
+        "div >",
+        "header >",
+        "form >",
+        ":nth-",
+        "[data-",
+        "div:nth",
+        "span:nth",
+    )
+    return any(ind in text for ind in indicators)
+
+
+def _humanize(text: str) -> str:
+    """Replace CSS selector fragments in text with clean descriptions."""
+    if not _is_css_selector(text):
+        return text
+    import re
+
+    # "Submit the <selector> form and process the data"
+    if "form and process the data" in text:
+        return "Submit the form and process the data"
+    # "Form should display validation errors..."
+    if "should display validation errors" in text:
+        return "Form should display validation errors for invalid/missing input"
+    # Generic: replace selector-like fragments
+    return re.sub(
+        r"[#.]?[\w-]*(?:\s*>\s*[\w.#:\[\]=\"-]+)+",
+        "the element",
+        text,
+    ).strip()
 
 
 class NarrativeGenerator:
@@ -53,11 +93,16 @@ class NarrativeGenerator:
     ) -> NarrativeStep:
         """Generate a narrative for a single action step."""
         desc = self._action_description(action, result)
-        expected = intent.expected_effect if intent else ""
+        expected = _humanize(intent.expected_effect) if intent else ""
         actual = self._outcome_description(result, target_state)
 
         gherkin_when = self._gherkin_when(action)
         gherkin_then = self._gherkin_then(result, target_state)
+
+        # Determine element type from metadata or action type
+        elem_type = action.metadata.get("element_type", "")
+        if not elem_type and action.intent:
+            elem_type = action.intent.intent_class.value
 
         return NarrativeStep(
             step_number=step_number,
@@ -67,6 +112,8 @@ class NarrativeGenerator:
             verdict=step_verdict.verdict if step_verdict else None,
             gherkin_when=gherkin_when,
             gherkin_then=gherkin_then,
+            target_selector=action.target_selector,
+            element_type=elem_type,
         )
 
     def narrate_flow(
@@ -152,7 +199,7 @@ class NarrativeGenerator:
 
     @staticmethod
     def _clean_label(action: Action) -> str:
-        """Get the element label, stripping the action-type prefix."""
+        """Get the element label, stripping the action-type prefix and selectors."""
         label = action.label
         prefixes = (
             "Click: ",
@@ -160,12 +207,25 @@ class NarrativeGenerator:
             "Select ",
             "Check: ",
             "Uncheck: ",
+            "Submit form (invalid): ",
+            "Submit form: ",
             "Submit: ",
             "Hover: ",
+            "Open dropdown: ",
+            "Select option: ",
+            "Select radio: ",
+            "Tab: ",
+            "Toggle: ",
         )
         for prefix in prefixes:
             if label.startswith(prefix):
-                return label[len(prefix) :]
+                label = label[len(prefix) :]
+                break
+        # If the result is a CSS selector, try the intent target description
+        if _is_css_selector(label) and action.intent:
+            target = action.intent.target_description
+            if target and not _is_css_selector(target):
+                return target
         return label
 
     @staticmethod
@@ -186,26 +246,40 @@ class NarrativeGenerator:
     def _action_description(self, action: Action, result: ActionResult) -> str:
         """Generate a context-aware plain-English action description."""
         label = self._clean_label(action)
+        # Final safety: if label still looks like a selector, use generic text
+        if _is_css_selector(label):
+            label = action.intent.target_description if action.intent else "the element"
+            if _is_css_selector(label):
+                label = "the element"
         match action.action_type:
             case ActionType.CLICK:
                 return self._describe_click(action, label)
             case ActionType.FILL:
-                return f"Enter '{action.value}' into the {label} field"
+                return f"Enter '{action.value}' into the '{label}' field"
             case ActionType.SELECT_OPTION:
-                return f"Select '{action.value}' from the {label} dropdown"
+                return f"Select '{action.value}' from the '{label}' dropdown"
             case ActionType.CHECK:
-                return f"Check the {label} checkbox"
+                return f"Check the '{label}' checkbox"
             case ActionType.UNCHECK:
-                return f"Uncheck the {label} checkbox"
+                return f"Uncheck the '{label}' checkbox"
             case ActionType.SUBMIT_FORM:
-                return f"Submit the form by clicking '{label}'"
+                return self._describe_submit(action, label)
             case ActionType.HOVER:
-                return f"Hover over the '{label}' element"
+                return f"Hover over '{label}'"
             case ActionType.PRESS_KEY:
                 return f"Press the '{action.value}' key"
             case ActionType.NAVIGATE:
                 return f"Navigate directly to {action.value}"
-        return f"Perform {action.action_type.value} on {label}"
+        return f"Perform {action.action_type.value} on '{label}'"
+
+    def _describe_submit(self, action: Action, label: str) -> str:
+        """Generate a context-aware description for form submission."""
+        scenario = action.metadata.get("scenario", "")
+        if scenario == "invalid":
+            return "Submit the form with invalid data"
+        if label and label != "the element":
+            return f"Submit the form via '{label}'"
+        return "Submit the form"
 
     def _describe_click(self, action: Action, label: str) -> str:
         """Generate a context-aware description for a click action."""
