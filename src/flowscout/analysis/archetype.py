@@ -9,8 +9,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from flowscout.discovery.elements import ElementType
-
 
 class PageArchetype(StrEnum):
     LISTING = auto()

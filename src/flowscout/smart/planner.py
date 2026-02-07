@@ -80,7 +80,7 @@ class SmartPlanner:
         self._analyses[state.state_id] = analysis
 
         # Register archetype
-        is_novel = self.registry.register(state.state_id, analysis, url=state.url)
+        self.registry.register(state.state_id, analysis, url=state.url)
 
         # Track coverage
         self.coverage.record_archetype(
@@ -193,3 +193,7 @@ class SmartPlanner:
             if sig and sig not in catalogs:
                 catalogs[sig] = analysis.catalog.model_dump()
         return catalogs
+
+    def get_all_analyses(self) -> dict[str, Any]:
+        """Return all analyses as serializable dicts, keyed by state_id."""
+        return {sid: a.model_dump() for sid, a in self._analyses.items()}

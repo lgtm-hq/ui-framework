@@ -260,6 +260,43 @@ async def _run_exploration(
             generate_markdown_report(result, md_path)
             console.print(f"  [green]Narrative report:[/green] {md_path}")
 
+        # Build site model (when smart mode data is available)
+        if config.smart_mode and result.smart_analyses:
+            from flowscout.analysis.archetype import PageAnalysis
+            from flowscout.analysis.site_model import SiteModelBuilder
+
+            analyses = {
+                sid: PageAnalysis.model_validate(data)
+                for sid, data in result.smart_analyses.items()
+            }
+
+            builder = SiteModelBuilder()
+            site_model = builder.build(result, analyses)
+
+            # Save site model JSON
+            model_path = str(run_dir / "site_model.json")
+            Path(model_path).write_text(site_model.model_dump_json(indent=2))
+            console.print(f"  [green]Site model saved:[/green] {model_path}")
+
+            # Print site model summary
+            terminal.print_site_model_summary(site_model)
+
+            # Generate scenario-based tests (POMs are a prerequisite)
+            if generate_tests and result.page_catalogs:
+                from flowscout.codegen.scenario_tests import generate_scenario_tests
+
+                scenario_ext = ".py" if test_framework == "pytest" else ".spec.ts"
+                scenario_test_path = str(run_dir / f"scenario_tests{scenario_ext}")
+                generate_scenario_tests(
+                    site_model,
+                    scenario_test_path,
+                    framework=test_framework,
+                    base_url=config.start_url,
+                )
+                console.print(
+                    f"  [green]Scenario tests generated:[/green] {scenario_test_path}"
+                )
+
         # Print smart mode summary
         if config.smart_mode and result.archetypes:
             console.print("\n  [bold magenta]Smart Mode Summary[/bold magenta]")
@@ -434,10 +471,63 @@ def reliability(url: str, db_path: str) -> None:
     default="pytest",
     help="Test framework (pytest, playwright, or bdd for Gherkin output).",
 )
-def generate(json_path: str, output: str | None, framework: str) -> None:
+@click.option(
+    "--site-model",
+    is_flag=True,
+    help="Generate site model and scenario tests from result.",
+)
+def generate(
+    json_path: str, output: str | None, framework: str, site_model: bool,
+) -> None:
     """Generate test suite from a JSON exploration result."""
     data = json.loads(Path(json_path).read_text())
     result = ExplorationResult.model_validate(data)
+
+    if site_model and result.smart_analyses:
+        from flowscout.analysis.archetype import PageAnalysis
+        from flowscout.analysis.site_model import SiteModelBuilder
+        from flowscout.codegen.scenario_tests import generate_scenario_tests
+        from flowscout.reporting.terminal import TerminalReporter
+
+        analyses = {
+            sid: PageAnalysis.model_validate(d)
+            for sid, d in result.smart_analyses.items()
+        }
+        builder = SiteModelBuilder()
+        model = builder.build(result, analyses)
+
+        # Save site model
+        model_output = json_path.replace(".json", "_site_model.json")
+        Path(model_output).write_text(model.model_dump_json(indent=2))
+        console.print(f"  [green]Site model generated:[/green] {model_output}")
+
+        # Print summary
+        terminal = TerminalReporter()
+        terminal.print_site_model_summary(model)
+
+        # Generate scenario tests
+        test_framework = "pytest" if framework != "playwright" else "playwright"
+        ext = ".py" if test_framework == "pytest" else ".spec.ts"
+        test_output = output or json_path.replace(".json", f"_scenario_tests{ext}")
+        generate_scenario_tests(
+            model, test_output, framework=test_framework, base_url=result.config.get("start_url", ""),
+        )
+        console.print(f"  [green]Scenario tests generated:[/green] {test_output}")
+
+        # Also generate POMs if catalogs available
+        if result.page_catalogs:
+            from flowscout.codegen.page_objects import generate_page_objects
+
+            pom_dir = str(Path(json_path).parent / "pages")
+            pom_paths = generate_page_objects(
+                result.page_catalogs, pom_dir, framework=test_framework,
+                base_url=result.config.get("start_url", ""),
+            )
+            if pom_paths:
+                console.print(
+                    f"  [green]POM classes generated:[/green] {len(pom_paths)} files in {pom_dir}"
+                )
+        return
 
     if framework == "bdd":
         from flowscout.codegen.bdd import generate_feature_file

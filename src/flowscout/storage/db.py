@@ -8,9 +8,9 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 from flowscout.analysis.graph import ExplorationResult
+
+logger = logging.getLogger(__name__)
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (

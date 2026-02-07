@@ -12,6 +12,7 @@ from rich.text import Text
 if TYPE_CHECKING:
     from flowscout.analysis.expectations import ExpectationResult
     from flowscout.analysis.graph import ExplorationResult
+    from flowscout.analysis.site_model import SiteModel
     from flowscout.core.state import ExplorerConfig, PageState
     from flowscout.discovery.actions import Action, ActionResult
 
@@ -242,3 +243,92 @@ class TerminalReporter:
                 self.console.print(
                     f"  [dim]... and {len(result.flows) - 20} more flows[/dim]"
                 )
+
+    def print_site_model_summary(self, model: SiteModel) -> None:
+        """Print a site model summary to the terminal."""
+        from flowscout.smart.scenarios import FlowScenario
+
+        self.console.print()
+        self.console.print(
+            Panel(
+                f"[bold]{model.summary.total_page_types}[/bold] page types  |  "
+                f"[bold]{model.summary.total_navigation_edges}[/bold] edges  |  "
+                f"[bold]{model.summary.total_scenarios}[/bold] scenarios",
+                title="[bold cyan]Site Model[/bold cyan]",
+                border_style="magenta",
+            )
+        )
+
+        # Page types table
+        pt_table = Table(title="Page Types", border_style="magenta")
+        pt_table.add_column("Name", style="bold")
+        pt_table.add_column("Archetype")
+        pt_table.add_column("Instances", justify="right")
+        pt_table.add_column("URL Pattern", max_width=50)
+        pt_table.add_column("Features")
+
+        for pt in model.page_types:
+            pt_table.add_row(
+                pt.name,
+                pt.archetype.value,
+                str(pt.instance_count),
+                pt.url_pattern[:50] if pt.url_pattern else "-",
+                ", ".join(sorted(pt.features)) if pt.features else "-",
+            )
+        self.console.print(pt_table)
+
+        # Navigation edges table
+        if model.navigation_edges:
+            nav_table = Table(title="Navigation Map", border_style="magenta")
+            nav_table.add_column("From")
+            nav_table.add_column("To")
+            nav_table.add_column("Trigger", max_width=40)
+            nav_table.add_column("Count", justify="right")
+
+            pt_names = {pt.page_type_id: pt.name for pt in model.page_types}
+
+            for edge in model.navigation_edges:
+                from_name = pt_names.get(edge.from_page_type, edge.from_page_type[:8])
+                to_name = pt_names.get(edge.to_page_type, edge.to_page_type[:8])
+                nav_table.add_row(
+                    from_name,
+                    to_name,
+                    edge.trigger[:40],
+                    str(edge.occurrence_count),
+                )
+            self.console.print(nav_table)
+
+        # Scenarios table
+        if model.test_scenarios:
+            sc_table = Table(title="Test Scenarios", border_style="green")
+            sc_table.add_column("#", width=4)
+            sc_table.add_column("Name", style="bold")
+            sc_table.add_column("Priority", width=12)
+            sc_table.add_column("Steps", justify="right", width=6)
+            sc_table.add_column("Tags")
+
+            for i, scenario_data in enumerate(model.test_scenarios, 1):
+                sc = (
+                    scenario_data
+                    if isinstance(scenario_data, FlowScenario)
+                    else FlowScenario.model_validate(scenario_data)
+                )
+                priority_style = {
+                    "critical": "red",
+                    "important": "yellow",
+                    "nice-to-have": "dim",
+                }.get(sc.priority, "white")
+                sc_table.add_row(
+                    str(i),
+                    sc.name,
+                    Text(sc.priority, style=priority_style),
+                    str(len(sc.steps)),
+                    ", ".join(sc.tags),
+                )
+            self.console.print(sc_table)
+
+        # Coverage notes
+        if model.summary.coverage_notes:
+            self.console.print()
+            for note in model.summary.coverage_notes:
+                self.console.print(f"  [dim]{note}[/dim]")

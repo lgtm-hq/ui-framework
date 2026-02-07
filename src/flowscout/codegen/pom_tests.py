@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from flowscout.analysis.archetype import PageArchetype, PageCatalog, ZoneType
-from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.analysis.graph import ExplorationResult
 from flowscout.codegen.page_objects import (
     _catalog_to_class_name,
     _parse_catalog,
@@ -126,7 +126,7 @@ def _add_listing_tests(
         f'    """{class_name}: page loads with content."""',
         f"    {var_name} = {class_name}(page)",
         f"    {var_name}.navigate()",
-        f"    expect(page).to_have_url(page.url)",
+        "    expect(page).to_have_url(page.url)",
         "",
         "",
     ])
@@ -163,7 +163,7 @@ def _add_detail_tests(
         f'    """{class_name}: detail page has expected content."""',
         f"    {var_name} = {class_name}(page)",
         f"    {var_name}.navigate()",
-        f"    expect(page).to_have_url(page.url)",
+        "    expect(page).to_have_url(page.url)",
         "",
         "",
     ])
@@ -235,12 +235,12 @@ def _add_navigation_test(
 
         lines.extend([
             f"def {func_name}(page: Page) -> None:",
-            f'    """Navigate from listing to detail page."""',
+            '    """Navigate from listing to detail page."""',
             f"    {listing_var} = {listing_class}(page)",
             f"    {listing_var}.navigate()",
             f"    {listing_var}.select_item(0)",
             f"    {detail_var} = {detail_class}(page)",
-            f"    expect(page).to_have_url(page.url)",
+            "    expect(page).to_have_url(page.url)",
             "",
             "",
         ])
@@ -277,7 +277,7 @@ def _generate_playwright_pom_tests(
         pom_info[sig] = (class_name, module_name)
 
     lines: list[str] = [
-        f"// Auto-generated POM-based Playwright tests",
+        "// Auto-generated POM-based Playwright tests",
         f"// Source: {start_url}",
         f"// Generated: {timestamp}",
         "",
@@ -299,19 +299,19 @@ def _generate_playwright_pom_tests(
 
         if archetype == PageArchetype.LISTING:
             lines.extend([
-                f"  test('loads content', async ({{ page }}) => {{",
+                "  test('loads content', async ({ page }) => {",
                 f"    const listing = new {class_name}(page);",
-                f"    await listing.navigate();",
-                f"    await expect(page).toHaveURL(page.url());",
-                f"  }});",
+                "    await listing.navigate();",
+                "    await expect(page).toHaveURL(page.url());",
+                "  });",
             ])
         elif archetype == PageArchetype.DETAIL:
             lines.extend([
-                f"  test('has expected content', async ({{ page }}) => {{",
+                "  test('has expected content', async ({ page }) => {",
                 f"    const detail = new {class_name}(page);",
-                f"    await detail.navigate();",
-                f"    await expect(page).toHaveURL(page.url());",
-                f"  }});",
+                "    await detail.navigate();",
+                "    await expect(page).toHaveURL(page.url());",
+                "  });",
             ])
 
         lines.extend(["});", ""])

@@ -8,10 +8,9 @@ import logging
 import time
 from hashlib import sha256
 
-logger = logging.getLogger(__name__)
-
 from playwright.async_api import Page, async_playwright, Browser, BrowserContext
 
+from flowscout.analysis.detector import OutcomeDetector
 from flowscout.core.state import (
     ExplorerConfig,
     FingerprintConfig,
@@ -20,8 +19,9 @@ from flowscout.core.state import (
     make_state_id,
 )
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
-from flowscout.analysis.detector import OutcomeDetector
 from flowscout.js import load_script
+
+logger = logging.getLogger(__name__)
 
 DOM_STRUCTURE_JS = load_script("dom_structure")
 VISIBLE_TEXT_JS = load_script("visible_text")

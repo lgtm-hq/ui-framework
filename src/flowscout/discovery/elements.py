@@ -8,9 +8,11 @@ import re
 from enum import StrEnum, auto
 from hashlib import md5
 
-logger = logging.getLogger(__name__)
-
 from pydantic import BaseModel, Field
+
+from flowscout.js import load_script
+
+logger = logging.getLogger(__name__)
 
 _CSS_BLOCK_RE = re.compile(r"\.[a-zA-Z0-9_-]+(?::[\w-]+)?\s*\{[^}]*\}")
 _BRACE_RE = re.compile(r"\{[^}]*\}")
@@ -222,8 +224,6 @@ def compute_priority(element: InteractiveElement, base_url: str = "") -> int:
 
     return 55
 
-
-from flowscout.js import load_script
 
 DISCOVERY_JS = load_script("discovery")
 KEYBOARD_HINTS_JS = load_script("keyboard_hints")

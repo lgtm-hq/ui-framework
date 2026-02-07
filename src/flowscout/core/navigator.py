@@ -8,8 +8,6 @@ import time
 from collections import defaultdict
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
-
 from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
 from flowscout.analysis.narrative import NarrativeGenerator
 from flowscout.analysis.verdict import VerdictComputer
@@ -25,6 +23,8 @@ from flowscout.discovery.actions import (
 )
 from flowscout.discovery.elements import discover_elements
 from flowscout.reporting.terminal import TerminalReporter
+
+logger = logging.getLogger(__name__)
 
 # Lazy import for smart planner (only needed in smart mode)
 SmartPlanner = None  # type: ignore[assignment]
@@ -211,6 +211,7 @@ class Navigator:
             result.page_catalogs = self._smart_planner.get_all_catalogs()
             result.coverage = self._smart_planner.coverage.summary()
             result.archetypes = self._smart_planner.registry.archetype_distribution()
+            result.smart_analyses = self._smart_planner.get_all_analyses()
 
         self.terminal.print_summary(result)
         return result

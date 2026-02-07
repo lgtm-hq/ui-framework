@@ -50,6 +50,7 @@ class ExplorationResult(BaseModel):
     page_catalogs: dict[str, Any] = Field(default_factory=dict)
     coverage: dict = Field(default_factory=dict)
     archetypes: dict = Field(default_factory=dict)
+    smart_analyses: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExplorationGraph:
