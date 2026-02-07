@@ -6,9 +6,11 @@ import asyncio
 import json
 import logging
 import os
+import re
 import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 import click
 from rich.console import Console
@@ -135,6 +137,46 @@ def explore(
     )
 
 
+def _build_output_dirs(
+    config: ExplorerConfig,
+    now: datetime,
+    *,
+    smart_workspace: bool = False,
+) -> tuple[Path, Path | None]:
+    """Build output directory paths.
+
+    Args:
+        config: Explorer configuration (provides output_dir and start_url).
+        now: Current timestamp for directory naming.
+        smart_workspace: If True, organize by site domain with per-run subdirs.
+
+    Returns:
+        (run_dir, workspace_dir_or_none)
+    """
+    base = Path(config.output_dir)
+
+    if smart_workspace:
+        # Extract and sanitize domain for filesystem use
+        netloc = urlparse(config.start_url).netloc or "unknown"
+        domain = re.sub(r"[^\w.\-]", "_", netloc)
+        workspace = base / domain
+        timestamp = now.strftime("%Y-%m-%d_%H.%M.%S")
+        run_dir = workspace / "runs" / timestamp
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return run_dir, workspace
+
+    # Legacy hierarchical layout
+    run_dir = (
+        base
+        / now.strftime("%Y")
+        / now.strftime("%m.%B")
+        / now.strftime("%d-%m-%Y")
+        / now.strftime("%H.%M.%S")
+    )
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return run_dir, None
+
+
 async def _run_exploration(
     config: ExplorerConfig,
     *,
@@ -179,16 +221,10 @@ async def _run_exploration(
         result = await navigator.explore(config.start_url)
 
         now = datetime.now(timezone.utc)
-        # Build hierarchical report directory:
-        # reports/<year>/<month-no>.<month-name>/<dd-mm-yyyy>/<hh.mm.ss>/
-        run_dir = (
-            Path(config.output_dir)
-            / now.strftime("%Y")
-            / now.strftime("%m.%B")
-            / now.strftime("%d-%m-%Y")
-            / now.strftime("%H.%M.%S")
+        use_smart_workspace = config.smart_mode and generate_tests
+        run_dir, workspace_dir = _build_output_dirs(
+            config, now, smart_workspace=use_smart_workspace,
         )
-        run_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate HTML report
         report_path = str(run_dir / "report.html")
@@ -222,7 +258,7 @@ async def _run_exploration(
             from flowscout.codegen.page_objects import generate_page_objects
             from flowscout.codegen.pom_tests import generate_pom_tests
 
-            pom_dir = str(run_dir / "pages")
+            pom_dir = str((workspace_dir or run_dir) / "pages")
             pom_paths = generate_page_objects(
                 result.page_catalogs,
                 pom_dir,
@@ -286,7 +322,9 @@ async def _run_exploration(
                 from flowscout.codegen.scenario_tests import generate_scenario_tests
 
                 scenario_ext = ".py" if test_framework == "pytest" else ".spec.ts"
-                scenario_test_path = str(run_dir / f"scenario_tests{scenario_ext}")
+                scenario_test_path = str(
+                    (workspace_dir or run_dir) / f"scenario_tests{scenario_ext}"
+                )
                 generate_scenario_tests(
                     site_model,
                     scenario_test_path,
@@ -296,6 +334,16 @@ async def _run_exploration(
                 console.print(
                     f"  [green]Scenario tests generated:[/green] {scenario_test_path}"
                 )
+
+        # Update workspace symlink and print workspace path
+        if workspace_dir:
+            latest_link = workspace_dir / "latest"
+            if latest_link.is_symlink() or latest_link.exists():
+                latest_link.unlink()
+            latest_link.symlink_to(run_dir.resolve(), target_is_directory=True)
+            console.print(
+                f"\n  [bold cyan]Workspace:[/bold cyan] {workspace_dir}"
+            )
 
         # Print smart mode summary
         if config.smart_mode and result.archetypes:

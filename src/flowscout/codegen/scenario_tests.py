@@ -7,8 +7,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from flowscout.analysis.archetype import CatalogEntry, PageArchetype, ZoneType
 from flowscout.analysis.site_model import SiteModel
-from flowscout.codegen.page_objects import _catalog_to_class_name
+from flowscout.codegen.page_objects import (
+    _catalog_to_class_name,
+    _group_by_zone,
+    _selector_to_property_name,
+)
 from flowscout.smart.scenarios import FlowScenario
 
 
@@ -100,6 +105,297 @@ def _sanitize_test_name(text: str) -> str:
     clean = re.sub(r"\s+", "_", clean.strip())
     clean = re.sub(r"_+", "_", clean).strip("_")
     return clean[:60]
+
+
+# ---------------------------------------------------------------------------
+# Catalog → POM property mapping
+# ---------------------------------------------------------------------------
+
+
+def _catalog_property_map(
+    catalog: Any,
+) -> dict[ZoneType, list[tuple[CatalogEntry, str]]]:
+    """Build ZoneType → [(CatalogEntry, property_name)] using the same
+    deduplication logic as page_objects.py so property names match POM classes."""
+    from flowscout.analysis.archetype import PageCatalog
+
+    if isinstance(catalog, dict):
+        catalog = PageCatalog.model_validate(catalog)
+    if not hasattr(catalog, "entries") or not catalog.entries:
+        return {}
+
+    grouped = _group_by_zone(catalog.entries)
+    result: dict[ZoneType, list[tuple[CatalogEntry, str]]] = {}
+    seen_names: set[str] = set()
+
+    # Iterate in the same ZoneType order as page_objects._generate_python_pom
+    for zone_type in ZoneType:
+        zone_entries = grouped.get(zone_type, [])
+        if not zone_entries:
+            continue
+        zone_list: list[tuple[CatalogEntry, str]] = []
+        for entry in zone_entries:
+            prop_name = _selector_to_property_name(
+                entry.selector, entry.semantic_name or entry.label, entry.tag,
+            )
+            if prop_name in seen_names:
+                i = 2
+                while f"{prop_name}_{i}" in seen_names:
+                    i += 1
+                prop_name = f"{prop_name}_{i}"
+            seen_names.add(prop_name)
+            zone_list.append((entry, prop_name))
+        result[zone_type] = zone_list
+
+    return result
+
+
+def _find_pom_property(
+    prop_map: dict[ZoneType, list[tuple[CatalogEntry, str]]],
+    zone_type: ZoneType,
+    element_type_prefix: str | None = None,
+) -> str | None:
+    """Find the first POM property name for a given zone and optional element type filter."""
+    entries = prop_map.get(zone_type, [])
+    for entry, prop_name in entries:
+        if element_type_prefix is None:
+            return prop_name
+        if entry.element_type.startswith(element_type_prefix):
+            return prop_name
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Pytest assertion emission
+# ---------------------------------------------------------------------------
+
+
+def _emit_pytest_verification(
+    lines: list[str],
+    template: str,
+    pom: _PomInfo | None,
+    pt: Any,
+    prop_map: dict[ZoneType, list[tuple[CatalogEntry, str]]],
+    indent: str = "        ",
+) -> None:
+    """Emit real pytest assertions based on scenario template and page archetype."""
+    var = pom.var_name if pom else None
+    archetype = pt.archetype if pt and hasattr(pt, "archetype") else None
+    url_pattern = pt.url_pattern if pt and hasattr(pt, "url_pattern") else None
+
+    if template == "load_verify":
+        # Title assertion always
+        lines.append(f'{indent}expect(page).to_have_title(re.compile(r".+"))')
+
+        if archetype == PageArchetype.LISTING:
+            prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+            if prop and var:
+                lines.append(f"{indent}expect({var}.{prop}.first).to_be_visible()")
+                return
+        elif archetype == PageArchetype.DETAIL:
+            prop = _find_pom_property(prop_map, ZoneType.HEADER) or _find_pom_property(
+                prop_map, ZoneType.MAIN_CONTENT,
+            )
+            if prop and var:
+                lines.append(f"{indent}expect({var}.{prop}).to_be_visible()")
+                return
+        elif archetype == PageArchetype.FORM:
+            prop = _find_pom_property(prop_map, ZoneType.FORM, "input")
+            if prop and var:
+                lines.append(f"{indent}expect({var}.{prop}).to_be_visible()")
+                return
+        elif archetype == PageArchetype.SEARCH_RESULTS:
+            prop = _find_pom_property(prop_map, ZoneType.SEARCH, "input")
+            if prop and var:
+                lines.append(f"{indent}expect({var}.{prop}).to_be_visible()")
+                return
+
+        # Fallback: URL assertion or comment
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        else:
+            lines.append(f"{indent}# Verify: page content loaded")
+
+    elif template == "browse_detail":
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        prop = (
+            _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+            or _find_pom_property(prop_map, ZoneType.HEADER)
+        )
+        if prop and var:
+            lines.append(f"{indent}expect({var}.{prop}).to_be_visible()")
+        elif not url_pattern:
+            lines.append(f"{indent}# Verify: detail content is visible")
+
+    elif template == "search":
+        prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+        if prop and var:
+            lines.append(f"{indent}expect({var}.{prop}.first).to_be_visible()")
+        elif url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        else:
+            lines.append(f"{indent}# Verify: search results are displayed")
+
+    elif template == "pagination":
+        prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+        if prop and var:
+            lines.append(f"{indent}expect({var}.{prop}.first).to_be_visible()")
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        if not prop and not url_pattern:
+            lines.append(f"{indent}# Verify: content has changed")
+
+    elif template == "filter":
+        prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+        if prop and var:
+            lines.append(f"{indent}expect({var}.{prop}.first).to_be_visible()")
+        elif url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        else:
+            lines.append(f"{indent}# Verify: filtered content is displayed")
+
+    elif template == "form_submit":
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        else:
+            lines.append(f"{indent}# Verify: form submitted successfully")
+
+    elif template == "round_trip":
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        else:
+            lines.append(f"{indent}# Verify: returned to original page")
+
+    else:
+        # Unknown template — fall back
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
+        else:
+            lines.append(f"{indent}# Verify: expected outcome")
+
+
+# ---------------------------------------------------------------------------
+# TypeScript assertion emission
+# ---------------------------------------------------------------------------
+
+
+def _emit_ts_verification(
+    lines: list[str],
+    template: str,
+    pom: _PomInfo | None,
+    pt: Any,
+    prop_map: dict[ZoneType, list[tuple[CatalogEntry, str]]],
+    indent: str = "    ",
+) -> None:
+    """Emit real TypeScript assertions based on scenario template and page archetype."""
+    var = pom.var_name if pom else None
+    archetype = pt.archetype if pt and hasattr(pt, "archetype") else None
+    url_pattern = pt.url_pattern if pt and hasattr(pt, "url_pattern") else None
+
+    if template == "load_verify":
+        lines.append(f"{indent}await expect(page).toHaveTitle(/.+/);")
+
+        if archetype == PageArchetype.LISTING:
+            prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+            if prop and var:
+                lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
+                return
+        elif archetype == PageArchetype.DETAIL:
+            prop = _find_pom_property(prop_map, ZoneType.HEADER) or _find_pom_property(
+                prop_map, ZoneType.MAIN_CONTENT,
+            )
+            if prop and var:
+                lines.append(f"{indent}await expect({var}.{prop}).toBeVisible();")
+                return
+        elif archetype == PageArchetype.FORM:
+            prop = _find_pom_property(prop_map, ZoneType.FORM, "input")
+            if prop and var:
+                lines.append(f"{indent}await expect({var}.{prop}).toBeVisible();")
+                return
+        elif archetype == PageArchetype.SEARCH_RESULTS:
+            prop = _find_pom_property(prop_map, ZoneType.SEARCH, "input")
+            if prop and var:
+                lines.append(f"{indent}await expect({var}.{prop}).toBeVisible();")
+                return
+
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        else:
+            lines.append(f"{indent}// Verify: page content loaded")
+
+    elif template == "browse_detail":
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        prop = (
+            _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+            or _find_pom_property(prop_map, ZoneType.HEADER)
+        )
+        if prop and var:
+            lines.append(f"{indent}await expect({var}.{prop}).toBeVisible();")
+        elif not url_pattern:
+            lines.append(f"{indent}// Verify: detail content is visible")
+
+    elif template == "search":
+        prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+        if prop and var:
+            lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
+        elif url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        else:
+            lines.append(f"{indent}// Verify: search results are displayed")
+
+    elif template == "pagination":
+        prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+        if prop and var:
+            lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        if not prop and not url_pattern:
+            lines.append(f"{indent}// Verify: content has changed")
+
+    elif template == "filter":
+        prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
+        if prop and var:
+            lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
+        elif url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        else:
+            lines.append(f"{indent}// Verify: filtered content is displayed")
+
+    elif template == "form_submit":
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        else:
+            lines.append(f"{indent}// Verify: form submitted successfully")
+
+    elif template == "round_trip":
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        else:
+            lines.append(f"{indent}// Verify: returned to original page")
+
+    else:
+        if url_pattern and var:
+            pattern = url_pattern.replace("\\", "\\\\")
+            lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
+        else:
+            lines.append(f"{indent}// Verify: expected outcome")
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +499,15 @@ def _generate_pytest_steps(
     """Generate pytest step code for a scenario."""
     instantiated: set[str] = set()
 
+    # Pre-compute property maps for all page types referenced by this scenario
+    prop_maps: dict[str, dict[ZoneType, list[tuple[CatalogEntry, str]]]] = {}
+    for step in scenario.steps:
+        pt = pt_map.get(step.page_type)
+        if pt and hasattr(pt, "catalog") and step.page_type not in prop_maps:
+            prop_maps[step.page_type] = _catalog_property_map(pt.catalog)
+
+    template = scenario.template or "general"
+
     for step in scenario.steps:
         pom = pom_map.get(step.page_type)
         pt = pt_map.get(step.page_type)
@@ -265,21 +570,16 @@ def _generate_pytest_steps(
             )
 
         elif step.action_type is None and step.expected_outcome:
-            # Verification step
-            if pom and pom.var_name in instantiated:
-                if pt and pt.url_pattern:
-                    pattern = pt.url_pattern.replace("\\", "\\\\")
-                    lines.append(
-                        f'        expect(page).to_have_url(re.compile(r"{pattern}"))'
-                    )
-                else:
-                    lines.append(
-                        f"        # Verify: {step.expected_outcome}"
-                    )
-            else:
+            # Verification step — ensure POM is instantiated if needed
+            if pom and pom.var_name not in instantiated:
                 lines.append(
-                    f"        # Verify: {step.expected_outcome}"
+                    f"        {pom.var_name} = {pom.class_name}(page)"
                 )
+                instantiated.add(pom.var_name)
+            prop_map = prop_maps.get(step.page_type, {})
+            _emit_pytest_verification(
+                lines, template, pom, pt, prop_map, indent="        ",
+            )
         else:
             lines.append(f"        # {step.action_description}")
 
@@ -365,6 +665,15 @@ def _generate_ts_steps(
     """Generate TypeScript step code."""
     instantiated: set[str] = set()
 
+    # Pre-compute property maps for all page types referenced by this scenario
+    prop_maps: dict[str, dict[ZoneType, list[tuple[CatalogEntry, str]]]] = {}
+    for step in scenario.steps:
+        pt = pt_map.get(step.page_type)
+        if pt and hasattr(pt, "catalog") and step.page_type not in prop_maps:
+            prop_maps[step.page_type] = _catalog_property_map(pt.catalog)
+
+    template = scenario.template or "general"
+
     for step in scenario.steps:
         pom = pom_map.get(step.page_type)
         pt = pt_map.get(step.page_type)
@@ -409,12 +718,15 @@ def _generate_ts_steps(
             lines.append("    await page.keyboard.press('Enter');")
 
         elif step.action_type is None and step.expected_outcome:
-            if pt and pt.url_pattern:
-                pattern = pt.url_pattern.replace("\\", "\\\\")
+            # Verification step — ensure POM is instantiated if needed
+            if pom and pom.var_name not in instantiated:
                 lines.append(
-                    f"    await expect(page).toHaveURL(/{pattern}/);"
+                    f"    const {pom.var_name} = new {pom.class_name}(page);"
                 )
-            else:
-                lines.append(f"    // Verify: {step.expected_outcome}")
+                instantiated.add(pom.var_name)
+            prop_map = prop_maps.get(step.page_type, {})
+            _emit_ts_verification(
+                lines, template, pom, pt, prop_map, indent="    ",
+            )
         else:
             lines.append(f"    // {step.action_description}")

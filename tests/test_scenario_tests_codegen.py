@@ -2,6 +2,7 @@
 
 import ast
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flowscout.analysis.archetype import (
@@ -11,7 +12,9 @@ from flowscout.analysis.archetype import (
     ZoneType,
 )
 from flowscout.analysis.site_model import NavigationEdge, PageType, SiteModel, SiteModelSummary
+from flowscout.cli import _build_output_dirs
 from flowscout.codegen.scenario_tests import generate_scenario_tests
+from flowscout.core.state import ExplorerConfig
 from flowscout.discovery.actions import ActionType, OutcomeType
 from flowscout.smart.scenarios import ScenarioSynthesizer
 
@@ -213,3 +216,142 @@ class TestEmptyModel:
             code = Path(output).read_text()
             # Should have header but no test functions
             assert "def test_" not in code
+
+
+# ---------------------------------------------------------------------------
+# Smart Assertion Tests
+# ---------------------------------------------------------------------------
+
+
+class TestSmartAssertions:
+    def test_listing_load_verify_has_visibility_assertion(self):
+        """LISTING page type with MAIN_CONTENT entries → output contains to_be_visible()."""
+        model = _build_site_model()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = str(Path(tmpdir) / "scenario_tests.py")
+            generate_scenario_tests(
+                model, output, framework="pytest", base_url="https://example.com",
+            )
+            code = Path(output).read_text()
+            assert "to_be_visible()" in code
+            # Still valid Python
+            ast.parse(code)
+
+    def test_detail_browse_has_heading_assertion(self):
+        """LISTING→DETAIL browse_detail test has visibility assertion for detail heading."""
+        model = _build_site_model()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = str(Path(tmpdir) / "scenario_tests.py")
+            generate_scenario_tests(
+                model, output, framework="pytest", base_url="https://example.com",
+            )
+            code = Path(output).read_text()
+            # The browse_detail scenario should have a visibility assertion
+            # for the detail page's MAIN_CONTENT entry (movie_title)
+            assert "movie_title" in code
+            assert "to_be_visible()" in code
+
+    def test_search_has_content_assertion(self):
+        """has_search feature → search verification has visibility assertion."""
+        model = _build_site_model()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = str(Path(tmpdir) / "scenario_tests.py")
+            generate_scenario_tests(
+                model, output, framework="pytest", base_url="https://example.com",
+            )
+            code = Path(output).read_text()
+            # Search scenario should assert content is visible
+            assert "to_be_visible()" in code
+            assert "movie_card" in code
+
+    def test_title_assertion_present(self):
+        """load_verify always has to_have_title assertion."""
+        model = _build_site_model()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = str(Path(tmpdir) / "scenario_tests.py")
+            generate_scenario_tests(
+                model, output, framework="pytest", base_url="https://example.com",
+            )
+            code = Path(output).read_text()
+            assert "to_have_title" in code
+
+    def test_empty_catalog_fallback(self):
+        """Empty catalog → graceful degradation to comments (no regression)."""
+        empty_pt = PageType(
+            page_type_id="sig_empty",
+            name="Empty Page",
+            archetype=PageArchetype.LANDING,
+            structural_signature="sig_empty",
+            instance_count=1,
+            representative_url="https://example.com/empty",
+            catalog=PageCatalog(archetype=PageArchetype.LANDING),
+        )
+
+        synth = ScenarioSynthesizer()
+        scenarios = synth.synthesize([empty_pt], [])
+
+        model = SiteModel(
+            page_types=[empty_pt],
+            navigation_edges=[],
+            test_scenarios=scenarios,
+            summary=SiteModelSummary(total_page_types=1, total_scenarios=len(scenarios)),
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = str(Path(tmpdir) / "scenario_tests.py")
+            generate_scenario_tests(
+                model, output, framework="pytest", base_url="https://example.com",
+            )
+            code = Path(output).read_text()
+            # Should still have title assertion from load_verify
+            assert "to_have_title" in code
+            # Should be valid Python even without catalog entries
+            ast.parse(code)
+
+
+# ---------------------------------------------------------------------------
+# Workspace Layout Tests
+# ---------------------------------------------------------------------------
+
+
+class TestBuildOutputDirs:
+    def test_build_output_dirs_smart_workspace(self):
+        """Smart workspace path structure is correct."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = ExplorerConfig(
+                start_url="https://example.com/movies",
+                output_dir=tmpdir,
+            )
+            now = datetime(2026, 2, 7, 14, 30, 0, tzinfo=timezone.utc)
+            run_dir, workspace_dir = _build_output_dirs(
+                config, now, smart_workspace=True,
+            )
+
+            assert workspace_dir is not None
+            assert "example.com" in str(workspace_dir)
+            assert "runs" in str(run_dir)
+            assert "2026-02-07_14.30.00" in str(run_dir)
+            assert run_dir.exists()
+
+    def test_build_output_dirs_legacy(self):
+        """Legacy path structure unchanged."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = ExplorerConfig(
+                start_url="https://example.com/movies",
+                output_dir=tmpdir,
+            )
+            now = datetime(2026, 2, 7, 14, 30, 0, tzinfo=timezone.utc)
+            run_dir, workspace_dir = _build_output_dirs(
+                config, now, smart_workspace=False,
+            )
+
+            assert workspace_dir is None
+            assert "2026" in str(run_dir)
+            assert "02.February" in str(run_dir)
+            assert "07-02-2026" in str(run_dir)
+            assert "14.30.00" in str(run_dir)
+            assert run_dir.exists()
