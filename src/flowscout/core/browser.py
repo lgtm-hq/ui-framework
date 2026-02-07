@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 from hashlib import sha256
+
+logger = logging.getLogger(__name__)
 
 from playwright.async_api import Page, async_playwright, Browser, BrowserContext
 
@@ -24,6 +27,7 @@ DOM_STRUCTURE_JS = load_script("dom_structure")
 VISIBLE_TEXT_JS = load_script("visible_text")
 FORM_STATE_JS = load_script("form_state")
 SIGNALS_JS = load_script("signals")
+PAGE_ANALYSIS_JS = load_script("page_analysis")
 
 
 class BrowserManager:
@@ -81,9 +85,12 @@ class BrowserManager:
         # Wait for any in-flight navigation to finish
         for _ in range(3):
             try:
-                await self.page.wait_for_load_state("domcontentloaded", timeout=3000)
+                await self.page.wait_for_load_state(
+                    "domcontentloaded", timeout=self.config.load_wait_timeout_ms,
+                )
                 break
             except Exception:
+                logger.debug("DOM load wait failed, retrying", exc_info=True)
                 await asyncio.sleep(0.3)
 
         url = self.page.url
@@ -121,6 +128,10 @@ class BrowserManager:
             form_state_hash=form_hash,
             signals=signals,
         )
+
+    async def analyze_page_structure(self) -> dict:
+        """Run in-page structural analysis for smart mode."""
+        return await self.page.evaluate(PAGE_ANALYSIS_JS)
 
     async def get_dom_hash(self) -> str:
         """Get the current DOM structure hash."""
@@ -210,7 +221,7 @@ class BrowserManager:
     async def _perform_action(self, action: Action) -> None:
         """Execute the actual browser action."""
         page = self.page
-        timeout = 5000
+        timeout = self.config.action_timeout_ms
 
         match action.action_type:
             case ActionType.CLICK:
@@ -236,6 +247,7 @@ class BrowserManager:
                                 await inp.press("Enter")
                                 break
                         except Exception:
+                            logger.debug("Search input %s not found", sel, exc_info=True)
                             continue
 
             case ActionType.FILL:
@@ -267,9 +279,11 @@ class BrowserManager:
                 )
                 for selector, value in field_values.items():
                     try:
-                        await page.fill(selector, value, timeout=3000)
+                        await page.fill(
+                            selector, value, timeout=self.config.load_wait_timeout_ms,
+                        )
                     except Exception:
-                        pass  # Field may not be fillable
+                        logger.debug("Could not fill field %s", selector, exc_info=True)
                 await page.click(action.target_selector, timeout=timeout)
 
             case ActionType.HOVER:
@@ -278,8 +292,10 @@ class BrowserManager:
             case ActionType.NAVIGATE:
                 await page.goto(action.value or "", timeout=self.config.timeout_ms)
 
-    async def _wait_for_stability(self, timeout_ms: int = 2000) -> None:
+    async def _wait_for_stability(self, timeout_ms: int | None = None) -> None:
         """Wait for the DOM to stabilize after an action."""
+        if timeout_ms is None:
+            timeout_ms = self.config.stability_timeout_ms
         deadline = time.monotonic() + (timeout_ms / 1000)
         prev_hash = await self.get_dom_hash()
 
