@@ -1,6 +1,7 @@
 """Tests for page state fingerprinting."""
 
 from flowscout.core.state import (
+    ExplorerConfig,
     FingerprintConfig,
     build_fingerprint,
     make_state_id,
@@ -30,6 +31,24 @@ class TestNormalizeUrl:
             ignore_params=["utm_source"],
         )
         assert "utm_source" not in result
+        assert "page=1" in result
+
+    def test_allowlist_keeps_only_allowed_params(self):
+        result = normalize_url(
+            "https://example.com/products?category=shoes&page=2&utm_source=google",
+            allow_params=["category", "page"],
+        )
+        assert "category=shoes" in result
+        assert "page=2" in result
+        assert "utm_source" not in result
+
+    def test_ignores_wildcard_pattern_params(self):
+        result = normalize_url(
+            "https://example.com?utm_source=x&fbclid=123&page=1",
+            ignore_param_patterns=["utm_*", "fbclid"],
+        )
+        assert "utm_source" not in result
+        assert "fbclid" not in result
         assert "page=1" in result
 
 
@@ -99,3 +118,10 @@ class TestMakeStateId:
     def test_is_prefix_of_fingerprint(self):
         fp = "abcdef1234567890" * 4
         assert make_state_id(fp) == fp[:12]
+
+
+class TestExplorerConfig:
+    def test_non_destructive_policy_enabled_by_default(self):
+        config = ExplorerConfig(start_url="https://example.com")
+        assert config.action_policy.enforce_non_destructive is True
+        assert config.action_policy.block_form_submissions is True

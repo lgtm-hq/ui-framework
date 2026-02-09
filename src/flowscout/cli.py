@@ -21,6 +21,7 @@ from flowscout.analysis.graph import ExplorationGraph, ExplorationResult
 from flowscout.codegen.playwright_tests import generate_test_suite
 from flowscout.core.browser import BrowserManager
 from flowscout.core.navigator import Navigator
+from flowscout.core.policy import ActionPolicyConfig
 from flowscout.core.state import ExplorerConfig, ExplorationStrategy
 from flowscout.reporting.html import HTMLReporter
 from flowscout.reporting.terminal import TerminalReporter
@@ -90,6 +91,16 @@ def main() -> None:
     is_flag=True,
     help="Enable smart mode: archetype recognition, contextual input, coverage-aware exploration.",
 )
+@click.option(
+    "--enforce-non-destructive/--no-enforce-non-destructive",
+    default=True,
+    help="Enforce non-destructive exploration policy.",
+)
+@click.option(
+    "--allow-form-submits",
+    is_flag=True,
+    help="Allow form submit actions (disabled by default for safety).",
+)
 def explore(
     url: str,
     max_depth: int,
@@ -108,6 +119,8 @@ def explore(
     db_path: str,
     no_db: bool,
     smart: bool,
+    enforce_non_destructive: bool,
+    allow_form_submits: bool,
 ) -> None:
     """Explore a web application starting from URL."""
     config = ExplorerConfig(
@@ -122,6 +135,10 @@ def explore(
         strategy=ExplorationStrategy(strategy),
         verbose=verbose,
         smart_mode=smart,
+        action_policy=ActionPolicyConfig(
+            enforce_non_destructive=enforce_non_destructive,
+            block_form_submissions=not allow_form_submits,
+        ),
     )
 
     asyncio.run(

@@ -57,6 +57,15 @@ Useful keys:
 
 These parameters bound runtime while preserving useful coverage.
 
+## Non-Destructive Policy Controls
+
+For `flowscout explore`, non-destructive mode is on by default.
+
+- `--enforce-non-destructive` keeps high-impact action blocking enabled.
+- `--allow-form-submits` allows submit actions when you are in a safe test environment.
+
+Use `--no-enforce-non-destructive` only in tightly controlled environments.
+
 ## Export History Snapshot
 
 ```bash

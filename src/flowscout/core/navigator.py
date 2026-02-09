@@ -12,6 +12,7 @@ from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
 from flowscout.analysis.narrative import NarrativeGenerator
 from flowscout.analysis.verdict import VerdictComputer
 from flowscout.core.browser import BrowserManager
+from flowscout.core.policy import get_action_policy_block_reason
 from flowscout.core.state import ExplorerConfig, PageState
 from flowscout.discovery.actions import (
     Action,
@@ -300,6 +301,7 @@ class Navigator:
         # Generate form submit actions
         form_actions = generate_form_submit_actions(elements)
         actions.extend(form_actions)
+        actions, blocked_count = self._apply_action_policy(actions)
 
         # Partition into click vs interactive (fill/select/check/submit/search)
         # to ensure diverse action types get reserved frontier slots.
@@ -350,6 +352,31 @@ class Navigator:
             f"  Enqueued {enqueued} actions "
             f"({len(diverse_actions)} interactive, frontier size: {len(self._frontier)})"
         )
+        if blocked_count:
+            self.terminal.log_info(
+                f"  Policy skipped {blocked_count} high-impact actions"
+            )
+
+    def _apply_action_policy(self, actions: list[Action]) -> tuple[list[Action], int]:
+        """Filter actions according to non-destructive policy settings."""
+        allowed_actions: list[Action] = []
+        blocked_count = 0
+        for action in actions:
+            reason = get_action_policy_block_reason(
+                action=action,
+                policy=self.config.action_policy,
+            )
+            if reason is None:
+                allowed_actions.append(action)
+                continue
+
+            blocked_count += 1
+            if self.config.verbose:
+                self.terminal.log_info(
+                    f"  Policy blocked '{action.label}' ({reason})"
+                )
+
+        return allowed_actions, blocked_count
 
     async def _navigate_to_state(self, target_state_id: str) -> bool:
         """Navigate back to a previously visited state.

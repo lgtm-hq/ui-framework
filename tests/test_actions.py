@@ -41,6 +41,7 @@ class TestGenerateActions:
         actions = generate_actions([elem])
         assert len(actions) == 1
         assert actions[0].action_type == ActionType.CLICK
+        assert actions[0].metadata["href"] == "/page"
 
     def test_external_link_filtered(self):
         elem = _make_elem(

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import StrEnum, auto
+from fnmatch import fnmatch
 from hashlib import sha256
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from pydantic import BaseModel, Field
+
+from flowscout.core.policy import ActionPolicyConfig
 
 
 class ExplorationStrategy(StrEnum):
@@ -33,6 +36,7 @@ class ExplorerConfig(BaseModel):
     strategy: ExplorationStrategy = ExplorationStrategy.PRIORITY
     verbose: bool = False
     smart_mode: bool = False
+    action_policy: ActionPolicyConfig = Field(default_factory=ActionPolicyConfig)
 
 
 class PageState(BaseModel):
@@ -60,20 +64,72 @@ class FingerprintConfig(BaseModel):
     include_dom_structure: bool = True
     include_visible_text: bool = True
     include_form_state: bool = True
+    query_allowlist: list[str] = Field(
+        default_factory=lambda: [
+            "page",
+            "sort",
+            "filter",
+            "category",
+            "tab",
+            "view",
+            "q",
+            "lang",
+        ]
+    )
     ignore_url_params: list[str] = Field(default_factory=list)
+    ignore_url_param_patterns: list[str] = Field(
+        default_factory=lambda: [
+            "utm_*",
+            "gclid",
+            "fbclid",
+            "*session*",
+            "*token*",
+            "ts",
+            "_",
+            "*cache*",
+        ]
+    )
     ignore_selectors: list[str] = Field(default_factory=list)
 
 
-def normalize_url(url: str, *, ignore_params: list[str] | None = None) -> str:
+def normalize_url(
+    url: str,
+    *,
+    allow_params: list[str] | None = None,
+    ignore_params: list[str] | None = None,
+    ignore_param_patterns: list[str] | None = None,
+) -> str:
     """Normalize a URL for consistent fingerprinting."""
     parsed = urlparse(url)
     # Strip trailing slash from path
     path = parsed.path.rstrip("/") or "/"
     # Sort query params, remove ignored ones
     params = parse_qs(parsed.query, keep_blank_values=True)
+
+    if allow_params:
+        allowed_keys = {key.casefold() for key in allow_params}
+        params = {
+            key: value
+            for key, value in params.items()
+            if key.casefold() in allowed_keys
+        }
+
     if ignore_params:
-        for p in ignore_params:
-            params.pop(p, None)
+        ignored_keys = {key.casefold() for key in ignore_params}
+        params = {
+            key: value
+            for key, value in params.items()
+            if key.casefold() not in ignored_keys
+        }
+
+    if ignore_param_patterns:
+        lowered_patterns = [pattern.casefold() for pattern in ignore_param_patterns]
+        params = {
+            key: value
+            for key, value in params.items()
+            if not any(fnmatch(key.casefold(), pattern) for pattern in lowered_patterns)
+        }
+
     sorted_query = urlencode(sorted(params.items()), doseq=True)
     # Strip fragment
     return urlunparse((parsed.scheme, parsed.netloc, path, "", sorted_query, ""))
@@ -98,7 +154,14 @@ def build_fingerprint(
     parts: list[str] = []
 
     if cfg.include_url:
-        parts.append(normalize_url(url, ignore_params=cfg.ignore_url_params))
+        parts.append(
+            normalize_url(
+                url,
+                allow_params=cfg.query_allowlist,
+                ignore_params=cfg.ignore_url_params,
+                ignore_param_patterns=cfg.ignore_url_param_patterns,
+            )
+        )
     parts.append(title)
     if cfg.include_dom_structure:
         parts.append(dom_structure_hash)

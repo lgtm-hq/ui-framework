@@ -1,5 +1,7 @@
 # Architecture and Data Model
 
+For V1-specific defaults and policy decisions (state identity rules, input profiles, evidence defaults, coverage targets), see `V1_PRODUCT_DECISIONS.md`.
+
 ## High-Level Pipeline
 
 1. Crawl starts from `start_url`.
@@ -31,6 +33,16 @@ An action is an executable interaction:
 - `submit_form` (with deterministic scenario values)
 
 Actions have labels, selectors, metadata, and stable IDs.
+
+## Action Policy (V1)
+
+V1 adds a non-destructive action policy layer before execution:
+
+- blocks `submit_form` actions by default,
+- blocks high-impact actions matched by risky keywords (`delete`, `checkout`, `purchase`, etc.),
+- supports allowlisting by selector or label pattern for controlled environments.
+
+This policy is configured via `ExplorerConfig.action_policy`.
 
 ## Edge (Transition)
 

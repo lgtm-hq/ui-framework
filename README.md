@@ -57,6 +57,13 @@ uv run flowscout explore <url> [options]
 | `--narrative` | off | Generate Markdown narrative report |
 | `--no-db` | off | Skip saving to SQLite history |
 | `--verbose` / `-v` | off | Verbose output and debug logging |
+| `--enforce-non-destructive` / `--no-enforce-non-destructive` | on | Block high-impact actions by default |
+| `--allow-form-submits` | off | Allow `submit_form` actions (disabled by default for safety) |
+
+By default, exploration runs in non-destructive mode:
+
+- form submissions are blocked unless `--allow-form-submits` is passed,
+- high-impact actions with destructive keywords are filtered before execution.
 
 **Examples:**
 
@@ -75,6 +82,9 @@ uv run flowscout explore https://example.com --smart -g --test-framework playwri
 
 # Deeper exploration
 uv run flowscout explore https://example.com --smart -g --max-depth 5 --max-states 100
+
+# Allow safe form submission testing in a controlled environment
+uv run flowscout explore https://example.com --allow-form-submits
 ```
 
 ### `serve`

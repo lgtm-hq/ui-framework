@@ -141,6 +141,8 @@ def _actions_for_element(
                 return []
 
         click_meta: dict[str, str] = {}
+        if elem.href:
+            click_meta["href"] = elem.href
         if elem.aria_role == "search":
             click_meta["is_search"] = "true"
 
