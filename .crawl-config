@@ -32,3 +32,14 @@ auth_config_file = ".flowscout-auth.toml"
 auth_required = false
 
 # Credentials are resolved from environment variables referenced by auth profiles.
+
+# Optional per-domain/per-environment overrides
+#
+# [domains."*.example.com"]
+# max_depth = 3
+# auth_profile = "example_default"
+#
+# [domains."*.example.com".environments.staging]
+# max_states = 80
+# environment = "staging"
+# auth_profile = "example_staging"

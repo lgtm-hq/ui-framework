@@ -109,6 +109,21 @@ uv run flowscout explore https://example.com \
   --timeout 12000
 ```
 
+## Domain + Environment Config Overrides
+
+`.crawl-config` supports scoped overrides for multi-site usage:
+
+- global defaults at file root,
+- `[domains."<pattern>"]` for domain-level overrides,
+- `[domains."<pattern>".environments.<env>]` for environment-specific values.
+
+Override precedence is deterministic:
+
+1. CLI flags
+2. domain/environment scoped config
+3. global `.crawl-config` values
+4. built-in defaults
+
 ## Output Isolation and Layout
 
 Runs are isolated by domain and environment:

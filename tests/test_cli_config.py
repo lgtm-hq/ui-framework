@@ -7,9 +7,11 @@ import pytest
 from click.core import ParameterSource
 
 from flowscout.cli import (
+    _domain_match_score,
     _load_crawl_config,
     _resolve_auth_bootstrap,
     _resolve_bool_option,
+    _resolve_domain_scoped_config,
     _resolve_int_config,
     _resolve_int_option,
     _resolve_str_option,
@@ -138,3 +140,75 @@ def test_resolve_auth_bootstrap_raises_when_required_without_config(
             auth_config_file=str(auth_config_path),
             auth_required=True,
         )
+
+
+def test_domain_match_score_prefers_exact_and_more_specific_patterns() -> None:
+    exact = _domain_match_score(pattern="shop.example.com", host="shop.example.com")
+    wildcard = _domain_match_score(pattern="*.example.com", host="shop.example.com")
+
+    assert exact > wildcard
+
+
+def test_resolve_domain_scoped_config_applies_domain_and_env_overrides() -> None:
+    ctx = click.Context(click.Command("test"))
+    ctx.set_parameter_source("environment", ParameterSource.DEFAULT)
+
+    config = {
+        "max_depth": 2,
+        "max_states": 30,
+        "environment": "dev",
+        "domains": {
+            "*.example.com": {
+                "max_depth": 4,
+                "environments": {
+                    "staging": {
+                        "max_states": 90,
+                        "auth_profile": "shop_staging",
+                    }
+                },
+            },
+            "shop.example.com": {
+                "max_depth": 5,
+                "environment": "staging",
+            },
+        },
+    }
+
+    resolved = _resolve_domain_scoped_config(
+        ctx=ctx,
+        start_url="https://shop.example.com",
+        cli_environment="dev",
+        config=config,
+    )
+
+    assert resolved["max_depth"] == 5
+    assert resolved["environment"] == "staging"
+    assert resolved["max_states"] == 90
+    assert resolved["auth_profile"] == "shop_staging"
+
+
+def test_resolve_domain_scoped_config_respects_cli_environment() -> None:
+    ctx = click.Context(click.Command("test"))
+    ctx.set_parameter_source("environment", ParameterSource.COMMANDLINE)
+
+    config = {
+        "domains": {
+            "shop.example.com": {
+                "environment": "staging",
+                "environments": {
+                    "staging": {"max_states": 70},
+                    "prod": {"max_states": 40},
+                },
+            }
+        }
+    }
+
+    resolved = _resolve_domain_scoped_config(
+        ctx=ctx,
+        start_url="https://shop.example.com",
+        cli_environment="prod",
+        config=config,
+    )
+
+    assert resolved["environment"] == "staging"
+    assert resolved["max_states"] == 40

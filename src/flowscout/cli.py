@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from fnmatch import fnmatch
 import json
 import logging
 import os
@@ -193,6 +194,90 @@ def _resolve_int_config(
     return _coerce_int(value=value, config_key=key)
 
 
+def _resolve_domain_scoped_config(
+    *,
+    ctx: click.Context,
+    start_url: str,
+    cli_environment: str,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    """Merge optional domain/environment overrides into crawl config.
+
+    Supported shape:
+
+    [domains."<pattern>"]
+    max_depth = 3
+    environment = "staging"
+
+    [domains."<pattern>".environments.staging]
+    max_states = 120
+    """
+    merged: dict[str, Any] = {k: v for k, v in config.items() if k != "domains"}
+    raw_domains = config.get("domains")
+    if not isinstance(raw_domains, dict):
+        return merged
+
+    host = (urlparse(start_url).hostname or "").lower()
+    matches: list[tuple[tuple[int, int, int], str, dict[str, Any]]] = []
+    for pattern, domain_config in raw_domains.items():
+        if not isinstance(pattern, str) or not isinstance(domain_config, dict):
+            continue
+        if not fnmatch(host, pattern.lower()):
+            continue
+        matches.append(
+            (
+                _domain_match_score(pattern=pattern.lower(), host=host),
+                pattern,
+                domain_config,
+            )
+        )
+
+    if not matches:
+        return merged
+
+    matches.sort(key=lambda item: item[0])
+    for _, _, domain_config in matches:
+        for key, value in domain_config.items():
+            if key == "environments":
+                continue
+            merged[key] = value
+
+    if _came_from_cli(ctx=ctx, parameter="environment"):
+        effective_env = cli_environment
+    else:
+        configured_env = merged.get("environment")
+        effective_env = (
+            configured_env if isinstance(configured_env, str) else cli_environment
+        )
+    normalized_env = effective_env.lower()
+
+    for _, _, domain_config in matches:
+        envs = domain_config.get("environments")
+        if not isinstance(envs, dict):
+            continue
+
+        matching_env: dict[str, Any] | None = None
+        for env_name, env_config in envs.items():
+            if not isinstance(env_name, str) or not isinstance(env_config, dict):
+                continue
+            if env_name.lower() == normalized_env:
+                matching_env = env_config
+                break
+
+        if matching_env:
+            merged.update(matching_env)
+
+    return merged
+
+
+def _domain_match_score(*, pattern: str, host: str) -> tuple[int, int, int]:
+    """Return sort score for domain override precedence."""
+    wildcard_count = pattern.count("*") + pattern.count("?")
+    literal_chars = len(pattern.replace("*", "").replace("?", ""))
+    exact = 1 if pattern == host else 0
+    return (exact, literal_chars, -wildcard_count)
+
+
 def _resolve_auth_bootstrap(
     *,
     start_url: str,
@@ -373,7 +458,13 @@ def explore(
 ) -> None:
     """Explore a web application starting from URL."""
     ctx = click.get_current_context()
-    crawl_config = _load_crawl_config(config_file=config_file)
+    raw_crawl_config = _load_crawl_config(config_file=config_file)
+    crawl_config = _resolve_domain_scoped_config(
+        ctx=ctx,
+        start_url=url,
+        cli_environment=environment,
+        config=raw_crawl_config,
+    )
 
     resolved_max_depth = _resolve_int_option(
         ctx=ctx,

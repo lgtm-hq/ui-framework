@@ -193,12 +193,30 @@ Use `.crawl-config` to define project defaults such as:
 - runtime behavior (`smart`, `headless`, `capture_screenshots`, safety flags)
 - timing values (`navigation_timeout_ms`, `action_timeout_ms`, `stability_timeout_ms`)
 - persistence/output (`output_dir`, `environment`, `db_path`, `persist_history`)
+- optional per-domain + per-environment overrides (`[domains."<pattern>"]`)
 
 Precedence is always:
 
 1. explicit CLI flags
 2. `.crawl-config`
 3. built-in defaults
+
+Domain-scoped override example:
+
+```toml
+max_depth = 2
+max_states = 30
+environment = "dev"
+
+[domains."*.example.com"]
+max_depth = 4
+auth_profile = "example_default"
+
+[domains."*.example.com".environments.staging]
+max_states = 90
+environment = "staging"
+auth_profile = "example_staging"
+```
 
 ## Authentication bootstrap (local-only)
 
