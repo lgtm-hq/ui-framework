@@ -1671,6 +1671,7 @@
                                     <th>Outcome</th>
                                     <th>Status</th>
                                     <th>Target</th>
+                                    <th>Evidence</th>
                                     <th class="right">Duration</th>
                                 </tr>
                             </thead>
@@ -1684,6 +1685,14 @@
                                     <td><span class="outcome {{ r.outcome.value }}">{{ r.outcome.value }}</span></td>
                                     <td>{% if r.verdict %}<span class="verdict {{ r.verdict }}">{{ r.verdict }}</span>{% endif %}</td>
                                     <td class="cell-id">{{ r.target_state_id[:8] }}</td>
+                                    {% set shot = result_screenshot_links[loop.index0] %}
+                                    <td>
+                                        {% if shot %}
+                                        <a href="{{ shot }}" target="_blank" rel="noopener noreferrer">open</a>
+                                        {% else %}
+                                        <span class="cell-dim">—</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="cell-right">{{ "%.0f"|format(r.duration_ms) }}ms</td>
                                 </tr>
                                 {% endfor %}

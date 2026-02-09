@@ -7,6 +7,7 @@ import json
 import logging
 import time
 from hashlib import sha256
+from pathlib import Path
 
 from playwright.async_api import Page, async_playwright, Browser, BrowserContext
 
@@ -173,6 +174,7 @@ class BrowserManager:
             else:
                 outcome = OutcomeType.EXCEPTION
             message = str(exc)
+            screenshot_path = await self._capture_action_screenshot(action)
 
             page.remove_listener("console", on_console)
             page.remove_listener("response", on_response)
@@ -184,6 +186,7 @@ class BrowserManager:
                 message=message,
                 url_before=url_before,
                 url_after=page.url,
+                screenshot_path=screenshot_path,
             )
 
         duration_ms = (time.monotonic() - start) * 1000
@@ -203,6 +206,7 @@ class BrowserManager:
             console_errors=console_errors,
             network_errors=network_errors,
         )
+        screenshot_path = await self._capture_action_screenshot(action)
 
         page.remove_listener("console", on_console)
         page.remove_listener("response", on_response)
@@ -216,7 +220,125 @@ class BrowserManager:
             url_after=url_after,
             error_messages=error_messages,
             console_errors=console_errors,
+            screenshot_path=screenshot_path,
         )
+
+    async def _capture_action_screenshot(self, action: Action) -> str | None:
+        """Capture action evidence screenshot with highlighted target selector."""
+        if not self.config.take_screenshots or not self.config.evidence_dir:
+            return None
+
+        evidence_dir = Path(self.config.evidence_dir)
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        screenshot_path = evidence_dir / f"{int(time.time() * 1000)}_{action.action_id}.png"
+        overlay_id = f"flowscout-highlight-{action.action_id}"
+
+        try:
+            await self._render_highlight_overlay(
+                selector=action.target_selector,
+                overlay_id=overlay_id,
+            )
+            await self.page.screenshot(path=str(screenshot_path), full_page=False)
+        except Exception:
+            logger.debug("Could not capture action screenshot", exc_info=True)
+            return None
+        finally:
+            await self._clear_highlight_overlay(overlay_id=overlay_id)
+
+        return str(screenshot_path)
+
+    async def _render_highlight_overlay(
+        self,
+        *,
+        selector: str,
+        overlay_id: str,
+    ) -> None:
+        """Draw temporary highlight boxes around interacted target elements."""
+        script = """
+        ({ selector, overlayId }) => {
+          const existing = document.getElementById(overlayId);
+          if (existing) {
+            existing.remove();
+          }
+
+          let elements = [];
+          try {
+            elements = Array.from(document.querySelectorAll(selector)).slice(0, 3);
+          } catch (err) {
+            elements = [];
+          }
+          if (!elements.length) {
+            return;
+          }
+
+          const layer = document.createElement('div');
+          layer.id = overlayId;
+          layer.style.position = 'fixed';
+          layer.style.inset = '0';
+          layer.style.pointerEvents = 'none';
+          layer.style.zIndex = '2147483647';
+
+          elements.forEach((element, index) => {
+            const rect = element.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) {
+              return;
+            }
+
+            const box = document.createElement('div');
+            box.style.position = 'fixed';
+            box.style.left = `${Math.max(rect.left - 2, 0)}px`;
+            box.style.top = `${Math.max(rect.top - 2, 0)}px`;
+            box.style.width = `${rect.width + 4}px`;
+            box.style.height = `${rect.height + 4}px`;
+            box.style.border = '3px solid #ff4757';
+            box.style.background = 'rgba(255, 71, 87, 0.16)';
+            box.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.4), 0 0 24px rgba(255, 71, 87, 0.6)';
+            box.style.borderRadius = '4px';
+
+            const tag = document.createElement('div');
+            tag.textContent = `target ${index + 1}`;
+            tag.style.position = 'absolute';
+            tag.style.left = '-1px';
+            tag.style.top = '-22px';
+            tag.style.font = '700 10px/1 sans-serif';
+            tag.style.letterSpacing = '0.05em';
+            tag.style.textTransform = 'uppercase';
+            tag.style.color = '#ffffff';
+            tag.style.background = '#ff4757';
+            tag.style.borderRadius = '3px';
+            tag.style.padding = '3px 5px';
+
+            box.appendChild(tag);
+            layer.appendChild(box);
+          });
+
+          if (layer.childNodes.length > 0) {
+            document.body.appendChild(layer);
+          }
+        }
+        """
+        await self.page.evaluate(
+            script,
+            {
+                "selector": selector,
+                "overlayId": overlay_id,
+            },
+        )
+
+    async def _clear_highlight_overlay(self, *, overlay_id: str) -> None:
+        """Remove temporary screenshot highlight overlay."""
+        script = """
+        ({ overlayId }) => {
+          const node = document.getElementById(overlayId);
+          if (node) {
+            node.remove();
+          }
+        }
+        """
+        try:
+            await self.page.evaluate(script, {"overlayId": overlay_id})
+        except Exception:
+            logger.debug("Could not clear screenshot overlay", exc_info=True)
 
     async def _perform_action(self, action: Action) -> None:
         """Execute the actual browser action."""

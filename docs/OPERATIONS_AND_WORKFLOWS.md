@@ -63,6 +63,7 @@ For `flowscout explore`, non-destructive mode is on by default.
 
 - `--enforce-non-destructive` keeps high-impact action blocking enabled.
 - `--allow-form-submits` allows submit actions when you are in a safe test environment.
+- `--screenshot` is enabled by default and captures per-action evidence with target highlighting.
 
 Use `--no-enforce-non-destructive` only in tightly controlled environments.
 

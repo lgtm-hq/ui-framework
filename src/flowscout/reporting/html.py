@@ -26,6 +26,7 @@ class HTMLReporter:
         """Generate the HTML report file."""
         from flowscout import __version__
 
+        report_dir = Path(output_path).parent
         graph_data = _build_graph_data(result)
         error_results = [
             r
@@ -115,6 +116,10 @@ class HTMLReporter:
             states_by_id=result.states,
             results=result.results,
             actions=action_labels,
+            result_screenshot_links=[
+                _to_report_asset_href(r.screenshot_path, report_dir=report_dir)
+                for r in result.results
+            ],
             error_results=error_results,
             graph_json=Markup(json.dumps(graph_data)),
             vis_network_js=Markup(vis_js),
@@ -130,6 +135,19 @@ class HTMLReporter:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(html)
+
+
+def _to_report_asset_href(path: str | None, *, report_dir: Path) -> str | None:
+    """Build a report-friendly href for local screenshot assets."""
+    if not path:
+        return None
+    asset_path = Path(path)
+    if asset_path.is_absolute():
+        try:
+            return str(asset_path.relative_to(report_dir))
+        except ValueError:
+            return asset_path.as_uri()
+    return str(asset_path)
 
 
 def _build_graph_data(result: ExplorationResult) -> dict:

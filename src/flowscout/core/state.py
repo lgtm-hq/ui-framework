@@ -38,7 +38,8 @@ class ExplorerConfig(BaseModel):
     stability_timeout_ms: int = Field(default=2000, ge=200)
     load_wait_timeout_ms: int = Field(default=3000, ge=500)
     output_dir: str = "./reports"
-    take_screenshots: bool = False
+    take_screenshots: bool = True
+    evidence_dir: str | None = None
     strategy: ExplorationStrategy = ExplorationStrategy.PRIORITY
     verbose: bool = False
     smart_mode: bool = False

@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS results (
     url_after       TEXT NOT NULL DEFAULT '',
     error_messages_json TEXT NOT NULL DEFAULT '[]',
     console_errors_json TEXT NOT NULL DEFAULT '[]',
+    screenshot_path TEXT DEFAULT '',
     executed_at     TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (run_id) REFERENCES runs(run_id)
 );
@@ -107,6 +108,11 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ),
     ("results", "expected", "ALTER TABLE results ADD COLUMN expected TEXT DEFAULT ''"),
     ("results", "actual", "ALTER TABLE results ADD COLUMN actual TEXT DEFAULT ''"),
+    (
+        "results",
+        "screenshot_path",
+        "ALTER TABLE results ADD COLUMN screenshot_path TEXT DEFAULT ''",
+    ),
     ("flows", "verdict", "ALTER TABLE flows ADD COLUMN verdict TEXT DEFAULT ''"),
     (
         "flows",
@@ -232,9 +238,9 @@ class FlowscoutDB:
                 """INSERT INTO results
                    (run_id, action_id, source_state_id, target_state_id,
                     outcome, duration_ms, message, url_before, url_after,
-                    error_messages_json, console_errors_json, executed_at,
+                    error_messages_json, console_errors_json, screenshot_path, executed_at,
                     verdict, verdict_reason, expected, actual)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     run_id,
                     r.action_id,
@@ -247,6 +253,7 @@ class FlowscoutDB:
                     r.url_after,
                     json.dumps(r.error_messages),
                     json.dumps(r.console_errors),
+                    r.screenshot_path or "",
                     r.timestamp,
                     r.verdict or "",
                     r.verdict_reason or "",

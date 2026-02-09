@@ -51,7 +51,7 @@ uv run flowscout explore <url> [options]
 | `--headless` / `--no-headless` | headless | Run browser in headless or headed mode |
 | `--timeout` / `-t` | 10000 | Navigation timeout in milliseconds |
 | `--output-dir` / `-o` | `./reports` | Output directory for reports |
-| `--screenshot` / `--no-screenshot` | off | Take screenshots of each state |
+| `--screenshot` / `--no-screenshot` | on | Capture action evidence screenshots with highlighted targets |
 | `--strategy` | `priority` | Exploration strategy: `bfs`, `dfs`, or `priority` |
 | `--bdd` | off | Generate Gherkin `.feature` file |
 | `--narrative` | off | Generate Markdown narrative report |
@@ -66,6 +66,7 @@ By default, exploration runs in non-destructive mode:
 - form submissions are blocked unless `--allow-form-submits` is passed,
 - high-impact actions with destructive keywords are filtered before execution.
 - invalid/negative form submissions are only generated when `--input-profile negative` is used.
+- action screenshots are captured by default and linked in the execution log.
 
 **Examples:**
 

@@ -58,8 +58,8 @@ def main() -> None:
 )
 @click.option(
     "--screenshot/--no-screenshot",
-    default=False,
-    help="Take screenshots of each state.",
+    default=True,
+    help="Capture action evidence screenshots with highlighted targets.",
 )
 @click.option(
     "--strategy",
@@ -229,6 +229,16 @@ async def _run_exploration(
         console_handler.setFormatter(logging.Formatter("%(name)s: %(message)s"))
         logging.getLogger("flowscout").addHandler(console_handler)
 
+    now = datetime.now(timezone.utc)
+    use_smart_workspace = config.smart_mode and generate_tests
+    run_dir, workspace_dir = _build_output_dirs(
+        config, now, smart_workspace=use_smart_workspace,
+    )
+    if config.take_screenshots:
+        evidence_dir = run_dir / "evidence" / "actions"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        config.evidence_dir = str(evidence_dir)
+
     browser = BrowserManager(config)
     graph = ExplorationGraph()
     terminal = TerminalReporter(verbose=config.verbose)
@@ -244,12 +254,6 @@ async def _run_exploration(
     try:
         await browser.launch()
         result = await navigator.explore(config.start_url)
-
-        now = datetime.now(timezone.utc)
-        use_smart_workspace = config.smart_mode and generate_tests
-        run_dir, workspace_dir = _build_output_dirs(
-            config, now, smart_workspace=use_smart_workspace,
-        )
 
         # Generate HTML report
         report_path = str(run_dir / "report.html")
