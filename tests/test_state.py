@@ -125,3 +125,4 @@ class TestExplorerConfig:
         config = ExplorerConfig(start_url="https://example.com")
         assert config.action_policy.enforce_non_destructive is True
         assert config.action_policy.block_form_submissions is True
+        assert config.input_profile.value == "safe"

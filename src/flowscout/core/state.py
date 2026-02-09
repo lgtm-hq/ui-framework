@@ -19,6 +19,12 @@ class ExplorationStrategy(StrEnum):
     PRIORITY = auto()
 
 
+class InputProfile(StrEnum):
+    SAFE = auto()
+    CONTEXTUAL = auto()
+    NEGATIVE = auto()
+
+
 class ExplorerConfig(BaseModel):
     """Configuration for an exploration run."""
 
@@ -36,6 +42,7 @@ class ExplorerConfig(BaseModel):
     strategy: ExplorationStrategy = ExplorationStrategy.PRIORITY
     verbose: bool = False
     smart_mode: bool = False
+    input_profile: InputProfile = InputProfile.SAFE
     action_policy: ActionPolicyConfig = Field(default_factory=ActionPolicyConfig)
 
 

@@ -182,7 +182,7 @@ class TestGenerateFormSubmitActions:
             parent_form_selector="#form",
         )
         actions = generate_form_submit_actions([email, submit])
-        assert len(actions) == 2
+        assert len(actions) == 1
         assert all(a.action_type == ActionType.SUBMIT_FORM for a in actions)
 
     def test_field_values_contain_input_data(self):
@@ -206,7 +206,7 @@ class TestGenerateFormSubmitActions:
         assert '#f input[name="email"]' in fields
         assert "@" in fields['#f input[name="email"]']
 
-    def test_invalid_submission_empties_required(self):
+    def test_invalid_submission_empties_required_in_negative_profile(self):
         email = _make_elem(
             element_id="e1",
             element_type=ElementType.INPUT_EMAIL,
@@ -223,11 +223,32 @@ class TestGenerateFormSubmitActions:
             label="Submit",
             parent_form_selector="#f",
         )
-        actions = generate_form_submit_actions([email, submit])
+        actions = generate_form_submit_actions([email, submit], input_profile="negative")
         invalid = [a for a in actions if a.metadata.get("scenario") == "invalid"]
         assert len(invalid) == 1
         fields = json.loads(invalid[0].metadata["field_values_json"])
         assert fields['#f input[name="email"]'] == ""
+
+    def test_safe_profile_skips_invalid_submission(self):
+        email = _make_elem(
+            element_id="e1",
+            element_type=ElementType.INPUT_EMAIL,
+            tag="input",
+            input_type="email",
+            name="email",
+            selector='#f input[name="email"]',
+            parent_form_selector="#f",
+            is_required=True,
+        )
+        submit = _make_elem(
+            element_id="s1",
+            selector="#f button",
+            label="Submit",
+            parent_form_selector="#f",
+        )
+        actions = generate_form_submit_actions([email, submit], input_profile="safe")
+        invalid = [a for a in actions if a.metadata.get("scenario") == "invalid"]
+        assert invalid == []
 
     def test_no_elements_returns_empty(self):
         assert generate_form_submit_actions([]) == []

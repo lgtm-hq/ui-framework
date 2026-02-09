@@ -52,6 +52,7 @@ class TerminalReporter:
             f"[bold]Max actions/state:[/bold] {config.max_actions_per_state}",
             f"[bold]Headless:[/bold] {config.headless}  |  "
             f"[bold]Screenshots:[/bold] {config.take_screenshots}",
+            f"[bold]Input profile:[/bold] {config.input_profile.value}",
         ]
         if smart_label:
             lines.append(smart_label)

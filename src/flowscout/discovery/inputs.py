@@ -86,6 +86,7 @@ def generate_input_value(
     element: InteractiveElement,
     scenario: str = "valid",
     *,
+    input_profile: str = "safe",
     context_store: ContextStore | None = None,
 ) -> str:
     """Generate a value for an input field based on heuristics.
@@ -99,7 +100,12 @@ def generate_input_value(
     5. Fallback based on input type
     """
     # 0. Smart mode: use context store for search fields
-    if context_store is not None and scenario == "valid" and _is_search_field(element):
+    if (
+        input_profile == "contextual"
+        and context_store is not None
+        and scenario == "valid"
+        and _is_search_field(element)
+    ):
         query = context_store.get_search_query()
         if query:
             return query
@@ -127,6 +133,8 @@ def generate_input_value(
 
     # 3. Fallback
     if scenario == "valid":
+        if input_profile == "safe":
+            return "test input"
         return "test input value"
     return ""
 

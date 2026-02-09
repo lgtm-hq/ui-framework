@@ -95,6 +95,7 @@ def generate_actions(
     elements: list[InteractiveElement],
     *,
     base_url: str = "",
+    input_profile: str = "safe",
 ) -> list[Action]:
     """Generate a list of actions from discovered elements."""
     actions: list[Action] = []
@@ -103,7 +104,11 @@ def generate_actions(
         if elem.is_disabled or not elem.is_visible:
             continue
 
-        new_actions = _actions_for_element(elem, base_url=base_url)
+        new_actions = _actions_for_element(
+            elem,
+            base_url=base_url,
+            input_profile=input_profile,
+        )
         actions.extend(new_actions)
 
     # Sort by priority
@@ -115,6 +120,7 @@ def _actions_for_element(
     elem: InteractiveElement,
     *,
     base_url: str = "",
+    input_profile: str = "safe",
 ) -> list[Action]:
     """Generate actions for a single element based on its type."""
     actions: list[Action] = []
@@ -162,7 +168,11 @@ def _actions_for_element(
 
     # Fillable inputs → FILL with heuristic value
     elif etype in _FILLABLE_TYPES:
-        value = generate_input_value(elem, scenario="valid")
+        value = generate_input_value(
+            elem,
+            scenario="valid",
+            input_profile=input_profile,
+        )
         meta: dict[str, str] = {"element_type": etype.value}
         actions.append(
             _make(
@@ -279,6 +289,8 @@ def _actions_for_element(
 
 def generate_form_submit_actions(
     elements: list[InteractiveElement],
+    *,
+    input_profile: str = "safe",
 ) -> list[Action]:
     """Generate form submission actions by grouping inputs with submit buttons."""
     # Group elements by parent form
@@ -310,7 +322,11 @@ def generate_form_submit_actions(
         # Generate field values
         field_values: dict[str, str] = {}
         for inp in inputs:
-            value = generate_input_value(inp, scenario="valid")
+            value = generate_input_value(
+                inp,
+                scenario="valid",
+                input_profile=input_profile,
+            )
             field_values[inp.selector] = value
 
         submit_selector = submits[0].selector if submits else form_selector
@@ -339,15 +355,17 @@ def generate_form_submit_actions(
             )
         )
 
-        # Invalid submission (Phase 5)
-        if inputs:
+        # Invalid submission (negative profile)
+        if input_profile == "negative" and inputs:
             invalid_values: dict[str, str] = {}
             for inp in inputs:
                 if inp.is_required:
                     invalid_values[inp.selector] = ""
                 else:
                     invalid_values[inp.selector] = generate_input_value(
-                        inp, scenario="invalid"
+                        inp,
+                        scenario="invalid",
+                        input_profile=input_profile,
                     )
 
             invalid_intent = ActionIntent(

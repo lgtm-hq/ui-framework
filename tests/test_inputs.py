@@ -70,4 +70,14 @@ class TestGenerateInputValue:
     def test_fallback_for_unknown(self):
         elem = _make_input(name="custom_field_xyz")
         result = generate_input_value(elem)
+        assert result == "test input"
+
+    def test_safe_profile_uses_safe_fallback(self):
+        elem = _make_input(name="custom_field_xyz")
+        result = generate_input_value(elem, input_profile="safe")
+        assert result == "test input"
+
+    def test_contextual_profile_uses_contextual_fallback(self):
+        elem = _make_input(name="custom_field_xyz")
+        result = generate_input_value(elem, input_profile="contextual")
         assert result == "test input value"

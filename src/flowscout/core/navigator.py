@@ -296,10 +296,17 @@ class Navigator:
         base_url = state.url.rsplit("/", 1)[0] if "/" in state.url else state.url
 
         # Generate individual element actions
-        actions = generate_actions(elements, base_url=base_url)
+        actions = generate_actions(
+            elements,
+            base_url=base_url,
+            input_profile=self.config.input_profile.value,
+        )
 
         # Generate form submit actions
-        form_actions = generate_form_submit_actions(elements)
+        form_actions = generate_form_submit_actions(
+            elements,
+            input_profile=self.config.input_profile.value,
+        )
         actions.extend(form_actions)
         actions, blocked_count = self._apply_action_policy(actions)
 
