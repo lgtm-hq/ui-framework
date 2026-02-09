@@ -172,6 +172,9 @@ class Navigator:
             result.verdict_reason = step_verdict.reason
             result.expected = step_verdict.expected
             result.actual = step_verdict.actual
+            result.confidence, result.confidence_reason = (
+                self._compute_transition_confidence(result.outcome)
+            )
 
             self.terminal.log_action_result(action, result, is_new_state)
 
@@ -634,3 +637,19 @@ class Navigator:
             return max(action.priority, 80)
 
         return action.priority
+
+    @staticmethod
+    def _compute_transition_confidence(outcome: OutcomeType) -> tuple[float, str]:
+        """Map an observed outcome to a confidence score and reason."""
+        mapping: dict[OutcomeType, tuple[float, str]] = {
+            OutcomeType.NAVIGATION: (0.95, "URL changed and navigation completed"),
+            OutcomeType.DOM_CHANGE: (0.85, "DOM changed after interaction"),
+            OutcomeType.VALIDATION_ERROR: (0.8, "Validation feedback detected"),
+            OutcomeType.VISUAL_CHANGE: (0.7, "Visual state changed"),
+            OutcomeType.NO_CHANGE: (0.55, "No visible transition detected"),
+            OutcomeType.TIMEOUT: (0.3, "Action timed out"),
+            OutcomeType.NETWORK_ERROR: (0.25, "HTTP/network errors detected"),
+            OutcomeType.CONSOLE_ERROR: (0.25, "Console errors detected"),
+            OutcomeType.EXCEPTION: (0.2, "Action raised an exception"),
+        }
+        return mapping.get(outcome, (0.5, "Unknown outcome"))

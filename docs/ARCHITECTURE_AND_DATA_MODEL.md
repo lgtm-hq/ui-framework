@@ -52,6 +52,7 @@ An edge links:
 - action
 - target state
 - outcome
+- confidence score + reason
 - details/evidence
 
 Outcomes:

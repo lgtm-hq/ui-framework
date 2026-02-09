@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS results (
     error_messages_json TEXT NOT NULL DEFAULT '[]',
     console_errors_json TEXT NOT NULL DEFAULT '[]',
     screenshot_path TEXT DEFAULT '',
+    confidence      REAL NOT NULL DEFAULT 0,
+    confidence_reason TEXT NOT NULL DEFAULT '',
     executed_at     TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (run_id) REFERENCES runs(run_id)
 );
@@ -112,6 +114,12 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
         "results",
         "screenshot_path",
         "ALTER TABLE results ADD COLUMN screenshot_path TEXT DEFAULT ''",
+    ),
+    ("results", "confidence", "ALTER TABLE results ADD COLUMN confidence REAL DEFAULT 0"),
+    (
+        "results",
+        "confidence_reason",
+        "ALTER TABLE results ADD COLUMN confidence_reason TEXT DEFAULT ''",
     ),
     ("flows", "verdict", "ALTER TABLE flows ADD COLUMN verdict TEXT DEFAULT ''"),
     (
@@ -238,9 +246,10 @@ class FlowscoutDB:
                 """INSERT INTO results
                    (run_id, action_id, source_state_id, target_state_id,
                     outcome, duration_ms, message, url_before, url_after,
-                    error_messages_json, console_errors_json, screenshot_path, executed_at,
+                    error_messages_json, console_errors_json, screenshot_path,
+                    confidence, confidence_reason, executed_at,
                     verdict, verdict_reason, expected, actual)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     run_id,
                     r.action_id,
@@ -254,6 +263,8 @@ class FlowscoutDB:
                     json.dumps(r.error_messages),
                     json.dumps(r.console_errors),
                     r.screenshot_path or "",
+                    r.confidence,
+                    r.confidence_reason,
                     r.timestamp,
                     r.verdict or "",
                     r.verdict_reason or "",

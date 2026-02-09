@@ -67,6 +67,7 @@ By default, exploration runs in non-destructive mode:
 - high-impact actions with destructive keywords are filtered before execution.
 - invalid/negative form submissions are only generated when `--input-profile negative` is used.
 - action screenshots are captured by default and linked in the execution log.
+- each step records a transition confidence score with a reason.
 
 **Examples:**
 

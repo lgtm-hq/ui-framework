@@ -65,6 +65,8 @@ class ActionResult(BaseModel):
     error_messages: list[str] = Field(default_factory=list)
     console_errors: list[str] = Field(default_factory=list)
     screenshot_path: str | None = None
+    confidence: float = 0.0
+    confidence_reason: str = ""
     timestamp: str = ""
     verdict: str | None = None
     verdict_reason: str | None = None
