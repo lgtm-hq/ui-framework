@@ -2,44 +2,46 @@
 
 Use this checklist to gate deterministic, local-first V1 readiness.
 
+Status snapshot date: 2026-02-09
+
 ## M1: Safety and Config Foundation
 
-- [ ] Non-destructive policy enabled by default.
-- [ ] Risky action blocking verified on fixture site.
-- [ ] Input profiles (`safe`, `contextual`, `negative`) documented and validated.
-- [ ] Auth configuration references secrets without storing secret values.
+- [x] Non-destructive policy enabled by default.
+- [x] Risky action blocking verified on fixture site.
+- [x] Input profiles (`safe`, `contextual`, `negative`) documented and validated.
+- [x] Auth configuration references secrets without storing secret values.
 
 ## M2: Reliable State Identity
 
-- [ ] Layered state keys persisted (`route_key`, `view_key`, `context_key`).
-- [ ] Query normalization and allow/ignore behavior validated.
-- [ ] Dynamic context markers (tab/modal/step/form) produce intended state boundaries.
-- [ ] Regression tests pass for duplicate/noisy URL cases.
+- [x] Layered state keys persisted (`route_key`, `view_key`, `context_key`).
+- [x] Query normalization and allow/ignore behavior validated.
+- [x] Dynamic context markers (tab/modal/step/form) produce intended state boundaries.
+- [x] Regression tests pass for duplicate/noisy URL cases.
 
 ## M3: Evidence Integrity
 
-- [ ] Screenshot capture is on by default.
-- [ ] Interacted element highlight appears in action evidence.
-- [ ] Evidence links to action/state/outcome identifiers.
-- [ ] Report and JSON artifacts remain consistent for the same run.
+- [x] Screenshot capture is on by default.
+- [x] Interacted element highlight appears in action evidence.
+- [x] Evidence links to action/state/outcome identifiers.
+- [x] Report and JSON artifacts remain consistent for the same run.
 
 ## M4: Coverage and MBT Readiness
 
-- [ ] Coverage metrics exported in artifacts and surfaced in reports.
-- [ ] Target threshold is enforced (default: 80%).
-- [ ] Critical and edge-case scenarios are synthesized in site model output.
-- [ ] Scenario generation tests pass.
+- [x] Coverage metrics exported in artifacts and surfaced in reports.
+- [x] Target threshold is enforced (default: 80%).
+- [x] Critical and edge-case scenarios are synthesized in site model output.
+- [x] Scenario generation tests pass.
 
 ## M5: Generation Quality and Reliability
 
-- [ ] Generated POM files compile and import correctly.
-- [ ] Generated scenario/flow suites are syntactically valid and runnable.
-- [ ] Low-confidence transitions are explicitly flagged in generated tests.
-- [ ] Generated steps include traceability identifiers back to source graph edges.
+- [x] Generated POM files compile and import correctly.
+- [x] Generated scenario/flow suites are syntactically valid and runnable.
+- [x] Low-confidence transitions are explicitly flagged in generated tests.
+- [x] Generated steps include traceability identifiers back to source graph edges.
 
 ## M6: Release Candidate
 
-- [ ] Setup and operations docs are current (`README`, `OPERATIONS_AND_WORKFLOWS`).
+- [x] Setup and operations docs are current (`README`, `OPERATIONS_AND_WORKFLOWS`).
 - [ ] Baseline benchmark template populated (`V1_BASELINE_BENCHMARKS.md`).
 - [ ] Baseline benchmark run captured:
   - [ ] runtime duration
