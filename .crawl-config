@@ -1,20 +1,31 @@
-# Crawl runtime defaults consumed by `ui-flow crawl` and `just crawl <site-url>`.
-# CLI flags always override values from this file.
+# Crawl runtime defaults consumed by `flowscout explore` and `just crawl <site-url>`.
+# Precedence: CLI flags > this file > built-in defaults.
 
+# Exploration budget
 max_depth = 2
 max_states = 30
 max_actions_per_state = 15
+
+# Runtime behavior
+headless = true
+smart = true
+input_profile = "safe" # safe | contextual | negative
+enforce_non_destructive = true
+allow_form_submits = false
+
+# Timing (milliseconds)
 navigation_timeout_ms = 10000
 action_timeout_ms = 5000
+stability_timeout_ms = 2000
+load_wait_timeout_ms = 3000
 
-headless = true
+# Artifacts and persistence
+output_dir = "reports"
+environment = "baseline"
 capture_screenshots = true
 persist_history = true
+db_path = ".flowscout/history.db"
 
-output_dir = "reports"
-db_path = ".ui_flow/history.db"
-# screenshots_dir = "reports/screenshots"
-
-# Optional credentials for login scenario permutations:
+# Optional credentials for environment-specific auth permutations:
 # username = "valid-user"
 # password = "valid-pass"

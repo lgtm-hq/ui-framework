@@ -3,13 +3,13 @@ set shell := ["zsh", "-cu"]
 default:
   @just --list
 
-# Run a crawl against a URL with .crawl-config defaults.
+# Run a crawl against a URL using `.crawl-config` defaults.
 crawl url:
-  uv run flowscout explore "{{url}}" --max-depth 2 --max-states 30 --max-actions 15 --timeout 10000 --screenshot
+  uv run flowscout explore "{{url}}" --config-file .crawl-config
 
 # Run a crawl in headed (visible browser) mode.
 crawl-headed url:
-  uv run flowscout explore "{{url}}" --max-depth 2 --max-states 30 --max-actions 15 --timeout 10000 --screenshot --no-headless
+  uv run flowscout explore "{{url}}" --config-file .crawl-config --no-headless
 
 # Export history snapshot, optionally filtered by URL.
 history url="":
@@ -24,11 +24,11 @@ history url="":
 report:
   uv run flowscout serve "$(find reports -name 'report.html' | sort | tail -1)"
 
-# Start the report UI dev server.
+# Start the experimental report UI (legacy `flow_bundle.json` workflow).
 report-ui:
   cd report-ui && bun run dev
 
-# Build the report UI for production.
+# Build the experimental report UI bundle.
 report-ui-build:
   cd report-ui && bun run build
 

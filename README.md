@@ -9,6 +9,12 @@ uv sync
 uv run playwright install chromium
 ```
 
+Or use the convenience recipe:
+
+```bash
+just setup
+```
+
 ## Quick start
 
 ### Explore a site with full site modeling and test generation
@@ -16,6 +22,8 @@ uv run playwright install chromium
 ```bash
 uv run flowscout explore https://example.com --smart --generate-tests
 ```
+
+`flowscout explore` automatically reads `.crawl-config` (if present). Any CLI flag you pass overrides the file.
 
 This runs both streams:
 
@@ -61,6 +69,7 @@ uv run flowscout explore <url> [options]
 | `--input-profile` | `safe` | Input generation profile: `safe`, `contextual`, `negative` |
 | `--enforce-non-destructive` / `--no-enforce-non-destructive` | on | Block high-impact actions by default |
 | `--allow-form-submits` | off | Allow `submit_form` actions (disabled by default for safety) |
+| `--config-file` | `.crawl-config` | Path to TOML-style crawl defaults |
 
 By default, exploration runs in non-destructive mode:
 
@@ -69,6 +78,7 @@ By default, exploration runs in non-destructive mode:
 - invalid/negative form submissions are only generated when `--input-profile negative` is used.
 - action screenshots are captured by default and linked in the execution log.
 - each step records a transition confidence score with a reason.
+- HTML report includes an exploration diagnostics section for low-confidence and flaky transitions.
 
 **Examples:**
 
@@ -169,6 +179,21 @@ reports/<domain>/<environment>/runs/<timestamp>/
 ```
 
 Without `--smart`, only `report.html`, `result.json`, and `tests.py` are generated.
+
+## Crawl configuration file
+
+Use `.crawl-config` to define project defaults such as:
+
+- exploration budgets (`max_depth`, `max_states`, `max_actions_per_state`)
+- runtime behavior (`smart`, `headless`, `capture_screenshots`, safety flags)
+- timing values (`navigation_timeout_ms`, `action_timeout_ms`, `stability_timeout_ms`)
+- persistence/output (`output_dir`, `environment`, `db_path`, `persist_history`)
+
+Precedence is always:
+
+1. explicit CLI flags
+2. `.crawl-config`
+3. built-in defaults
 
 ## Smart mode
 

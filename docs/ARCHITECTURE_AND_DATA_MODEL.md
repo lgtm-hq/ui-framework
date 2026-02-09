@@ -101,13 +101,14 @@ Tables:
 
 Per crawl output directory:
 
-- `flow_report.md`
-- `flow_report.html`
-- `flow_graph.json`
-- `flow_bundle.json`
-- `test_cases.json`
-- `test_cases.md`
+- `report.html`
+- `result.json`
+- `evidence/actions/*.png` (when screenshots are enabled)
+- `tests.py` (when test generation is enabled)
+- `site_model.json` (smart mode)
+- `pages/*.py` + `pom_tests.py` + `scenario_tests.py` (smart mode test generation)
+- `tests.feature` / `narrative_report.md` (optional generation modes)
 
 History export:
 
-- `history_snapshot.json` via `ui-flow history`
+- terminal table via `flowscout history`

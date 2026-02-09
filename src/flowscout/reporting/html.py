@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
@@ -101,6 +101,15 @@ class HTMLReporter:
         group_pass_rates = _compute_group_pass_rates(flow_groups)
 
         vis_js = (_VENDOR_DIR / "vis-network.min.js").read_text()
+        result_screenshot_links = [
+            _to_report_asset_href(r.screenshot_path, report_dir=report_dir)
+            for r in result.results
+        ]
+        diagnostics = _build_diagnostics(
+            result=result,
+            action_labels=action_labels,
+            screenshot_links=result_screenshot_links,
+        )
 
         template = _ENV.get_template("report.html.j2")
         html = template.render(
@@ -116,10 +125,7 @@ class HTMLReporter:
             states_by_id=result.states,
             results=result.results,
             actions=action_labels,
-            result_screenshot_links=[
-                _to_report_asset_href(r.screenshot_path, report_dir=report_dir)
-                for r in result.results
-            ],
+            result_screenshot_links=result_screenshot_links,
             error_results=error_results,
             graph_json=Markup(json.dumps(graph_data)),
             vis_network_js=Markup(vis_js),
@@ -130,6 +136,7 @@ class HTMLReporter:
             total_test_steps=total_test_steps,
             step_verdicts_summary=step_verdicts_summary,
             group_pass_rates=group_pass_rates,
+            diagnostics=diagnostics,
         )
 
         path = Path(output_path)
@@ -305,3 +312,92 @@ def _compute_group_pass_rates(
         )
         rates[cat] = round(passed / max(total, 1) * 100)
     return rates
+
+
+def _build_diagnostics(
+    *,
+    result: ExplorationResult,
+    action_labels: dict[str, str],
+    screenshot_links: list[str | None],
+    low_confidence_threshold: float = 0.6,
+) -> dict:
+    """Build report diagnostics for low-confidence and flaky transitions."""
+    low_confidence_items: list[dict] = []
+    reason_counts: Counter[str] = Counter()
+    transition_outcomes: dict[tuple[str, str], set[str]] = defaultdict(set)
+    transition_occurrences: Counter[tuple[str, str]] = Counter()
+
+    for index, action_result in enumerate(result.results, start=1):
+        key = (action_result.source_state_id, action_result.action_id)
+        outcome = action_result.outcome.value
+        transition_outcomes[key].add(outcome)
+        transition_occurrences[key] += 1
+
+        confidence = float(action_result.confidence or 0.0)
+        if confidence < low_confidence_threshold:
+            reason = (
+                (action_result.confidence_reason or "").strip()
+                or "unspecified"
+            )
+            reason_counts[reason] += 1
+            low_confidence_items.append(
+                {
+                    "step_index": index,
+                    "source_state_short": action_result.source_state_id[:8],
+                    "target_state_short": action_result.target_state_id[:8],
+                    "action_label": action_labels.get(
+                        action_result.action_id,
+                        action_result.action_id,
+                    ),
+                    "confidence_pct": round(confidence * 100),
+                    "confidence_reason": reason,
+                    "outcome": outcome,
+                    "evidence_link": screenshot_links[index - 1],
+                }
+            )
+
+    flaky_items: list[dict] = []
+    for transition_key, outcomes in transition_outcomes.items():
+        if len(outcomes) < 2:
+            continue
+        source_state_id, action_id = transition_key
+        flaky_items.append(
+            {
+                "source_state_short": source_state_id[:8],
+                "action_label": action_labels.get(action_id, action_id),
+                "action_id": action_id,
+                "outcomes": sorted(outcomes),
+                "occurrences": transition_occurrences[transition_key],
+            }
+        )
+
+    flaky_items.sort(
+        key=lambda item: (
+            len(item["outcomes"]),
+            item["occurrences"],
+        ),
+        reverse=True,
+    )
+    low_confidence_items.sort(
+        key=lambda item: item["confidence_pct"],
+    )
+
+    total_steps = len(result.results)
+    low_confidence_count = len(low_confidence_items)
+    reason_breakdown = [
+        {"reason": reason, "count": count}
+        for reason, count in reason_counts.most_common(5)
+    ]
+
+    return {
+        "low_confidence_threshold": low_confidence_threshold,
+        "total_steps": total_steps,
+        "low_confidence_count": low_confidence_count,
+        "low_confidence_pct": round(
+            low_confidence_count / max(total_steps, 1) * 100,
+        ),
+        "low_confidence_items": low_confidence_items[:25],
+        "reason_breakdown": reason_breakdown,
+        "flaky_items": flaky_items[:25],
+        "flaky_paths_count": len(flaky_items),
+    }

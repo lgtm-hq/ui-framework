@@ -7,12 +7,15 @@ import json
 import logging
 import os
 import re
+import tomllib
 import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
 import click
+from click.core import ParameterSource
 from rich.console import Console
 from rich.table import Table
 
@@ -30,7 +33,155 @@ from flowscout.storage.db import FlowscoutDB
 console = Console()
 
 DEFAULT_DB_PATH = ".flowscout/history.db"
+DEFAULT_CRAWL_CONFIG_PATH = ".crawl-config"
 DEFAULT_LOW_CONFIDENCE_THRESHOLD = 0.6
+
+
+def _load_crawl_config(*, config_file: str) -> dict[str, Any]:
+    """Load crawl defaults from a TOML-style config file.
+
+    Args:
+        config_file: Path to config file.
+
+    Returns:
+        Parsed key/value config dictionary.
+
+    Raises:
+        click.ClickException: If config file cannot be parsed as TOML.
+    """
+    config_path = Path(config_file).expanduser()
+    if not config_path.exists():
+        return {}
+
+    try:
+        with config_path.open(mode="rb") as handle:
+            payload = tomllib.load(handle)
+    except tomllib.TOMLDecodeError as exc:
+        raise click.ClickException(
+            f"Invalid crawl config at {config_path}: {exc}",
+        ) from exc
+    except OSError as exc:
+        raise click.ClickException(
+            f"Could not read crawl config at {config_path}: {exc}",
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise click.ClickException(
+            f"Invalid crawl config at {config_path}: root must be a key/value table",
+        )
+    return payload
+
+
+def _came_from_cli(*, ctx: click.Context, parameter: str) -> bool:
+    """Return whether a Click parameter was explicitly passed via CLI."""
+    return ctx.get_parameter_source(parameter) == ParameterSource.COMMANDLINE
+
+
+def _find_config_value(
+    *,
+    config: dict[str, Any],
+    keys: tuple[str, ...],
+) -> tuple[str, Any] | None:
+    """Find first matching key in config and return key/value pair."""
+    for key in keys:
+        if key in config:
+            return key, config[key]
+    return None
+
+
+def _coerce_int(*, value: Any, config_key: str) -> int:
+    """Validate integer value loaded from config."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise click.ClickException(
+            f"Config key '{config_key}' must be an integer, got {type(value).__name__}",
+        )
+    return value
+
+
+def _coerce_bool(*, value: Any, config_key: str) -> bool:
+    """Validate boolean value loaded from config."""
+    if not isinstance(value, bool):
+        raise click.ClickException(
+            f"Config key '{config_key}' must be true/false, got {type(value).__name__}",
+        )
+    return value
+
+
+def _coerce_str(*, value: Any, config_key: str) -> str:
+    """Validate string value loaded from config."""
+    if not isinstance(value, str):
+        raise click.ClickException(
+            f"Config key '{config_key}' must be a string, got {type(value).__name__}",
+        )
+    return value
+
+
+def _resolve_int_option(
+    *,
+    ctx: click.Context,
+    parameter: str,
+    cli_value: int,
+    config: dict[str, Any],
+    config_keys: tuple[str, ...],
+) -> int:
+    """Resolve integer option with precedence: CLI > config > CLI default."""
+    if _came_from_cli(ctx=ctx, parameter=parameter):
+        return cli_value
+    maybe_value = _find_config_value(config=config, keys=config_keys)
+    if maybe_value is None:
+        return cli_value
+    key, value = maybe_value
+    return _coerce_int(value=value, config_key=key)
+
+
+def _resolve_bool_option(
+    *,
+    ctx: click.Context,
+    parameter: str,
+    cli_value: bool,
+    config: dict[str, Any],
+    config_keys: tuple[str, ...],
+) -> bool:
+    """Resolve bool option with precedence: CLI > config > CLI default."""
+    if _came_from_cli(ctx=ctx, parameter=parameter):
+        return cli_value
+    maybe_value = _find_config_value(config=config, keys=config_keys)
+    if maybe_value is None:
+        return cli_value
+    key, value = maybe_value
+    return _coerce_bool(value=value, config_key=key)
+
+
+def _resolve_str_option(
+    *,
+    ctx: click.Context,
+    parameter: str,
+    cli_value: str,
+    config: dict[str, Any],
+    config_keys: tuple[str, ...],
+) -> str:
+    """Resolve string option with precedence: CLI > config > CLI default."""
+    if _came_from_cli(ctx=ctx, parameter=parameter):
+        return cli_value
+    maybe_value = _find_config_value(config=config, keys=config_keys)
+    if maybe_value is None:
+        return cli_value
+    key, value = maybe_value
+    return _coerce_str(value=value, config_key=key)
+
+
+def _resolve_int_config(
+    *,
+    config: dict[str, Any],
+    config_keys: tuple[str, ...],
+    default: int,
+) -> int:
+    """Resolve int value from config with fallback to default."""
+    maybe_value = _find_config_value(config=config, keys=config_keys)
+    if maybe_value is None:
+        return default
+    key, value = maybe_value
+    return _coerce_int(value=value, config_key=key)
 
 
 @click.group()
@@ -113,6 +264,12 @@ def main() -> None:
     is_flag=True,
     help="Allow form submit actions (disabled by default for safety).",
 )
+@click.option(
+    "--config-file",
+    default=DEFAULT_CRAWL_CONFIG_PATH,
+    show_default=True,
+    help="Path to TOML-style crawl defaults (CLI args override file values).",
+)
 def explore(
     url: str,
     max_depth: int,
@@ -135,25 +292,187 @@ def explore(
     input_profile: str,
     enforce_non_destructive: bool,
     allow_form_submits: bool,
+    config_file: str,
 ) -> None:
     """Explore a web application starting from URL."""
+    ctx = click.get_current_context()
+    crawl_config = _load_crawl_config(config_file=config_file)
+
+    resolved_max_depth = _resolve_int_option(
+        ctx=ctx,
+        parameter="max_depth",
+        cli_value=max_depth,
+        config=crawl_config,
+        config_keys=("max_depth",),
+    )
+    resolved_max_states = _resolve_int_option(
+        ctx=ctx,
+        parameter="max_states",
+        cli_value=max_states,
+        config=crawl_config,
+        config_keys=("max_states",),
+    )
+    resolved_max_actions = _resolve_int_option(
+        ctx=ctx,
+        parameter="max_actions",
+        cli_value=max_actions,
+        config=crawl_config,
+        config_keys=("max_actions", "max_actions_per_state"),
+    )
+    resolved_headless = _resolve_bool_option(
+        ctx=ctx,
+        parameter="headless",
+        cli_value=headless,
+        config=crawl_config,
+        config_keys=("headless",),
+    )
+    resolved_timeout = _resolve_int_option(
+        ctx=ctx,
+        parameter="timeout",
+        cli_value=timeout,
+        config=crawl_config,
+        config_keys=("timeout", "timeout_ms", "navigation_timeout_ms"),
+    )
+    resolved_output_dir = _resolve_str_option(
+        ctx=ctx,
+        parameter="output_dir",
+        cli_value=output_dir,
+        config=crawl_config,
+        config_keys=("output_dir",),
+    )
+    resolved_environment = _resolve_str_option(
+        ctx=ctx,
+        parameter="environment",
+        cli_value=environment,
+        config=crawl_config,
+        config_keys=("environment",),
+    )
+    resolved_screenshot = _resolve_bool_option(
+        ctx=ctx,
+        parameter="screenshot",
+        cli_value=screenshot,
+        config=crawl_config,
+        config_keys=("capture_screenshots", "take_screenshots", "screenshot"),
+    )
+    resolved_strategy = _resolve_str_option(
+        ctx=ctx,
+        parameter="strategy",
+        cli_value=strategy,
+        config=crawl_config,
+        config_keys=("strategy",),
+    )
+    resolved_verbose = _resolve_bool_option(
+        ctx=ctx,
+        parameter="verbose",
+        cli_value=verbose,
+        config=crawl_config,
+        config_keys=("verbose",),
+    )
+    resolved_db_path = _resolve_str_option(
+        ctx=ctx,
+        parameter="db_path",
+        cli_value=db_path,
+        config=crawl_config,
+        config_keys=("db_path",),
+    )
+    resolved_smart = _resolve_bool_option(
+        ctx=ctx,
+        parameter="smart",
+        cli_value=smart,
+        config=crawl_config,
+        config_keys=("smart",),
+    )
+    resolved_input_profile = _resolve_str_option(
+        ctx=ctx,
+        parameter="input_profile",
+        cli_value=input_profile,
+        config=crawl_config,
+        config_keys=("input_profile",),
+    )
+    resolved_enforce_non_destructive = _resolve_bool_option(
+        ctx=ctx,
+        parameter="enforce_non_destructive",
+        cli_value=enforce_non_destructive,
+        config=crawl_config,
+        config_keys=("enforce_non_destructive",),
+    )
+    resolved_allow_form_submits = _resolve_bool_option(
+        ctx=ctx,
+        parameter="allow_form_submits",
+        cli_value=allow_form_submits,
+        config=crawl_config,
+        config_keys=("allow_form_submits",),
+    )
+
+    if _came_from_cli(ctx=ctx, parameter="no_db"):
+        save_to_db = not no_db
+    else:
+        persist_history_cfg = _find_config_value(
+            config=crawl_config,
+            keys=("persist_history",),
+        )
+        if persist_history_cfg is not None:
+            _, persist_history = persist_history_cfg
+            save_to_db = _coerce_bool(
+                value=persist_history,
+                config_key="persist_history",
+            )
+        else:
+            no_db_cfg = _find_config_value(config=crawl_config, keys=("no_db",))
+            if no_db_cfg is not None:
+                _, no_db_config_value = no_db_cfg
+                save_to_db = not _coerce_bool(
+                    value=no_db_config_value,
+                    config_key="no_db",
+                )
+            else:
+                save_to_db = True
+
+    default_action_timeout_ms = int(
+        ExplorerConfig.model_fields["action_timeout_ms"].default,
+    )
+    default_stability_timeout_ms = int(
+        ExplorerConfig.model_fields["stability_timeout_ms"].default,
+    )
+    default_load_wait_timeout_ms = int(
+        ExplorerConfig.model_fields["load_wait_timeout_ms"].default,
+    )
+    resolved_action_timeout_ms = _resolve_int_config(
+        config=crawl_config,
+        config_keys=("action_timeout_ms",),
+        default=default_action_timeout_ms,
+    )
+    resolved_stability_timeout_ms = _resolve_int_config(
+        config=crawl_config,
+        config_keys=("stability_timeout_ms",),
+        default=default_stability_timeout_ms,
+    )
+    resolved_load_wait_timeout_ms = _resolve_int_config(
+        config=crawl_config,
+        config_keys=("load_wait_timeout_ms",),
+        default=default_load_wait_timeout_ms,
+    )
+
     config = ExplorerConfig(
         start_url=url,
-        max_depth=max_depth,
-        max_states=max_states,
-        max_actions_per_state=max_actions,
-        headless=headless,
-        timeout_ms=timeout,
-        output_dir=output_dir,
-        environment=environment,
-        take_screenshots=screenshot,
-        strategy=ExplorationStrategy(strategy),
-        verbose=verbose,
-        smart_mode=smart,
-        input_profile=InputProfile(input_profile),
+        max_depth=resolved_max_depth,
+        max_states=resolved_max_states,
+        max_actions_per_state=resolved_max_actions,
+        headless=resolved_headless,
+        timeout_ms=resolved_timeout,
+        action_timeout_ms=resolved_action_timeout_ms,
+        stability_timeout_ms=resolved_stability_timeout_ms,
+        load_wait_timeout_ms=resolved_load_wait_timeout_ms,
+        output_dir=resolved_output_dir,
+        environment=resolved_environment,
+        take_screenshots=resolved_screenshot,
+        strategy=ExplorationStrategy(resolved_strategy),
+        verbose=resolved_verbose,
+        smart_mode=resolved_smart,
+        input_profile=InputProfile(resolved_input_profile),
         action_policy=ActionPolicyConfig(
-            enforce_non_destructive=enforce_non_destructive,
-            block_form_submissions=not allow_form_submits,
+            enforce_non_destructive=resolved_enforce_non_destructive,
+            block_form_submissions=not resolved_allow_form_submits,
         ),
     )
 
@@ -164,8 +483,8 @@ def explore(
             test_framework=test_framework,
             generate_bdd=bdd,
             generate_narrative=narrative,
-            db_path=db_path,
-            save_to_db=not no_db,
+            db_path=resolved_db_path,
+            save_to_db=save_to_db,
         )
     )
 

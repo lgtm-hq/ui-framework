@@ -1014,6 +1014,70 @@
         }
 
         /* ============================================================
+           DIAGNOSTICS
+           ============================================================ */
+        .diagnostics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .diag-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: 0.875rem 1rem;
+        }
+
+        .diag-label {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .diag-value {
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .diag-value.warn { color: var(--accent-amber); }
+        .diag-value.fail { color: var(--accent-red); }
+        .diag-value.pass { color: var(--accent-green); }
+
+        .diag-subtext {
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .diag-reason-list {
+            margin-top: 0.55rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .diag-chip {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-dim);
+            border-radius: 999px;
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-overlay);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ============================================================
            TABLES (shared)
            ============================================================ */
         .data-table-wrap {
@@ -1109,6 +1173,49 @@
             max-height: 480px;
             overflow-y: auto;
         }
+
+        .confidence-cell {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .confidence-reason {
+            max-width: 260px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .evidence-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .evidence-thumb-link {
+            display: inline-flex;
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            overflow: hidden;
+            background: var(--bg-overlay);
+        }
+
+        .evidence-thumb {
+            width: 40px;
+            height: 28px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .evidence-open-link {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        .evidence-open-link:hover { text-decoration: underline; }
 
         /* --- Outcome badges --- */
         .outcome {
@@ -1423,6 +1530,121 @@
         {% endif %}
 
         <!-- ============================================================
+             SECTION H: DIAGNOSTICS
+             ============================================================ -->
+        <section class="section section-collapsible collapsed animate-in delay-2">
+            <div class="section-header" onclick="toggleSection(this.parentElement)">
+                <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                <h2>Exploration Diagnostics</h2>
+                <div class="section-count">{{ diagnostics.low_confidence_count }} low-confidence &middot; {{ diagnostics.flaky_paths_count }} flaky</div>
+                <div class="section-line"></div>
+            </div>
+            <div class="section-body">
+                <div class="diagnostics-grid">
+                    <div class="diag-card">
+                        <div class="diag-label">Low-Confidence Steps</div>
+                        <div class="diag-value {% if diagnostics.low_confidence_count %}warn{% else %}pass{% endif %}">{{ diagnostics.low_confidence_count }}</div>
+                        <div class="diag-subtext">
+                            Below {{ "%.0f"|format(diagnostics.low_confidence_threshold * 100) }}% confidence
+                            ({{ diagnostics.low_confidence_pct }}% of {{ diagnostics.total_steps }} steps)
+                        </div>
+                    </div>
+                    <div class="diag-card">
+                        <div class="diag-label">Flaky Transitions</div>
+                        <div class="diag-value {% if diagnostics.flaky_paths_count %}fail{% else %}pass{% endif %}">{{ diagnostics.flaky_paths_count }}</div>
+                        <div class="diag-subtext">
+                            Same state + action produced multiple outcomes in this run
+                        </div>
+                    </div>
+                    <div class="diag-card">
+                        <div class="diag-label">Top Low-Confidence Reasons</div>
+                        {% if diagnostics.reason_breakdown %}
+                        <div class="diag-reason-list">
+                            {% for reason in diagnostics.reason_breakdown %}
+                            <span class="diag-chip">{{ reason.reason }} ({{ reason.count }})</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="diag-value pass">none</div>
+                        <div class="diag-subtext">No low-confidence transitions were detected.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if diagnostics.low_confidence_items %}
+                <div class="data-table-wrap" style="margin-bottom: 1rem;">
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Page</th>
+                                    <th>Step</th>
+                                    <th>Outcome</th>
+                                    <th>Confidence</th>
+                                    <th>Reason</th>
+                                    <th>Evidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in diagnostics.low_confidence_items %}
+                                <tr>
+                                    <td class="cell-dim">{{ item.step_index }}</td>
+                                    <td class="cell-id">{{ item.source_state_short }}</td>
+                                    <td class="cell-action">{{ item.action_label }}</td>
+                                    <td><span class="outcome {{ item.outcome }}">{{ item.outcome }}</span></td>
+                                    <td class="confidence-cell">{{ item.confidence_pct }}%</td>
+                                    <td class="cell-dim confidence-reason">{{ item.confidence_reason }}</td>
+                                    <td>
+                                        {% if item.evidence_link %}
+                                        <div class="evidence-cell">
+                                            <a class="evidence-thumb-link" href="{{ item.evidence_link }}" target="_blank" rel="noopener noreferrer">
+                                                <img class="evidence-thumb" src="{{ item.evidence_link }}" alt="evidence step {{ item.step_index }}" loading="lazy">
+                                            </a>
+                                            <a class="evidence-open-link" href="{{ item.evidence_link }}" target="_blank" rel="noopener noreferrer">open</a>
+                                        </div>
+                                        {% else %}
+                                        <span class="cell-dim">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if diagnostics.flaky_items %}
+                <div class="data-table-wrap">
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Page</th>
+                                    <th>Step</th>
+                                    <th>Outcomes</th>
+                                    <th class="right">Occurrences</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in diagnostics.flaky_items %}
+                                <tr>
+                                    <td class="cell-id">{{ item.source_state_short }}</td>
+                                    <td class="cell-action">{{ item.action_label }}</td>
+                                    <td class="cell-dim">{{ item.outcomes|join(', ') }}</td>
+                                    <td class="cell-right">{{ item.occurrences }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- ============================================================
              SECTION C: TEST SUITES (primary view)
              ============================================================ -->
         <section class="section animate-in delay-2">
@@ -1672,6 +1894,7 @@
                                     <th>Status</th>
                                     <th>Target</th>
                                     <th>Confidence</th>
+                                    <th>Reason</th>
                                     <th>Evidence</th>
                                     <th class="right">Duration</th>
                                 </tr>
@@ -1686,11 +1909,17 @@
                                     <td><span class="outcome {{ r.outcome.value }}">{{ r.outcome.value }}</span></td>
                                     <td>{% if r.verdict %}<span class="verdict {{ r.verdict }}">{{ r.verdict }}</span>{% endif %}</td>
                                     <td class="cell-id">{{ r.target_state_id[:8] }}</td>
-                                    <td class="cell-dim" title="{{ r.confidence_reason or '' }}">{{ "%.0f"|format((r.confidence or 0) * 100) }}%</td>
+                                    <td class="confidence-cell">{{ "%.0f"|format((r.confidence or 0) * 100) }}%</td>
+                                    <td class="cell-dim confidence-reason">{{ r.confidence_reason or '—' }}</td>
                                     {% set shot = result_screenshot_links[loop.index0] %}
                                     <td>
                                         {% if shot %}
-                                        <a href="{{ shot }}" target="_blank" rel="noopener noreferrer">open</a>
+                                        <div class="evidence-cell">
+                                            <a class="evidence-thumb-link" href="{{ shot }}" target="_blank" rel="noopener noreferrer">
+                                                <img class="evidence-thumb" src="{{ shot }}" alt="evidence step {{ loop.index }}" loading="lazy">
+                                            </a>
+                                            <a class="evidence-open-link" href="{{ shot }}" target="_blank" rel="noopener noreferrer">open</a>
+                                        </div>
                                         {% else %}
                                         <span class="cell-dim">—</span>
                                         {% endif %}
