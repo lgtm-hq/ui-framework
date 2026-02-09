@@ -75,6 +75,7 @@ def test_pytest_codegen_marks_low_confidence_transition() -> None:
     assert "Reliability: confidence=0.55 (55%)" in code
     assert "reason=No visible transition detected" in code
     assert "Reliability flag: LOW_CONFIDENCE transition" in code
+    assert "Trace: action_id=a1 | edge=s1->s2 | outcome=navigation" in code
 
 
 def test_pytest_codegen_does_not_flag_high_confidence_transition() -> None:
@@ -91,6 +92,7 @@ def test_pytest_codegen_does_not_flag_high_confidence_transition() -> None:
     assert "Reliability: confidence=0.95 (95%)" in code
     assert "reason=URL changed and navigation completed" in code
     assert "Reliability flag: LOW_CONFIDENCE transition" not in code
+    assert "Trace: action_id=a1 | edge=s1->s2 | outcome=navigation" in code
 
 
 def test_playwright_codegen_marks_low_confidence_transition() -> None:
@@ -107,3 +109,4 @@ def test_playwright_codegen_marks_low_confidence_transition() -> None:
     assert "// Reliability: confidence=0.30 (30%)" in code
     assert "reason=Action timed out" in code
     assert "// Reliability flag: LOW_CONFIDENCE transition" in code
+    assert "// Trace: action_id=a1 | edge=s1->s2 | outcome=navigation" in code

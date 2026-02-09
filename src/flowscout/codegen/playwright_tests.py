@@ -146,6 +146,9 @@ def _generate_flow_test(
 
         lines.append("")
         lines.append(f"    # Step {i + 1}: {action.label}")
+        lines.extend(
+            _traceability_comments(action, matching_result, prefix="    # "),
+        )
 
         # Verdict comment
         if matching_result and matching_result.verdict:
@@ -223,6 +226,7 @@ def _generate_action_test(
     lines.append("")
 
     # Verdict comment
+    lines.extend(_traceability_comments(action, r, prefix="    # "))
     if r.verdict:
         lines.append(
             f"    # Expected: {r.expected or 'N/A'} | Actual: {r.actual or 'N/A'} | Verdict: {r.verdict.upper()}"
@@ -383,6 +387,9 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
 
             lines.append("")
             lines.append(f"    // Step {i + 1}: {action.label}")
+            lines.extend(
+                _traceability_comments(action, matching_result, prefix="    // "),
+            )
 
             # Verdict comment
             if matching_result and matching_result.verdict:
@@ -479,6 +486,24 @@ def _confidence_comments(
             f"{prefix}Reliability flag: LOW_CONFIDENCE transition - review waits/selectors before relying on this assertion."
         )
     return comments
+
+
+def _traceability_comments(
+    action: Action,
+    result: ActionResult | None,
+    *,
+    prefix: str,
+) -> list[str]:
+    """Build traceability comments linking generated steps back to graph edges."""
+    if result:
+        return [
+            (
+                f"{prefix}Trace: action_id={action.action_id} | "
+                f"edge={result.source_state_id}->{result.target_state_id} | "
+                f"outcome={result.outcome.value}"
+            )
+        ]
+    return [f"{prefix}Trace: action_id={action.action_id} | edge=unknown"]
 
 
 def _find_result_for_step(

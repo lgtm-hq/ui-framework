@@ -76,6 +76,7 @@ Generated test cases are derived from edges:
 - negative cases from non-success outcomes
 - reliability annotations per step with confidence score + reason
 - explicit `LOW_CONFIDENCE` flag in generated code when confidence is below the V1 threshold (0.60)
+- explicit per-step trace comments (`action_id`, `source_state -> target_state`, `outcome`) for graph-to-test mapping
 
 Each case keeps:
 
