@@ -8,6 +8,7 @@ build/
 
 # Flowscout runtime
 .flowscout/
+.lintro/
 reports/
 
 # IDE
