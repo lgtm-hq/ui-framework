@@ -17,6 +17,11 @@ from flowscout.core.state import (
     FingerprintConfig,
     PageState,
     build_fingerprint,
+    build_context_key,
+    build_route_key,
+    build_view_key,
+    extract_context_markers,
+    extract_primary_heading,
     make_state_id,
 )
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
@@ -108,6 +113,21 @@ class BrowserManager:
         form_hash = sha256(form_state.encode()).hexdigest()
 
         signals = await self.page.evaluate(SIGNALS_JS)
+        primary_heading = extract_primary_heading(signals=signals, title=title)
+        route_key = build_route_key(url, config=self._fingerprint_config)
+        view_key = build_view_key(
+            route_key=route_key,
+            dom_structure_hash=dom_hash,
+            primary_heading=primary_heading,
+        )
+        context_markers = extract_context_markers(
+            signals=signals,
+            form_state_hash=form_hash,
+        )
+        context_key = build_context_key(
+            view_key=view_key,
+            context_markers=context_markers,
+        )
 
         fp = build_fingerprint(
             url=url,
@@ -115,6 +135,9 @@ class BrowserManager:
             dom_structure_hash=dom_hash,
             visible_text_hash=text_hash,
             form_state_hash=form_hash,
+            route_key=route_key,
+            view_key=view_key,
+            context_key=context_key,
             config=self._fingerprint_config,
         )
 
@@ -127,6 +150,11 @@ class BrowserManager:
             dom_structure_hash=dom_hash,
             visible_text_hash=text_hash,
             form_state_hash=form_hash,
+            route_key=route_key,
+            view_key=view_key,
+            context_key=context_key,
+            primary_heading=primary_heading,
+            context_markers=context_markers,
             signals=signals,
         )
 

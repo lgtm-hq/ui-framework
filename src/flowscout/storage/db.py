@@ -36,6 +36,11 @@ CREATE TABLE IF NOT EXISTS states (
     dom_hash        TEXT NOT NULL DEFAULT '',
     text_hash       TEXT NOT NULL DEFAULT '',
     form_hash       TEXT NOT NULL DEFAULT '',
+    route_key       TEXT NOT NULL DEFAULT '',
+    view_key        TEXT NOT NULL DEFAULT '',
+    context_key     TEXT NOT NULL DEFAULT '',
+    primary_heading TEXT NOT NULL DEFAULT '',
+    context_markers_json TEXT NOT NULL DEFAULT '[]',
     signals_json    TEXT NOT NULL DEFAULT '[]',
     screenshot_path TEXT,
     discovered_at   TEXT NOT NULL,
@@ -121,6 +126,23 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
         "confidence_reason",
         "ALTER TABLE results ADD COLUMN confidence_reason TEXT DEFAULT ''",
     ),
+    ("states", "route_key", "ALTER TABLE states ADD COLUMN route_key TEXT DEFAULT ''"),
+    ("states", "view_key", "ALTER TABLE states ADD COLUMN view_key TEXT DEFAULT ''"),
+    (
+        "states",
+        "context_key",
+        "ALTER TABLE states ADD COLUMN context_key TEXT DEFAULT ''",
+    ),
+    (
+        "states",
+        "primary_heading",
+        "ALTER TABLE states ADD COLUMN primary_heading TEXT DEFAULT ''",
+    ),
+    (
+        "states",
+        "context_markers_json",
+        "ALTER TABLE states ADD COLUMN context_markers_json TEXT DEFAULT '[]'",
+    ),
     ("flows", "verdict", "ALTER TABLE flows ADD COLUMN verdict TEXT DEFAULT ''"),
     (
         "flows",
@@ -202,9 +224,10 @@ class FlowscoutDB:
             self.conn.execute(
                 """INSERT OR REPLACE INTO states
                    (state_id, run_id, url, title, fingerprint, depth,
-                    dom_hash, text_hash, form_hash, signals_json,
+                    dom_hash, text_hash, form_hash, route_key, view_key, context_key,
+                    primary_heading, context_markers_json, signals_json,
                     screenshot_path, discovered_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     state.state_id,
                     run_id,
@@ -215,6 +238,11 @@ class FlowscoutDB:
                     state.dom_structure_hash,
                     state.visible_text_hash,
                     state.form_state_hash,
+                    state.route_key,
+                    state.view_key,
+                    state.context_key,
+                    state.primary_heading,
+                    json.dumps(state.context_markers),
                     json.dumps(state.signals),
                     state.screenshot_path,
                     state.timestamp,

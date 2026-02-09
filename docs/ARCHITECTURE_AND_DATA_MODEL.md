@@ -25,6 +25,12 @@ A state is a unique page/screen signature composed of:
 
 The framework generates a compact `state_id` from this fingerprint.
 
+V1 layered identity is also captured per state:
+
+- `route_key`: normalized URL route with dynamic IDs collapsed (for example `/products/{id}`)
+- `view_key`: hash of route + DOM structure + primary heading
+- `context_key`: hash of view + context markers (active nav/tab/modal/step and form state marker)
+
 ## Action
 
 An action is an executable interaction:

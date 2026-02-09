@@ -3,7 +3,12 @@
 from flowscout.core.state import (
     ExplorerConfig,
     FingerprintConfig,
+    build_context_key,
     build_fingerprint,
+    build_route_key,
+    build_view_key,
+    extract_context_markers,
+    extract_primary_heading,
     make_state_id,
     normalize_url,
 )
@@ -108,6 +113,72 @@ class TestBuildFingerprint:
         fp1 = build_fingerprint(url="https://a.com", config=config, **common)
         fp2 = build_fingerprint(url="https://b.com", config=config, **common)
         assert fp1 == fp2  # URL ignored
+
+    def test_context_key_overrides_raw_content_signals(self):
+        common = {
+            "url": "https://example.com/products/1",
+            "title": "Product",
+            "dom_structure_hash": "dom",
+            "visible_text_hash": "text-a",
+            "form_state_hash": "form-a",
+            "route_key": "https://example.com/products/{id}",
+            "view_key": "view-key",
+            "context_key": "context-key",
+        }
+        fp1 = build_fingerprint(**common)
+        fp2 = build_fingerprint(
+            **{
+                **common,
+                "visible_text_hash": "text-b",
+                "form_state_hash": "form-b",
+            }
+        )
+        assert fp1 == fp2
+
+
+class TestLayeredIdentity:
+    def test_route_key_collapses_dynamic_path_segment(self):
+        key = build_route_key("https://example.com/products/12345?page=2")
+        assert key == "https://example.com/products/{id}?page=2"
+
+    def test_view_key_is_stable(self):
+        key1 = build_view_key(
+            route_key="https://example.com/products/{id}",
+            dom_structure_hash="dom",
+            primary_heading="Product Detail",
+        )
+        key2 = build_view_key(
+            route_key="https://example.com/products/{id}",
+            dom_structure_hash="dom",
+            primary_heading="Product Detail",
+        )
+        assert key1 == key2
+
+    def test_context_key_changes_with_markers(self):
+        key1 = build_context_key(
+            view_key="view",
+            context_markers=["tab:overview", "form:abc"],
+        )
+        key2 = build_context_key(
+            view_key="view",
+            context_markers=["tab:details", "form:abc"],
+        )
+        assert key1 != key2
+
+    def test_primary_heading_prefers_h1_signal(self):
+        heading = extract_primary_heading(
+            signals=["title:Example", "h1:Products"],
+            title="Example",
+        )
+        assert heading == "Products"
+
+    def test_context_markers_include_form_prefix(self):
+        markers = extract_context_markers(
+            signals=["title:Example", "nav:Home"],
+            form_state_hash="abcdef1234567890",
+        )
+        assert "nav:home" in markers
+        assert "form:abcdef123456" in markers
 
 
 class TestMakeStateId:
