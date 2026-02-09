@@ -5,11 +5,22 @@ __pycache__/
 dist/
 build/
 .venv/
+.mypy_cache/
+.ruff_cache/
 
 # Flowscout runtime
 .flowscout/
 .lintro/
 reports/
+coverage.json
+
+# Environment / secrets
+.env
+.env.*
+.secrets
+
+# JS tooling
+node_modules/
 
 # IDE
 .idea/

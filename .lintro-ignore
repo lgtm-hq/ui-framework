@@ -1,0 +1,19 @@
+# Ignore generated/runtime artifacts and local environments during lintro runs.
+reports/
+.flowscout/
+.lintro/
+
+# Virtualenvs and caches.
+.venv/
+venv/
+env/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Build artifacts.
+build/
+dist/
+htmlcov/
+node_modules/
