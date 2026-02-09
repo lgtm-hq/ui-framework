@@ -51,6 +51,7 @@ uv run flowscout explore <url> [options]
 | `--headless` / `--no-headless` | headless | Run browser in headless or headed mode |
 | `--timeout` / `-t` | 10000 | Navigation timeout in milliseconds |
 | `--output-dir` / `-o` | `./reports` | Output directory for reports |
+| `--environment` | `dev` | Environment label used in per-site workspace paths |
 | `--screenshot` / `--no-screenshot` | on | Capture action evidence screenshots with highlighted targets |
 | `--strategy` | `priority` | Exploration strategy: `bfs`, `dfs`, or `priority` |
 | `--bdd` | off | Generate Gherkin `.feature` file |
@@ -92,6 +93,9 @@ uv run flowscout explore https://example.com --allow-form-submits
 
 # Enable negative validation exploration
 uv run flowscout explore https://example.com --input-profile negative --allow-form-submits
+
+# Isolate runs under a specific environment workspace
+uv run flowscout explore https://example.com --environment staging
 ```
 
 ### `serve`
@@ -139,12 +143,13 @@ uv run flowscout reliability --url https://example.com
 
 ## Output structure
 
-Each exploration run produces a timestamped directory:
+Each exploration run is isolated by site + environment:
 
 ```
-reports/<year>/<month>/<date>/<time>/
+reports/<domain>/<environment>/runs/<timestamp>/
   report.html          Interactive HTML dashboard with state graph
   result.json          Full serialized exploration data
+  evidence/actions/    Action screenshots with highlighted targets (--screenshot)
   site_model.json      Site model: page types, navigation, scenarios (--smart)
   tests.py             Flow replay tests (--generate-tests)
   pom_tests.py         POM-based tests (--smart --generate-tests)

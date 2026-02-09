@@ -156,8 +156,8 @@ Example shape:
 ```text
 reports/
   <domain>/
-    <env>/
-      <yyyy-mm-dd>/<hh-mm-ss>/
+    <env>/runs/
+      <yyyy-mm-dd_hh.mm.ss>/
 ```
 
 ## AI Boundary (Post-V1)

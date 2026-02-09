@@ -57,6 +57,11 @@ def main() -> None:
     "--output-dir", "-o", default="./reports", help="Output directory for reports."
 )
 @click.option(
+    "--environment",
+    default="dev",
+    help="Environment label for workspace isolation (e.g., dev, staging, prod).",
+)
+@click.option(
     "--screenshot/--no-screenshot",
     default=True,
     help="Capture action evidence screenshots with highlighted targets.",
@@ -115,6 +120,7 @@ def explore(
     headless: bool,
     timeout: int,
     output_dir: str,
+    environment: str,
     screenshot: bool,
     strategy: str,
     verbose: bool,
@@ -138,6 +144,7 @@ def explore(
         headless=headless,
         timeout_ms=timeout,
         output_dir=output_dir,
+        environment=environment,
         take_screenshots=screenshot,
         strategy=ExplorationStrategy(strategy),
         verbose=verbose,
@@ -184,7 +191,8 @@ def _build_output_dirs(
         # Extract and sanitize domain for filesystem use
         netloc = urlparse(config.start_url).netloc or "unknown"
         domain = re.sub(r"[^\w.\-]", "_", netloc)
-        workspace = base / domain
+        environment = re.sub(r"[^\w.\-]", "_", config.environment or "dev")
+        workspace = base / domain / environment
         timestamp = now.strftime("%Y-%m-%d_%H.%M.%S")
         run_dir = workspace / "runs" / timestamp
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -230,7 +238,7 @@ async def _run_exploration(
         logging.getLogger("flowscout").addHandler(console_handler)
 
     now = datetime.now(timezone.utc)
-    use_smart_workspace = config.smart_mode and generate_tests
+    use_smart_workspace = True
     run_dir, workspace_dir = _build_output_dirs(
         config, now, smart_workspace=use_smart_workspace,
     )
