@@ -8,6 +8,7 @@ Related documents:
 - `ARCHITECTURE_AND_DATA_MODEL.md`
 - `V1_PRODUCT_DECISIONS.md`
 - `V1_RELEASE_CHECKLIST.md`
+- `V1_BASELINE_BENCHMARKS.md`
 
 ## 1) V1 Scope Baseline
 

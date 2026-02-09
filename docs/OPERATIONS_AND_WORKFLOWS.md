@@ -141,4 +141,5 @@ Unexpected risky interactions:
 2. Review `report.html`, `result.json`, and screenshot evidence.
 3. Run smart generation (`--smart --generate-tests`) for POM/scenario suites.
 4. Track reliability over repeated runs (`flowscout reliability`).
-5. Promote to `staging` environment workspace and compare drift before release.
+5. Record baseline metrics in `docs/V1_BASELINE_BENCHMARKS.md`.
+6. Promote to `staging` environment workspace and compare drift before release.

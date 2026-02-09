@@ -40,6 +40,7 @@ Use this checklist to gate deterministic, local-first V1 readiness.
 ## M6: Release Candidate
 
 - [ ] Setup and operations docs are current (`README`, `OPERATIONS_AND_WORKFLOWS`).
+- [ ] Baseline benchmark template populated (`V1_BASELINE_BENCHMARKS.md`).
 - [ ] Baseline benchmark run captured:
   - [ ] runtime duration
   - [ ] coverage percentage
