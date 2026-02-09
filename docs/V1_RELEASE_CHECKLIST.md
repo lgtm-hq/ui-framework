@@ -42,12 +42,12 @@ Status snapshot date: 2026-02-09
 ## M6: Release Candidate
 
 - [x] Setup and operations docs are current (`README`, `OPERATIONS_AND_WORKFLOWS`).
-- [ ] Baseline benchmark template populated (`V1_BASELINE_BENCHMARKS.md`).
-- [ ] Baseline benchmark run captured:
-  - [ ] runtime duration
-  - [ ] coverage percentage
-  - [ ] low-confidence transition count
-  - [ ] generated-test pass rate
+- [x] Baseline benchmark template populated (`V1_BASELINE_BENCHMARKS.md`).
+- [x] Baseline benchmark run captured:
+  - [x] runtime duration
+  - [x] coverage percentage
+  - [x] low-confidence transition count
+  - [x] generated-test pass rate
 - [ ] Reliability trend reviewed over repeated runs on same target.
 - [ ] Known risks and mitigations documented for v1 handoff.
 
