@@ -42,6 +42,8 @@ Build a benchmark snapshot from run artifacts:
 uv run flowscout benchmark reports/<domain>/<env>/runs/<timestamp>/result.json
 ```
 
+Benchmark output includes interactive/content element mix when smart-mode catalogs are present.
+
 ## Safety Defaults and Overrides
 
 `flowscout explore` is non-destructive by default:
@@ -132,6 +134,12 @@ For each recorded step:
 - confidence score + reason,
 - explicit `LOW_CONFIDENCE` flag in generated tests when confidence < `0.60`,
 - trace comment linking generated step to the source graph edge (`action_id`, `source`, `target`, `outcome`).
+
+Smart-mode runs also emit `element_inventory` in `result.json` with:
+
+- interactive vs non-interactive totals,
+- top element types by count,
+- per-page element count breakdown.
 
 ## Troubleshooting
 

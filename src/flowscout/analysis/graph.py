@@ -49,6 +49,7 @@ class ExplorationResult(BaseModel):
     stats: dict[str, int] = Field(default_factory=dict)
     page_catalogs: dict[str, Any] = Field(default_factory=dict)
     coverage: dict = Field(default_factory=dict)
+    element_inventory: dict = Field(default_factory=dict)
     archetypes: dict = Field(default_factory=dict)
     smart_analyses: dict[str, Any] = Field(default_factory=dict)
 

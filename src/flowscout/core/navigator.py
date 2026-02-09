@@ -8,6 +8,7 @@ import time
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from flowscout.analysis.element_inventory import summarize_element_inventory
 from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
 from flowscout.analysis.narrative import NarrativeGenerator
 from flowscout.analysis.verdict import VerdictComputer
@@ -99,6 +100,7 @@ class Navigator:
         self._smart_planner = None
         if config.smart_mode:
             from flowscout.smart.planner import SmartPlanner as _SmartPlanner
+
             self._smart_planner = _SmartPlanner()
 
     async def explore(self, start_url: str) -> ExplorationResult:
@@ -216,6 +218,19 @@ class Navigator:
             result.coverage = self._smart_planner.coverage.summary()
             result.archetypes = self._smart_planner.registry.archetype_distribution()
             result.smart_analyses = self._smart_planner.get_all_analyses()
+            result.element_inventory = summarize_element_inventory(
+                analyses=result.smart_analyses,
+                states_by_id=result.states,
+            )
+            result.stats["interactive_elements"] = int(
+                result.element_inventory.get("interactive_elements", 0)
+            )
+            result.stats["non_interactive_elements"] = int(
+                result.element_inventory.get("non_interactive_elements", 0)
+            )
+            result.stats["total_catalog_elements"] = int(
+                result.element_inventory.get("total_elements", 0)
+            )
 
         self.terminal.print_summary(result)
         return result
@@ -235,9 +250,12 @@ class Navigator:
         # Log archetype discovery
         analysis = self._smart_planner.get_analysis(state.state_id)
         if analysis:
-            is_novel = self._smart_planner.registry.instance_count(
-                analysis.structural_signature
-            ) == 1
+            is_novel = (
+                self._smart_planner.registry.instance_count(
+                    analysis.structural_signature
+                )
+                == 1
+            )
             self.terminal.log_archetype(
                 state.state_id,
                 analysis.archetype.value,
@@ -264,9 +282,7 @@ class Navigator:
                     if item.action.metadata.get("is_search") == "true":
                         item.priority = search_priority
                         modified = True
-                    elif (
-                        item.action.metadata.get("element_type") == "input_search"
-                    ):
+                    elif item.action.metadata.get("element_type") == "input_search":
                         item.priority = search_priority
                         modified = True
 
@@ -382,9 +398,7 @@ class Navigator:
 
             blocked_count += 1
             if self.config.verbose:
-                self.terminal.log_info(
-                    f"  Policy blocked '{action.label}' ({reason})"
-                )
+                self.terminal.log_info(f"  Policy blocked '{action.label}' ({reason})")
 
         return allowed_actions, blocked_count
 
@@ -402,7 +416,9 @@ class Navigator:
             ):
                 return True
         except Exception:
-            logger.debug("Could not capture current state for comparison", exc_info=True)
+            logger.debug(
+                "Could not capture current state for comparison", exc_info=True
+            )
 
         target = self.graph.states[target_state_id]
 
@@ -432,7 +448,9 @@ class Navigator:
                 return True
             except Exception:
                 logger.debug(
-                    "Path replay to %s failed", target_state_id, exc_info=True,
+                    "Path replay to %s failed",
+                    target_state_id,
+                    exc_info=True,
                 )
 
         # Last resort: just navigate to the URL and hope for the best
@@ -440,7 +458,9 @@ class Navigator:
             await self.browser.navigate(target.url)
             return True
         except Exception:
-            logger.debug("Last-resort navigation to %s failed", target.url, exc_info=True)
+            logger.debug(
+                "Last-resort navigation to %s failed", target.url, exc_info=True
+            )
             return False
 
     def _compute_flow_verdicts_and_narratives(self, flows: list[Flow]) -> None:

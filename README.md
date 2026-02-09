@@ -156,7 +156,7 @@ uv run flowscout reliability --url https://example.com
 
 ### `benchmark`
 
-Summarize baseline metrics from a saved `result.json` artifact (duration, coverage, confidence, low-confidence count, and flaky-action history when DB is available).
+Summarize baseline metrics from a saved `result.json` artifact (duration, coverage, confidence, low-confidence count, interactive/content element mix, and flaky-action history when DB is available).
 
 ```bash
 uv run flowscout benchmark path/to/result.json
@@ -180,6 +180,8 @@ reports/<domain>/<environment>/runs/<timestamp>/
     movie_detail_page.py
     ...
 ```
+
+In smart mode, `result.json` also includes an `element_inventory` summary (interactive vs non-interactive catalog totals and per-page breakdown).
 
 Without `--smart`, only `report.html`, `result.json`, and `tests.py` are generated.
 

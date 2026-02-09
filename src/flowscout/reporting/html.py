@@ -9,6 +9,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup
 
+from flowscout.analysis.element_inventory import summarize_element_inventory
 from flowscout.analysis.graph import ExplorationResult, Flow
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -110,6 +111,12 @@ class HTMLReporter:
             action_labels=action_labels,
             screenshot_links=result_screenshot_links,
         )
+        element_inventory = result.element_inventory
+        if not element_inventory and result.smart_analyses:
+            element_inventory = summarize_element_inventory(
+                analyses=result.smart_analyses,
+                states_by_id=result.states,
+            )
 
         template = _ENV.get_template("report.html.j2")
         html = template.render(
@@ -137,6 +144,7 @@ class HTMLReporter:
             step_verdicts_summary=step_verdicts_summary,
             group_pass_rates=group_pass_rates,
             diagnostics=diagnostics,
+            element_inventory=element_inventory,
         )
 
         path = Path(output_path)
@@ -203,9 +211,7 @@ def _compute_coverage(result: ExplorationResult) -> dict:
 
     # Pass rate
     passed = sum(
-        1
-        for f in result.flows
-        if f.verdict and f.verdict.verdict.value == "pass"
+        1 for f in result.flows if f.verdict and f.verdict.verdict.value == "pass"
     )
     total_flows = len(result.flows)
 
@@ -234,9 +240,7 @@ def _build_page_coverage_map(result: ExplorationResult) -> list[dict]:
     """For each page, list which test cases cover it."""
     state_to_flows: dict[str, list[dict]] = defaultdict(list)
     for flow in result.flows:
-        verdict_val = (
-            flow.verdict.verdict.value if flow.verdict else "inconclusive"
-        )
+        verdict_val = flow.verdict.verdict.value if flow.verdict else "inconclusive"
         for sid in flow.state_ids:
             state_to_flows[sid].append(
                 {
@@ -255,15 +259,9 @@ def _build_page_coverage_map(result: ExplorationResult) -> list[dict]:
                 "title": state.title or state.url,
                 "url": state.url,
                 "test_cases": covering,
-                "pass_count": sum(
-                    1 for c in covering if c["verdict"] == "pass"
-                ),
-                "fail_count": sum(
-                    1 for c in covering if c["verdict"] == "fail"
-                ),
-                "warn_count": sum(
-                    1 for c in covering if c["verdict"] == "warn"
-                ),
+                "pass_count": sum(1 for c in covering if c["verdict"] == "pass"),
+                "fail_count": sum(1 for c in covering if c["verdict"] == "fail"),
+                "warn_count": sum(1 for c in covering if c["verdict"] == "warn"),
                 "covered": len(covering) > 0,
             }
         )
@@ -273,14 +271,10 @@ def _build_page_coverage_map(result: ExplorationResult) -> list[dict]:
 def _build_defects(result: ExplorationResult) -> dict:
     """Partition flows into failures and warnings."""
     failures = [
-        f
-        for f in result.flows
-        if f.verdict and f.verdict.verdict.value == "fail"
+        f for f in result.flows if f.verdict and f.verdict.verdict.value == "fail"
     ]
     warnings = [
-        f
-        for f in result.flows
-        if f.verdict and f.verdict.verdict.value == "warn"
+        f for f in result.flows if f.verdict and f.verdict.verdict.value == "warn"
     ]
     return {"failures": failures, "warnings": warnings}
 
@@ -306,9 +300,7 @@ def _compute_group_pass_rates(
     for cat, flows in flow_groups.items():
         total = len(flows)
         passed = sum(
-            1
-            for f in flows
-            if f.verdict and f.verdict.verdict.value == "pass"
+            1 for f in flows if f.verdict and f.verdict.verdict.value == "pass"
         )
         rates[cat] = round(passed / max(total, 1) * 100)
     return rates
@@ -335,10 +327,7 @@ def _build_diagnostics(
 
         confidence = float(action_result.confidence or 0.0)
         if confidence < low_confidence_threshold:
-            reason = (
-                (action_result.confidence_reason or "").strip()
-                or "unspecified"
-            )
+            reason = (action_result.confidence_reason or "").strip() or "unspecified"
             reason_counts[reason] += 1
             low_confidence_items.append(
                 {

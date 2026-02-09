@@ -1407,6 +1407,7 @@
         {% set pass_pct = coverage.pass_rate.pct %}
         {% set fail_pct = (flow_counts.fail / [flows|length, 1]|max * 100)|round|int %}
         {% set warn_pct = (flow_counts.warn / [flows|length, 1]|max * 100)|round|int %}
+        {% set inventory_total = element_inventory.total_elements if element_inventory else 0 %}
 
         <div class="dashboard animate-in delay-1">
             <!-- Pass rate donut -->
@@ -1462,6 +1463,18 @@
                         <div class="metric-value blue">{{ "%.1f"|format(duration) }}<span style="font-size: 0.75rem; font-weight: 400; color: var(--text-muted);">s</span></div>
                         <div class="metric-label">Duration</div>
                     </div>
+
+                    {% if inventory_total > 0 %}
+                    <div class="metric-card">
+                        <div class="metric-value green">{{ element_inventory.interactive_elements }}</div>
+                        <div class="metric-label">Interactive Elements</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-value amber">{{ element_inventory.non_interactive_elements }}</div>
+                        <div class="metric-label">Content Elements</div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- Coverage bars -->
@@ -1487,6 +1500,15 @@
                         </div>
                         <div class="coverage-pct">{{ coverage.pass_rate.passed }}/{{ coverage.pass_rate.total }} ({{ coverage.pass_rate.pct }}%)</div>
                     </div>
+                    {% if inventory_total > 0 %}
+                    <div class="coverage-row">
+                        <div class="coverage-label">Interactive Mix</div>
+                        <div class="coverage-track">
+                            <div class="coverage-fill green" style="width: {{ element_inventory.interactive_pct }}%;"></div>
+                        </div>
+                        <div class="coverage-pct">{{ element_inventory.interactive_elements }}/{{ element_inventory.total_elements }} ({{ element_inventory.interactive_pct }}%)</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

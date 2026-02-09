@@ -919,6 +919,15 @@ def _compute_benchmark_metrics(
     action_coverage_pct = round(
         len(executed_ids) / max(total_discovered_actions, 1) * 100
     )
+    inventory = (
+        result.element_inventory if isinstance(result.element_inventory, dict) else {}
+    )
+    interactive_elements = int(inventory.get("interactive_elements", 0))
+    non_interactive_elements = int(inventory.get("non_interactive_elements", 0))
+    total_catalog_elements = int(inventory.get("total_elements", 0))
+    interactive_mix_pct = round(
+        interactive_elements / max(total_catalog_elements, 1) * 100
+    )
 
     return {
         "duration_seconds": result.duration_seconds,
@@ -937,6 +946,10 @@ def _compute_benchmark_metrics(
         "low_confidence_transitions": low_confidence_count,
         "avg_transition_confidence": round(avg_confidence, 3),
         "coverage_target_met": page_coverage_pct >= 80,
+        "interactive_elements": interactive_elements,
+        "non_interactive_elements": non_interactive_elements,
+        "total_catalog_elements": total_catalog_elements,
+        "interactive_mix_pct": interactive_mix_pct,
     }
 
 
@@ -1068,6 +1081,13 @@ def benchmark(json_path: str, db_path: str, low_confidence_threshold: float) -> 
     table.add_row("Unique actions discovered", str(metrics["total_unique_actions"]))
     table.add_row("Page coverage %", f"{metrics['page_coverage_pct']}%")
     table.add_row("Action coverage %", f"{metrics['action_coverage_pct']}%")
+    if metrics["total_catalog_elements"]:
+        table.add_row("Interactive elements", str(metrics["interactive_elements"]))
+        table.add_row(
+            "Content elements",
+            str(metrics["non_interactive_elements"]),
+        )
+        table.add_row("Interactive mix %", f"{metrics['interactive_mix_pct']}%")
     if metrics["confidence_sample_count"]:
         table.add_row(
             "Avg transition confidence",

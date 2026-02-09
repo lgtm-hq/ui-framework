@@ -81,6 +81,10 @@ def test_compute_benchmark_metrics_counts_low_confidence_and_coverage() -> None:
     assert metrics["low_confidence_transitions"] == 1
     assert metrics["avg_transition_confidence"] == 0.66
     assert metrics["coverage_target_met"] is True
+    assert metrics["interactive_elements"] == 0
+    assert metrics["non_interactive_elements"] == 0
+    assert metrics["total_catalog_elements"] == 0
+    assert metrics["interactive_mix_pct"] == 0
 
 
 def test_compute_benchmark_metrics_handles_empty_results() -> None:
@@ -106,6 +110,10 @@ def test_compute_benchmark_metrics_handles_empty_results() -> None:
     assert metrics["low_confidence_transitions"] == 0
     assert metrics["avg_transition_confidence"] == 0.0
     assert metrics["coverage_target_met"] is False
+    assert metrics["interactive_elements"] == 0
+    assert metrics["non_interactive_elements"] == 0
+    assert metrics["total_catalog_elements"] == 0
+    assert metrics["interactive_mix_pct"] == 0
 
 
 def test_compute_benchmark_metrics_ignores_missing_legacy_confidence() -> None:
@@ -140,3 +148,39 @@ def test_compute_benchmark_metrics_ignores_missing_legacy_confidence() -> None:
     assert metrics["confidence_sample_count"] == 0
     assert metrics["low_confidence_transitions"] == 0
     assert metrics["avg_transition_confidence"] == 0.0
+
+
+def test_compute_benchmark_metrics_includes_element_inventory() -> None:
+    result = ExplorationResult(
+        duration_seconds=2.0,
+        states={"s1": _make_state("s1", "https://example.com")},
+        actions={
+            "a1": Action(
+                action_id="a1",
+                action_type=ActionType.CLICK,
+                target_selector="#go",
+                label="Go",
+            )
+        },
+        results=[
+            ActionResult(
+                action_id="a1",
+                source_state_id="s1",
+                target_state_id="s1",
+                outcome=OutcomeType.NO_CHANGE,
+                confidence=0.7,
+            )
+        ],
+        element_inventory={
+            "interactive_elements": 7,
+            "non_interactive_elements": 3,
+            "total_elements": 10,
+        },
+    )
+
+    metrics = _compute_benchmark_metrics(result, low_confidence_threshold=0.6)
+
+    assert metrics["interactive_elements"] == 7
+    assert metrics["non_interactive_elements"] == 3
+    assert metrics["total_catalog_elements"] == 10
+    assert metrics["interactive_mix_pct"] == 70
