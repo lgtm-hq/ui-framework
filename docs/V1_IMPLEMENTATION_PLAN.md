@@ -7,6 +7,7 @@ Related documents:
 - `PURPOSE_AND_SCOPE.md`
 - `ARCHITECTURE_AND_DATA_MODEL.md`
 - `V1_PRODUCT_DECISIONS.md`
+- `V1_RELEASE_CHECKLIST.md`
 
 ## 1) V1 Scope Baseline
 
