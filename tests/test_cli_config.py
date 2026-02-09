@@ -8,6 +8,7 @@ from click.core import ParameterSource
 
 from flowscout.cli import (
     _load_crawl_config,
+    _resolve_auth_bootstrap,
     _resolve_bool_option,
     _resolve_int_config,
     _resolve_int_option,
@@ -107,3 +108,33 @@ def test_resolve_int_config_uses_default_when_key_missing() -> None:
         default=5000,
     )
     assert value == 5000
+
+
+def test_resolve_auth_bootstrap_returns_none_when_not_required(tmp_path: Path) -> None:
+    auth_config_path = tmp_path / ".flowscout-auth.toml"
+
+    bootstrap, summary = _resolve_auth_bootstrap(
+        start_url="https://example.com",
+        environment="dev",
+        auth_profile_name=None,
+        auth_config_file=str(auth_config_path),
+        auth_required=False,
+    )
+
+    assert bootstrap is None
+    assert summary is None
+
+
+def test_resolve_auth_bootstrap_raises_when_required_without_config(
+    tmp_path: Path,
+) -> None:
+    auth_config_path = tmp_path / ".flowscout-auth.toml"
+
+    with pytest.raises(click.ClickException):
+        _resolve_auth_bootstrap(
+            start_url="https://example.com",
+            environment="dev",
+            auth_profile_name=None,
+            auth_config_file=str(auth_config_path),
+            auth_required=True,
+        )

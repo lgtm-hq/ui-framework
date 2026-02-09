@@ -26,6 +26,9 @@ capture_screenshots = true
 persist_history = true
 db_path = ".flowscout/history.db"
 
-# Optional credentials for environment-specific auth permutations:
-# username = "valid-user"
-# password = "valid-pass"
+# Auth bootstrap (optional, security-first via env var references)
+auth_config_file = ".flowscout-auth.toml"
+# auth_profile = "shop_staging"
+auth_required = false
+
+# Credentials are resolved from environment variables referenced by auth profiles.

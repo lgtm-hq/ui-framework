@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 from hashlib import sha256
 from pathlib import Path
@@ -12,6 +13,7 @@ from pathlib import Path
 from playwright.async_api import Page, async_playwright, Browser, BrowserContext
 
 from flowscout.analysis.detector import OutcomeDetector
+from flowscout.core.auth import AuthBootstrap
 from flowscout.core.state import (
     ExplorerConfig,
     FingerprintConfig,
@@ -82,6 +84,46 @@ class BrowserManager:
         )
         await self._wait_for_stability()
 
+    async def apply_auth_bootstrap(self, auth: AuthBootstrap) -> None:
+        """Execute deterministic login bootstrap before exploration."""
+        target_url = auth.login_url or self.config.start_url
+        await self.navigate(target_url)
+
+        await self.page.locator(auth.username_selector).fill(
+            auth.username,
+            timeout=self.config.action_timeout_ms,
+        )
+        await self.page.locator(auth.password_selector).fill(
+            auth.password,
+            timeout=self.config.action_timeout_ms,
+        )
+
+        if auth.submit_selector:
+            await self.page.locator(auth.submit_selector).click(
+                timeout=self.config.action_timeout_ms,
+            )
+        else:
+            await self.page.keyboard.press("Enter")
+
+        await self._wait_for_stability()
+        if auth.post_login_wait_ms:
+            await self.page.wait_for_timeout(auth.post_login_wait_ms)
+
+        if auth.success_selector:
+            await self.page.locator(auth.success_selector).first.wait_for(
+                timeout=self.config.timeout_ms,
+            )
+
+        if auth.success_url_pattern and not re.search(
+            auth.success_url_pattern,
+            self.page.url,
+        ):
+            msg = (
+                "Auth bootstrap finished but URL did not match success_url_pattern: "
+                f"{auth.success_url_pattern}"
+            )
+            raise RuntimeError(msg)
+
     async def take_screenshot(self, path: str) -> None:
         """Take a screenshot of the current page."""
         await self.page.screenshot(path=path, full_page=False)
@@ -92,7 +134,8 @@ class BrowserManager:
         for _ in range(3):
             try:
                 await self.page.wait_for_load_state(
-                    "domcontentloaded", timeout=self.config.load_wait_timeout_ms,
+                    "domcontentloaded",
+                    timeout=self.config.load_wait_timeout_ms,
                 )
                 break
             except Exception:
@@ -258,7 +301,9 @@ class BrowserManager:
 
         evidence_dir = Path(self.config.evidence_dir)
         evidence_dir.mkdir(parents=True, exist_ok=True)
-        screenshot_path = evidence_dir / f"{int(time.time() * 1000)}_{action.action_id}.png"
+        screenshot_path = (
+            evidence_dir / f"{int(time.time() * 1000)}_{action.action_id}.png"
+        )
         overlay_id = f"flowscout-highlight-{action.action_id}"
 
         try:
@@ -397,7 +442,9 @@ class BrowserManager:
                                 await inp.press("Enter")
                                 break
                         except Exception:
-                            logger.debug("Search input %s not found", sel, exc_info=True)
+                            logger.debug(
+                                "Search input %s not found", sel, exc_info=True
+                            )
                             continue
 
             case ActionType.FILL:
@@ -430,7 +477,9 @@ class BrowserManager:
                 for selector, value in field_values.items():
                     try:
                         await page.fill(
-                            selector, value, timeout=self.config.load_wait_timeout_ms,
+                            selector,
+                            value,
+                            timeout=self.config.load_wait_timeout_ms,
                         )
                     except Exception:
                         logger.debug("Could not fill field %s", selector, exc_info=True)

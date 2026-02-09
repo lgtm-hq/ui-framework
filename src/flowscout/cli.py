@@ -22,6 +22,14 @@ from rich.table import Table
 from flowscout import __version__
 from flowscout.analysis.graph import ExplorationGraph, ExplorationResult
 from flowscout.codegen.playwright_tests import generate_test_suite
+from flowscout.core.auth import (
+    AuthBootstrap,
+    AuthConfigError,
+    build_auth_bootstrap,
+    load_auth_profiles,
+    sanitize_auth_summary,
+    select_auth_profile,
+)
 from flowscout.core.browser import BrowserManager
 from flowscout.core.navigator import Navigator
 from flowscout.core.policy import ActionPolicyConfig
@@ -34,6 +42,7 @@ console = Console()
 
 DEFAULT_DB_PATH = ".flowscout/history.db"
 DEFAULT_CRAWL_CONFIG_PATH = ".crawl-config"
+DEFAULT_AUTH_CONFIG_PATH = ".flowscout-auth.toml"
 DEFAULT_LOW_CONFIDENCE_THRESHOLD = 0.6
 
 
@@ -184,6 +193,55 @@ def _resolve_int_config(
     return _coerce_int(value=value, config_key=key)
 
 
+def _resolve_auth_bootstrap(
+    *,
+    start_url: str,
+    environment: str,
+    auth_profile_name: str | None,
+    auth_config_file: str,
+    auth_required: bool,
+) -> tuple[AuthBootstrap | None, dict[str, Any] | None]:
+    """Resolve auth bootstrap from auth profile config and environment variables."""
+    try:
+        profiles = load_auth_profiles(config_file=auth_config_file)
+    except AuthConfigError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if not profiles:
+        if auth_profile_name or auth_required:
+            raise click.ClickException(
+                f"No auth profiles found in {auth_config_file}, but auth was requested.",
+            )
+        return None, None
+
+    selected = select_auth_profile(
+        profiles=profiles,
+        start_url=start_url,
+        environment=environment,
+        requested_profile=auth_profile_name,
+    )
+    if selected is None:
+        if auth_profile_name:
+            raise click.ClickException(
+                f"Requested auth profile '{auth_profile_name}' was not found or did not match target context.",
+            )
+        if auth_required:
+            raise click.ClickException(
+                "No matching auth profile found for target URL/environment and auth is required.",
+            )
+        return None, None
+
+    try:
+        bootstrap = build_auth_bootstrap(profile=selected, required=auth_required)
+    except AuthConfigError as exc:
+        if auth_required:
+            raise click.ClickException(str(exc)) from exc
+        console.print(f"  [yellow]Auth disabled:[/yellow] {exc}")
+        return None, None
+
+    return bootstrap, sanitize_auth_summary(profile=selected)
+
+
 @click.group()
 @click.version_option(version=__version__, prog_name="flowscout")
 def main() -> None:
@@ -270,6 +328,22 @@ def main() -> None:
     show_default=True,
     help="Path to TOML-style crawl defaults (CLI args override file values).",
 )
+@click.option(
+    "--auth-config-file",
+    default=DEFAULT_AUTH_CONFIG_PATH,
+    show_default=True,
+    help="Path to auth profile TOML file.",
+)
+@click.option(
+    "--auth-profile",
+    default="",
+    help="Explicit auth profile name. If omitted, profile is auto-selected by domain/environment.",
+)
+@click.option(
+    "--auth-required/--no-auth-required",
+    default=False,
+    help="Fail fast if auth profile or credentials are missing.",
+)
 def explore(
     url: str,
     max_depth: int,
@@ -293,6 +367,9 @@ def explore(
     enforce_non_destructive: bool,
     allow_form_submits: bool,
     config_file: str,
+    auth_config_file: str,
+    auth_profile: str,
+    auth_required: bool,
 ) -> None:
     """Explore a web application starting from URL."""
     ctx = click.get_current_context()
@@ -403,6 +480,27 @@ def explore(
         config=crawl_config,
         config_keys=("allow_form_submits",),
     )
+    resolved_auth_config_file = _resolve_str_option(
+        ctx=ctx,
+        parameter="auth_config_file",
+        cli_value=auth_config_file,
+        config=crawl_config,
+        config_keys=("auth_config_file",),
+    )
+    resolved_auth_profile_name = _resolve_str_option(
+        ctx=ctx,
+        parameter="auth_profile",
+        cli_value=auth_profile,
+        config=crawl_config,
+        config_keys=("auth_profile",),
+    ).strip()
+    resolved_auth_required = _resolve_bool_option(
+        ctx=ctx,
+        parameter="auth_required",
+        cli_value=auth_required,
+        config=crawl_config,
+        config_keys=("auth_required",),
+    )
 
     if _came_from_cli(ctx=ctx, parameter="no_db"):
         save_to_db = not no_db
@@ -470,10 +568,20 @@ def explore(
         verbose=resolved_verbose,
         smart_mode=resolved_smart,
         input_profile=InputProfile(resolved_input_profile),
+        auth_profile=resolved_auth_profile_name or None,
+        auth_required=resolved_auth_required,
         action_policy=ActionPolicyConfig(
             enforce_non_destructive=resolved_enforce_non_destructive,
             block_form_submissions=not resolved_allow_form_submits,
         ),
+    )
+
+    auth_bootstrap, auth_profile_summary = _resolve_auth_bootstrap(
+        start_url=url,
+        environment=resolved_environment,
+        auth_profile_name=resolved_auth_profile_name or None,
+        auth_config_file=resolved_auth_config_file,
+        auth_required=resolved_auth_required,
     )
 
     asyncio.run(
@@ -485,6 +593,8 @@ def explore(
             generate_narrative=narrative,
             db_path=resolved_db_path,
             save_to_db=save_to_db,
+            auth_bootstrap=auth_bootstrap,
+            auth_profile_summary=auth_profile_summary,
         )
     )
 
@@ -539,6 +649,8 @@ async def _run_exploration(
     generate_narrative: bool = False,
     db_path: str = DEFAULT_DB_PATH,
     save_to_db: bool = True,
+    auth_bootstrap: AuthBootstrap | None = None,
+    auth_profile_summary: dict[str, Any] | None = None,
 ) -> None:
     """Run the exploration."""
     # Configure logging
@@ -583,7 +695,15 @@ async def _run_exploration(
     db: FlowscoutDB | None = None
     try:
         await browser.launch()
+        if auth_bootstrap is not None:
+            console.print(
+                "  [cyan]Applying auth profile:[/cyan] "
+                f"{auth_bootstrap.profile_name} (credentials from environment variables)",
+            )
+            await browser.apply_auth_bootstrap(auth_bootstrap)
         result = await navigator.explore(config.start_url)
+        if auth_profile_summary is not None:
+            result.config["auth"] = auth_profile_summary
 
         # Generate HTML report
         report_path = str(run_dir / "report.html")

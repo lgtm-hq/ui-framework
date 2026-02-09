@@ -46,6 +46,8 @@ class ExplorerConfig(BaseModel):
     verbose: bool = False
     smart_mode: bool = False
     input_profile: InputProfile = InputProfile.SAFE
+    auth_profile: str | None = None
+    auth_required: bool = False
     action_policy: ActionPolicyConfig = Field(default_factory=ActionPolicyConfig)
 
 
@@ -170,7 +172,9 @@ def build_view_key(
 
 def build_context_key(*, view_key: str, context_markers: list[str]) -> str:
     """Build context identity key from view key + context markers."""
-    normalized_markers = sorted({m for m in map(_normalize_text_value, context_markers) if m})
+    normalized_markers = sorted(
+        {m for m in map(_normalize_text_value, context_markers) if m}
+    )
     payload = "|".join([view_key, *normalized_markers])
     return sha256(payload.encode()).hexdigest()
 

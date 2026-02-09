@@ -70,6 +70,9 @@ uv run flowscout explore <url> [options]
 | `--enforce-non-destructive` / `--no-enforce-non-destructive` | on | Block high-impact actions by default |
 | `--allow-form-submits` | off | Allow `submit_form` actions (disabled by default for safety) |
 | `--config-file` | `.crawl-config` | Path to TOML-style crawl defaults |
+| `--auth-config-file` | `.flowscout-auth.toml` | Path to auth profile TOML file |
+| `--auth-profile` | unset | Explicit auth profile name |
+| `--auth-required` | off | Fail fast when auth profile/credentials are missing |
 
 By default, exploration runs in non-destructive mode:
 
@@ -194,6 +197,31 @@ Precedence is always:
 1. explicit CLI flags
 2. `.crawl-config`
 3. built-in defaults
+
+## Authentication bootstrap (local-only)
+
+Flowscout supports deterministic login bootstrap before exploration:
+
+1. define profile selectors + env-var references in `.flowscout-auth.toml`
+2. export credentials locally:
+   - `export E2E_USERNAME="..."`,
+   - `export E2E_PASSWORD="..."`,
+3. run exploration with a matching profile.
+
+Example:
+
+```bash
+cp .flowscout-auth.example.toml .flowscout-auth.toml
+export E2E_USERNAME="qa-user"
+export E2E_PASSWORD="qa-pass"
+uv run flowscout explore https://example.com --environment staging --auth-profile sample_staging --auth-required
+```
+
+Security behavior:
+
+- only env-var names are persisted in artifacts (`result.json` config metadata),
+- secret values are never written to report or run artifacts,
+- if `--auth-required` is set, run aborts when profile or env vars are missing.
 
 ## Smart mode
 

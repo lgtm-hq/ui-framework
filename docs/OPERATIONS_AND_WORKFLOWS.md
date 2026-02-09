@@ -70,8 +70,20 @@ V1 design is reference-based for credentials:
 Recommended pattern:
 
 1. Export credentials into env vars before run.
-2. Configure the target login path or pre-auth bootstrap flow.
+2. Configure `.flowscout-auth.toml` with selectors + env-var references.
 3. Verify generated evidence does not expose sensitive values.
+
+Example:
+
+```bash
+cp .flowscout-auth.example.toml .flowscout-auth.toml
+export E2E_USERNAME="qa-user"
+export E2E_PASSWORD="qa-pass"
+uv run flowscout explore https://example.com \
+  --environment staging \
+  --auth-profile sample_staging \
+  --auth-required
+```
 
 ## Run Tuning for V1 Target (80% Coverage)
 
