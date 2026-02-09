@@ -1044,6 +1044,34 @@ def _compute_benchmark_metrics(
     }
 
 
+def _evaluate_benchmark_gates(
+    *,
+    metrics: dict[str, int | float | bool],
+    require_coverage_target: bool,
+    max_low_confidence: int | None,
+    low_confidence_threshold: float,
+) -> list[str]:
+    """Evaluate optional benchmark gates and return failures."""
+    failures: list[str] = []
+    if require_coverage_target and not bool(metrics["coverage_target_met"]):
+        failures.append("coverage target check failed (required >= 80% page coverage)")
+
+    if max_low_confidence is not None:
+        confidence_sample_count = int(metrics["confidence_sample_count"])
+        if confidence_sample_count == 0:
+            failures.append(
+                "low-confidence gate requested but artifact has no confidence samples",
+            )
+        elif int(metrics["low_confidence_transitions"]) > max_low_confidence:
+            failures.append(
+                "low-confidence transition count exceeds configured limit "
+                f"({metrics['low_confidence_transitions']} > {max_low_confidence}, "
+                f"threshold < {low_confidence_threshold:.2f})",
+            )
+
+    return failures
+
+
 @main.command()
 @click.argument("report_path", type=click.Path(exists=True))
 def serve(report_path: str) -> None:
@@ -1153,7 +1181,24 @@ def reliability(url: str, db_path: str) -> None:
     show_default=True,
     help="Threshold for counting low-confidence transitions.",
 )
-def benchmark(json_path: str, db_path: str, low_confidence_threshold: float) -> None:
+@click.option(
+    "--require-coverage-target/--no-require-coverage-target",
+    default=False,
+    help="Fail the command when the >=80% page-coverage target is not met.",
+)
+@click.option(
+    "--max-low-confidence",
+    type=int,
+    default=None,
+    help="Fail when low-confidence transitions exceed this count.",
+)
+def benchmark(
+    json_path: str,
+    db_path: str,
+    low_confidence_threshold: float,
+    require_coverage_target: bool,
+    max_low_confidence: int | None,
+) -> None:
     """Summarize benchmark metrics from a result artifact."""
     data = json.loads(Path(json_path).read_text())
     result = ExplorationResult.model_validate(data)
@@ -1211,6 +1256,16 @@ def benchmark(json_path: str, db_path: str, low_confidence_threshold: float) -> 
         table.add_row("Flaky actions (history)", "n/a (db missing)")
 
     console.print(table)
+
+    failures = _evaluate_benchmark_gates(
+        metrics=metrics,
+        require_coverage_target=require_coverage_target,
+        max_low_confidence=max_low_confidence,
+        low_confidence_threshold=low_confidence_threshold,
+    )
+    if failures:
+        lines = "\n".join(f"- {line}" for line in failures)
+        raise click.ClickException(f"Benchmark gates failed:\n{lines}")
 
 
 @main.command()

@@ -44,6 +44,14 @@ uv run flowscout benchmark reports/<domain>/<env>/runs/<timestamp>/result.json
 
 Benchmark output includes interactive/content element mix when smart-mode catalogs are present.
 
+For release gating, benchmark can fail the command when thresholds are missed:
+
+```bash
+uv run flowscout benchmark reports/<domain>/<env>/runs/<timestamp>/result.json \
+  --require-coverage-target \
+  --max-low-confidence 2
+```
+
 ## Safety Defaults and Overrides
 
 `flowscout explore` is non-destructive by default:

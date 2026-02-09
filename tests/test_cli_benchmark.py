@@ -1,7 +1,7 @@
 """Tests for benchmark metric aggregation."""
 
 from flowscout.analysis.graph import ExplorationResult
-from flowscout.cli import _compute_benchmark_metrics
+from flowscout.cli import _compute_benchmark_metrics, _evaluate_benchmark_gates
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
@@ -184,3 +184,54 @@ def test_compute_benchmark_metrics_includes_element_inventory() -> None:
     assert metrics["non_interactive_elements"] == 3
     assert metrics["total_catalog_elements"] == 10
     assert metrics["interactive_mix_pct"] == 70
+
+
+def test_evaluate_benchmark_gates_passes_when_thresholds_met() -> None:
+    metrics: dict[str, int | float | bool] = {
+        "coverage_target_met": True,
+        "confidence_sample_count": 3,
+        "low_confidence_transitions": 1,
+    }
+
+    failures = _evaluate_benchmark_gates(
+        metrics=metrics,
+        require_coverage_target=True,
+        max_low_confidence=2,
+        low_confidence_threshold=0.6,
+    )
+
+    assert failures == []
+
+
+def test_evaluate_benchmark_gates_flags_missing_coverage_target() -> None:
+    metrics: dict[str, int | float | bool] = {
+        "coverage_target_met": False,
+        "confidence_sample_count": 1,
+        "low_confidence_transitions": 0,
+    }
+
+    failures = _evaluate_benchmark_gates(
+        metrics=metrics,
+        require_coverage_target=True,
+        max_low_confidence=None,
+        low_confidence_threshold=0.6,
+    )
+
+    assert "coverage target check failed" in failures[0]
+
+
+def test_evaluate_benchmark_gates_flags_low_confidence_limit() -> None:
+    metrics: dict[str, int | float | bool] = {
+        "coverage_target_met": True,
+        "confidence_sample_count": 4,
+        "low_confidence_transitions": 3,
+    }
+
+    failures = _evaluate_benchmark_gates(
+        metrics=metrics,
+        require_coverage_target=False,
+        max_low_confidence=1,
+        low_confidence_threshold=0.6,
+    )
+
+    assert "low-confidence transition count exceeds configured limit" in failures[0]

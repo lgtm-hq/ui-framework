@@ -160,6 +160,12 @@ Summarize baseline metrics from a saved `result.json` artifact (duration, covera
 
 ```bash
 uv run flowscout benchmark path/to/result.json
+
+# Fail if page coverage target is not met
+uv run flowscout benchmark path/to/result.json --require-coverage-target
+
+# Fail if low-confidence transitions exceed 2
+uv run flowscout benchmark path/to/result.json --max-low-confidence 2
 ```
 
 ## Output structure
