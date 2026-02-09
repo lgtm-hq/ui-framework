@@ -48,8 +48,8 @@ Status snapshot date: 2026-02-09
   - [x] coverage percentage
   - [x] low-confidence transition count
   - [x] generated-test pass rate
-- [ ] Reliability trend reviewed over repeated runs on same target.
-- [ ] Known risks and mitigations documented for v1 handoff.
+- [x] Reliability trend reviewed over repeated runs on same target.
+- [x] Known risks and mitigations documented for v1 handoff.
 
 ## Validation Command Matrix
 
