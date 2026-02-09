@@ -1,0 +1,1842 @@
+# Lintro Report
+
+## Summary
+
+| Tool         | Issues |
+| ------------ | ------ |
+| black        | 270    |
+| sqlfluff     | 0      |
+| markdownlint | 703    |
+| clippy       | 0      |
+| oxfmt        | 22     |
+| prettier     | 12     |
+| actionlint   | 0      |
+| semgrep      | 0      |
+| astro-check  | 0      |
+| gitleaks     | 0      |
+| mypy         | 201    |
+| vue-tsc      | 0      |
+| shellcheck   | 0      |
+| bandit       | 207    |
+| shfmt        | 0      |
+| ruff         | 68     |
+| oxlint       | 6      |
+| yamllint     | 0      |
+| rustfmt      | 0      |
+| tsc          | 216    |
+| hadolint     | 0      |
+| taplo        | 1      |
+| pydoclint    | 0      |
+| cargo_audit  | 0      |
+
+### black (270 issues)
+
+| File                                                                                       | Line | Code | Message                                                        |
+| ------------------------------------------------------------------------------------------ | ---- | ---- | -------------------------------------------------------------- |
+| src/flowscout/analysis/verdict.py                                                          | 0    |      | Would reformat file                                            |
+| src/flowscout/core/browser.py                                                              | 0    |      | Would reformat file                                            |
+| src/flowscout/analysis/narrative.py                                                        | 0    |      | Would reformat file                                            |
+| src/flowscout/analysis/graph.py                                                            | 0    |      | Would reformat file                                            |
+| src/flowscout/codegen/playwright_tests.py                                                  | 0    |      | Would reformat file                                            |
+| src/flowscout/discovery/inputs.py                                                          | 0    |      | Would reformat file                                            |
+| src/flowscout/cli.py                                                                       | 0    |      | Would reformat file                                            |
+| src/flowscout/discovery/elements.py                                                        | 0    |      | Would reformat file                                            |
+| tests/conftest.py                                                                          | 0    |      | Would reformat file                                            |
+| src/flowscout/core/navigator.py                                                            | 0    |      | Would reformat file                                            |
+| src/flowscout/discovery/intent.py                                                          | 0    |      | Would reformat file                                            |
+| tests/test_elements.py                                                                     | 0    |      | Would reformat file                                            |
+| src/flowscout/discovery/actions.py                                                         | 0    |      | Would reformat file                                            |
+| src/flowscout/reporting/html.py                                                            | 0    |      | Would reformat file                                            |
+| src/flowscout/reporting/terminal.py                                                        | 0    |      | Would reformat file                                            |
+| tests/test_graph.py                                                                        | 0    |      | Would reformat file                                            |
+| src/flowscout/storage/db.py                                                                | 0    |      | Would reformat file                                            |
+| tests/test_narrative.py                                                                    | 0    |      | Would reformat file                                            |
+| tests/test_verdict.py                                                                      | 0    |      | Would reformat file                                            |
+| reports/2026/02.February/06-02-2026/12.58.21/tests.py                                      | 0    |      | Would reformat file                                            |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 31   | E501 | Line 31 exceeds line length limit (Line too long (127 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 56   | E501 | Line 56 exceeds line length limit (Line too long (127 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 85   | E501 | Line 85 exceeds line length limit (Line too long (127 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 106  | E501 | Line 106 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 131  | E501 | Line 131 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 160  | E501 | Line 160 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 185  | E501 | Line 185 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 214  | E501 | Line 214 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 235  | E501 | Line 235 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 260  | E501 | Line 260 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 289  | E501 | Line 289 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 306  | E501 | Line 306 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 327  | E501 | Line 327 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 356  | E501 | Line 356 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 381  | E501 | Line 381 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 410  | E501 | Line 410 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 439  | E501 | Line 439 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 464  | E501 | Line 464 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 493  | E501 | Line 493 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 514  | E501 | Line 514 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 539  | E501 | Line 539 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 572  | E501 | Line 572 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 597  | E501 | Line 597 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 676  | E501 | Line 676 exceeds line length limit (Line too long (148 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 739  | E501 | Line 739 exceeds line length limit (Line too long (148 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 768  | E501 | Line 768 exceeds line length limit (Line too long (148 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 797  | E501 | Line 797 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 843  | E501 | Line 843 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 868  | E501 | Line 868 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 897  | E501 | Line 897 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 918  | E501 | Line 918 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 943  | E501 | Line 943 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 976  | E501 | Line 976 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1001 | E501 | Line 1001 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1080 | E501 | Line 1080 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1143 | E501 | Line 1143 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1172 | E501 | Line 1172 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1201 | E501 | Line 1201 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1264 | E501 | Line 1264 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1293 | E501 | Line 1293 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1318 | E501 | Line 1318 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1347 | E501 | Line 1347 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1372 | E501 | Line 1372 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1397 | E501 | Line 1397 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1426 | E501 | Line 1426 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1455 | E501 | Line 1455 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1526 | E501 | Line 1526 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1555 | E501 | Line 1555 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1584 | E501 | Line 1584 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1647 | E501 | Line 1647 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1668 | E501 | Line 1668 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1693 | E501 | Line 1693 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1710 | E501 | Line 1710 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1735 | E501 | Line 1735 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1760 | E501 | Line 1760 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1781 | E501 | Line 1781 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1827 | E501 | Line 1827 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1869 | E501 | Line 1869 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1894 | E501 | Line 1894 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1919 | E501 | Line 1919 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1974 | E501 | Line 1974 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 1995 | E501 | Line 1995 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 2016 | E501 | Line 2016 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 2054 | E501 | Line 2054 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 2082 | E501 | Line 2082 exceeds line length limit (Line too long (148 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 2085 | E501 | Line 2085 exceeds line length limit (Line too long (89 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 2097 | E501 | Line 2097 exceeds line length limit (Line too long (127 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 2100 | E501 | Line 2100 exceeds line length limit (Line too long (89 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/graph.py                       | 93   | E501 | Line 93 exceeds line length limit (Line too long (91 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/graph.py                       | 126  | E501 | Line 126 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 86   | E501 | Line 86 exceeds line length limit (Line too long (99 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 150  | E501 | Line 150 exceeds line length limit (Line too long (92 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 171  | E501 | Line 171 exceeds line length limit (Line too long (96 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 182  | E501 | Line 182 exceeds line length limit (Line too long (111 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 191  | E501 | Line 191 exceeds line length limit (Line too long (97 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 218  | E501 | Line 218 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 240  | E501 | Line 240 exceeds line length limit (Line too long (99 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 80   | E501 | Line 80 exceeds line length limit (Line too long (94 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 118  | E501 | Line 118 exceeds line length limit (Line too long (122 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 120  | E501 | Line 120 exceeds line length limit (Line too long (121 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 122  | E501 | Line 122 exceeds line length limit (Line too long (135 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 124  | E501 | Line 124 exceeds line length limit (Line too long (146 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 128  | E501 | Line 128 exceeds line length limit (Line too long (115 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 130  | E501 | Line 130 exceeds line length limit (Line too long (126 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 134  | E501 | Line 134 exceeds line length limit (Line too long (126 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 136  | E501 | Line 136 exceeds line length limit (Line too long (122 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 138  | E501 | Line 138 exceeds line length limit (Line too long (126 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 142  | E501 | Line 142 exceeds line length limit (Line too long (121 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 144  | E501 | Line 144 exceeds line length limit (Line too long (130 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 148  | E501 | Line 148 exceeds line length limit (Line too long (117 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 150  | E501 | Line 150 exceeds line length limit (Line too long (135 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 154  | E501 | Line 154 exceeds line length limit (Line too long (118 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 156  | E501 | Line 156 exceeds line length limit (Line too long (132 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 161  | E501 | Line 161 exceeds line length limit (Line too long (98 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 166  | E501 | Line 166 exceeds line length limit (Line too long (90 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 169  | E501 | Line 169 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 39   | E501 | Line 39 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 40   | E501 | Line 40 exceeds line length limit (Line too long (90 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 42   | E501 | Line 42 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 43   | E501 | Line 43 exceeds line length limit (Line too long (91 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 44   | E501 | Line 44 exceeds line length limit (Line too long (94 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 45   | E501 | Line 45 exceeds line length limit (Line too long (100 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 53   | E501 | Line 53 exceeds line length limit (Line too long (106 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 62   | E501 | Line 62 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 191  | E501 | Line 191 exceeds line length limit (Line too long (109 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 222  | E501 | Line 222 exceeds line length limit (Line too long (91 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 229  | E501 | Line 229 exceeds line length limit (Line too long (96 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 231  | E501 | Line 231 exceeds line length limit (Line too long (98 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 148  | E501 | Line 148 exceeds line length limit (Line too long (169 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 151  | E501 | Line 151 exceeds line length limit (Line too long (107 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 166  | E501 | Line 166 exceeds line length limit (Line too long (117 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 170  | E501 | Line 170 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 174  | E501 | Line 174 exceeds line length limit (Line too long (119 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 209  | E501 | Line 209 exceeds line length limit (Line too long (123 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 212  | E501 | Line 212 exceeds line length limit (Line too long (103 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 224  | E501 | Line 224 exceeds line length limit (Line too long (104 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 226  | E501 | Line 226 exceeds line length limit (Line too long (111 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 251  | E501 | Line 251 exceeds line length limit (Line too long (92 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 303  | E501 | Line 303 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 356  | E501 | Line 356 exceeds line length limit (Line too long (174 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 361  | E501 | Line 361 exceeds line length limit (Line too long (111 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 378  | E501 | Line 378 exceeds line length limit (Line too long (93 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 397  | E501 | Line 397 exceeds line length limit (Line too long (115 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 400  | E501 | Line 400 exceeds line length limit (Line too long (113 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 401  | E501 | Line 401 exceeds line length limit (Line too long (132 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/browser.py                         | 70   | E501 | Line 70 exceeds line length limit (Line too long (96 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/browser.py                         | 222  | E501 | Line 222 exceeds line length limit (Line too long (92 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/browser.py                         | 225  | E501 | Line 225 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/browser.py                         | 238  | E501 | Line 238 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 16   | E501 | Line 16 exceeds line length limit (Line too long (133 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 50   | E501 | Line 50 exceeds line length limit (Line too long (100 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 92   | E501 | Line 92 exceeds line length limit (Line too long (110 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 132  | E501 | Line 132 exceeds line length limit (Line too long (111 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 160  | E501 | Line 160 exceeds line length limit (Line too long (93 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 172  | E501 | Line 172 exceeds line length limit (Line too long (93 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 179  | E501 | Line 179 exceeds line length limit (Line too long (91 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 183  | E501 | Line 183 exceeds line length limit (Line too long (103 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 193  | E501 | Line 193 exceeds line length limit (Line too long (91 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 267  | E501 | Line 267 exceeds line length limit (Line too long (118 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 275  | E501 | Line 275 exceeds line length limit (Line too long (91 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 294  | E501 | Line 294 exceeds line length limit (Line too long (102 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py                    | 125  | E501 | Line 125 exceeds line length limit (Line too long (103 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py                    | 132  | E501 | Line 132 exceeds line length limit (Line too long (96 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py                    | 257  | E501 | Line 257 exceeds line length limit (Line too long (104 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py                    | 289  | E501 | Line 289 exceeds line length limit (Line too long (101 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py                    | 301  | E501 | Line 301 exceeds line length limit (Line too long (96 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py                    | 306  | E501 | Line 306 exceeds line length limit (Line too long (98 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py                   | 1    | E501 | Line 1 exceeds line length limit (Line too long (93 > 88))     |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py                   | 154  | E501 | Line 154 exceeds line length limit (Line too long (109 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py                   | 182  | E501 | Line 182 exceeds line length limit (Line too long (90 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py                   | 288  | E501 | Line 288 exceeds line length limit (Line too long (102 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py                   | 295  | E501 | Line 295 exceeds line length limit (Line too long (114 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/inputs.py                     | 101  | E501 | Line 101 exceeds line length limit (Line too long (98 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/intent.py                     | 53   | E501 | Line 53 exceeds line length limit (Line too long (89 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/intent.py                     | 184  | E501 | Line 184 exceeds line length limit (Line too long (107 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/intent.py                     | 190  | E501 | Line 190 exceeds line length limit (Line too long (111 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 21   | E501 | Line 21 exceeds line length limit (Line too long (251 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 68   | E501 | Line 68 exceeds line length limit (Line too long (90 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 69   | E501 | Line 69 exceeds line length limit (Line too long (92 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 97   | E501 | Line 97 exceeds line length limit (Line too long (99 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 105  | E501 | Line 105 exceeds line length limit (Line too long (90 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 128  | E501 | Line 128 exceeds line length limit (Line too long (97 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 142  | E501 | Line 142 exceeds line length limit (Line too long (97 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 198  | E501 | Line 198 exceeds line length limit (Line too long (97 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 334  | E501 | Line 334 exceeds line length limit (Line too long (97 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 728  | E501 | Line 728 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 756  | E501 | Line 756 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 782  | E501 | Line 782 exceeds line length limit (Line too long (144 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 785  | E501 | Line 785 exceeds line length limit (Line too long (121 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 824  | E501 | Line 824 exceeds line length limit (Line too long (333 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 839  | E501 | Line 839 exceeds line length limit (Line too long (124 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 840  | E501 | Line 840 exceeds line length limit (Line too long (124 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 841  | E501 | Line 841 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 842  | E501 | Line 842 exceeds line length limit (Line too long (121 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 864  | E501 | Line 864 exceeds line length limit (Line too long (122 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 867  | E501 | Line 867 exceeds line length limit (Line too long (109 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 869  | E501 | Line 869 exceeds line length limit (Line too long (198 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 886  | E501 | Line 886 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 887  | E501 | Line 887 exceeds line length limit (Line too long (146 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 889  | E501 | Line 889 exceeds line length limit (Line too long (127 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 890  | E501 | Line 890 exceeds line length limit (Line too long (119 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 896  | E501 | Line 896 exceeds line length limit (Line too long (140 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 931  | E501 | Line 931 exceeds line length limit (Line too long (92 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 967  | E501 | Line 967 exceeds line length limit (Line too long (104 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 968  | E501 | Line 968 exceeds line length limit (Line too long (170 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 969  | E501 | Line 969 exceeds line length limit (Line too long (113 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 970  | E501 | Line 970 exceeds line length limit (Line too long (130 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 972  | E501 | Line 972 exceeds line length limit (Line too long (96 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 986  | E501 | Line 986 exceeds line length limit (Line too long (146 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 994  | E501 | Line 994 exceeds line length limit (Line too long (101 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1024 | E501 | Line 1024 exceeds line length limit (Line too long (96 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1040 | E501 | Line 1040 exceeds line length limit (Line too long (123 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1041 | E501 | Line 1041 exceeds line length limit (Line too long (138 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1048 | E501 | Line 1048 exceeds line length limit (Line too long (115 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1073 | E501 | Line 1073 exceeds line length limit (Line too long (91 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1119 | E501 | Line 1119 exceeds line length limit (Line too long (91 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1139 | E501 | Line 1139 exceeds line length limit (Line too long (112 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1199 | E501 | Line 1199 exceeds line length limit (Line too long (95 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1209 | E501 | Line 1209 exceeds line length limit (Line too long (105 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1210 | E501 | Line 1210 exceeds line length limit (Line too long (134 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 1213 | E501 | Line 1213 exceeds line length limit (Line too long (116 > 88)) |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/terminal.py                   | 72   | E501 | Line 72 exceeds line length limit (Line too long (94 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/terminal.py                   | 120  | E501 | Line 120 exceeds line length limit (Line too long (93 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/terminal.py                   | 121  | E501 | Line 121 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/terminal.py                   | 192  | E501 | Line 192 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 100  | E501 | Line 100 exceeds line length limit (Line too long (99 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 104  | E501 | Line 104 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 133  | E501 | Line 133 exceeds line length limit (Line too long (91 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 295  | E501 | Line 295 exceeds line length limit (Line too long (92 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 347  | E501 | Line 347 exceeds line length limit (Line too long (91 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 348  | E501 | Line 348 exceeds line length limit (Line too long (91 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 349  | E501 | Line 349 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 350  | E501 | Line 350 exceeds line length limit (Line too long (152 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 358  | E501 | Line 358 exceeds line length limit (Line too long (99 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 380  | E501 | Line 380 exceeds line length limit (Line too long (93 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 418  | E501 | Line 418 exceeds line length limit (Line too long (89 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py                                | 20   | E501 | Line 20 exceeds line length limit (Line too long (96 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py                                | 32   | E501 | Line 32 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py                                | 35   | E501 | Line 35 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py                                | 47   | E501 | Line 47 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                                   | 8    | E501 | Line 8 exceeds line length limit (Line too long (94 > 88))     |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 5    | E501 | Line 5 exceeds line length limit (Line too long (89 > 88))     |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 17   | E501 | Line 17 exceeds line length limit (Line too long (109 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 30   | E501 | Line 30 exceeds line length limit (Line too long (100 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 54   | E501 | Line 54 exceeds line length limit (Line too long (105 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 80   | E501 | Line 80 exceeds line length limit (Line too long (117 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 85   | E501 | Line 85 exceeds line length limit (Line too long (94 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 91   | E501 | Line 91 exceeds line length limit (Line too long (94 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 30   | E501 | Line 30 exceeds line length limit (Line too long (100 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 34   | E501 | Line 34 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 54   | E501 | Line 54 exceeds line length limit (Line too long (97 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 58   | E501 | Line 58 exceeds line length limit (Line too long (94 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 62   | E501 | Line 62 exceeds line length limit (Line too long (97 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 66   | E501 | Line 66 exceeds line length limit (Line too long (96 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 70   | E501 | Line 70 exceeds line length limit (Line too long (94 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 74   | E501 | Line 74 exceeds line length limit (Line too long (93 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 78   | E501 | Line 78 exceeds line length limit (Line too long (100 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 82   | E501 | Line 82 exceeds line length limit (Line too long (95 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 86   | E501 | Line 86 exceeds line length limit (Line too long (95 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 90   | E501 | Line 90 exceeds line length limit (Line too long (101 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 94   | E501 | Line 94 exceeds line length limit (Line too long (92 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 98   | E501 | Line 98 exceeds line length limit (Line too long (95 > 88))    |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 102  | E501 | Line 102 exceeds line length limit (Line too long (94 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 106  | E501 | Line 106 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 110  | E501 | Line 110 exceeds line length limit (Line too long (92 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 114  | E501 | Line 114 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 118  | E501 | Line 118 exceeds line length limit (Line too long (95 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 122  | E501 | Line 122 exceeds line length limit (Line too long (94 > 88))   |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 126  | E501 | Line 126 exceeds line length limit (Line too long (100 > 88))  |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 138  | E501 | Line 138 exceeds line length limit (Line too long (100 > 88))  |
+
+### sqlfluff (0 issues)
+
+No issues found.
+
+### markdownlint (703 issues)
+
+| File                                            | Line | Code  | Message                                                                           |
+| ----------------------------------------------- | ---- | ----- | --------------------------------------------------------------------------------- |
+| CLAUDE.md                                       | 5    | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 7    | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 11   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 31   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| CLAUDE.md                                       | 31   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| CLAUDE.md                                       | 31   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| CLAUDE.md                                       | 31   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| CLAUDE.md                                       | 31   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| CLAUDE.md                                       | 31   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| CLAUDE.md                                       | 32   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 33   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 34   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 35   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 36   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 37   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 38   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 39   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 40   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 41   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 42   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 43   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 44   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 48   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 49   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 50   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 51   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 52   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 56   | MD040 | Fenced code blocks should have a language specified                               |
+| CLAUDE.md                                       | 65   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 65   | MD034 | Bare URL used                                                                     |
+| CLAUDE.md                                       | 69   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 70   | MD013 | Line length                                                                       |
+| CLAUDE.md                                       | 71   | MD013 | Line length                                                                       |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 19   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 28   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 36   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 43   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 51   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 55   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 63   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 69   | MD013 | Line length                                                                       |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 74   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md             | 82   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/OPERATIONS_AND_WORKFLOWS.md                | 37   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/OPERATIONS_AND_WORKFLOWS.md                | 90   | MD013 | Line length                                                                       |
+| docs/PURPOSE_AND_SCOPE.md                       | 8    | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/PURPOSE_AND_SCOPE.md                       | 34   | MD032 | Lists should be surrounded by blank lines                                         |
+| docs/PURPOSE_AND_SCOPE.md                       | 40   | MD013 | Line length                                                                       |
+| docs/README.md                                  | 9    | MD013 | Line length                                                                       |
+| README.md                                       | 3    | MD013 | Line length                                                                       |
+| README.md                                       | 7    | MD013 | Line length                                                                       |
+| README.md                                       | 8    | MD013 | Line length                                                                       |
+| README.md                                       | 9    | MD013 | Line length                                                                       |
+| README.md                                       | 10   | MD013 | Line length                                                                       |
+| README.md                                       | 12   | MD013 | Line length                                                                       |
+| README.md                                       | 13   | MD013 | Line length                                                                       |
+| README.md                                       | 14   | MD013 | Line length                                                                       |
+| README.md                                       | 59   | MD040 | Fenced code blocks should have a language specified                               |
+| README.md                                       | 68   | MD040 | Fenced code blocks should have a language specified                               |
+| README.md                                       | 70   | MD013 | Line length                                                                       |
+| README.md                                       | 73   | MD013 | Line length                                                                       |
+| README.md                                       | 74   | MD013 | Line length                                                                       |
+| README.md                                       | 75   | MD013 | Line length                                                                       |
+| README.md                                       | 76   | MD013 | Line length                                                                       |
+| README.md                                       | 78   | MD013 | Line length                                                                       |
+| README.md                                       | 79   | MD013 | Line length                                                                       |
+| README.md                                       | 80   | MD013 | Line length                                                                       |
+| README.md                                       | 81   | MD013 | Line length                                                                       |
+| README.md                                       | 82   | MD013 | Line length                                                                       |
+| README.md                                       | 84   | MD013 | Line length                                                                       |
+| README.md                                       | 85   | MD013 | Line length                                                                       |
+| README.md                                       | 88   | MD013 | Line length                                                                       |
+| README.md                                       | 90   | MD013 | Line length                                                                       |
+| README.md                                       | 91   | MD013 | Line length                                                                       |
+| README.md                                       | 93   | MD013 | Line length                                                                       |
+| README.md                                       | 98   | MD013 | Line length                                                                       |
+| README.md                                       | 100  | MD013 | Line length                                                                       |
+| README.md                                       | 102  | MD013 | Line length                                                                       |
+| README.md                                       | 104  | MD013 | Line length                                                                       |
+| README.md                                       | 106  | MD013 | Line length                                                                       |
+| README.md                                       | 117  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| README.md                                       | 117  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| README.md                                       | 117  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| README.md                                       | 117  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 32   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 35   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 38   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 39   | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205206/report.md | 41   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 41   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 41   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 41   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 43   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 46   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 47   | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 48   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 66   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 67   | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205206/report.md | 69   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 69   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 69   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 69   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 70   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 70   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 70   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 70   | MD060 | Table column style [Table pipe does not align with header for style "aligned"]    |
+| report-ui/.lintro/run-20260206-205206/report.md | 72   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 75   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 78   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 81   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 84   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 87   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 90   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 93   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 96   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 99   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 102  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 105  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 108  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 111  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 112  | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205206/report.md | 113  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205206/report.md | 114  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 115  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 116  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 117  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 118  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 119  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 120  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 121  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 121  | MD033 | Inline HTML [Element: string]                                                     |
+| report-ui/.lintro/run-20260206-205206/report.md | 122  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 123  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 124  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 125  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 126  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 127  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 128  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 129  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 130  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 131  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 132  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 133  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 134  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 135  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 136  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 137  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 138  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 139  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 140  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 141  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 142  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 143  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 144  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 145  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 146  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 147  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 148  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 149  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 150  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 151  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 152  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 153  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 154  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 155  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 156  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 157  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 158  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 159  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 160  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 161  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 162  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 163  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 164  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 165  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 166  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 167  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 168  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 169  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 170  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 171  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 172  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 173  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 174  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 175  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 176  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 177  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 178  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 179  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 180  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 181  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 182  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 183  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 184  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 185  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 186  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 187  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 188  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 189  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 190  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 191  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 192  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 193  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 194  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 195  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 196  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 197  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 198  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 199  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 200  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 201  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 202  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 203  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 204  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 205  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 206  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 207  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 208  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 209  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 210  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 211  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 212  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 213  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 214  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 215  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 216  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 217  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 218  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 219  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 220  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 221  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 222  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 223  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 224  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 225  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 226  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 227  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 228  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 229  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 230  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 231  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 232  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 233  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 234  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 235  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 236  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 237  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 238  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 239  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 240  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 241  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 242  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 243  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 244  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 245  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 246  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 247  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 248  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 249  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 250  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 251  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 252  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 253  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 254  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 255  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 256  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 257  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 258  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 259  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 260  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 261  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 262  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 263  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 264  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 265  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 266  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 267  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 268  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 269  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 270  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 271  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 272  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 273  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 274  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 275  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 276  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 277  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 278  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 279  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 280  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 281  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 282  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 283  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 284  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 285  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 286  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 287  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 288  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 289  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 290  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 291  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 292  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 293  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 294  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 295  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 296  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 297  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 298  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 299  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 300  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 301  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 302  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 303  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 304  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 305  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 306  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 307  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 308  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 309  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 310  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 311  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 312  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 313  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 314  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 315  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 316  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 317  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 318  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 319  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 320  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 321  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 322  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 323  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 324  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 325  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 326  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 327  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 328  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205206/report.md | 330  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 333  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 336  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205206/report.md | 339  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 6    | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 32   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 35   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 38   | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 39   | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 40   | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 41   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 42   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 43   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 44   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 45   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 46   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 47   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 48   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 49   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 50   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 51   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 52   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 53   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 54   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 55   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 56   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 57   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 58   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 59   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 60   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 61   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 62   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 63   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 64   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 65   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 66   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 67   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 68   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 69   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 70   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 71   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 72   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 73   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 74   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 75   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 76   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 77   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 78   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 79   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 80   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 81   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 82   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 83   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 84   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 85   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 86   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 87   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 88   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 89   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 90   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 91   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 92   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 93   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 94   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 95   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 96   | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 105  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 313  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 314  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 315  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 316  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 319  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 322  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 323  | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 324  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 342  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 343  | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 344  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 345  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 350  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 353  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 356  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 359  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 362  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 365  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 368  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 371  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 374  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 377  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 380  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 383  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 386  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 389  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 390  | MD058 | Tables should be surrounded by blank lines                                        |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the right for style "compact"] |
+| report-ui/.lintro/run-20260206-205237/report.md | 391  | MD060 | Table column style [Table pipe is missing space to the left for style "compact"]  |
+| report-ui/.lintro/run-20260206-205237/report.md | 392  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 393  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 394  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 395  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 396  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 397  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 398  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 399  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 399  | MD033 | Inline HTML [Element: string]                                                     |
+| report-ui/.lintro/run-20260206-205237/report.md | 400  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 401  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 402  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 403  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 404  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 405  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 406  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 407  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 408  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 409  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 410  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 411  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 412  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 413  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 414  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 415  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 416  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 417  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 418  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 419  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 420  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 421  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 422  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 423  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 424  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 425  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 426  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 427  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 428  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 429  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 430  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 431  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 432  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 433  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 434  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 435  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 436  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 437  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 438  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 439  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 440  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 441  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 442  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 443  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 444  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 445  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 446  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 447  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 448  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 449  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 450  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 451  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 452  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 453  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 454  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 455  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 456  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 457  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 458  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 459  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 460  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 461  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 462  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 463  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 464  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 465  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 466  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 467  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 468  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 469  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 470  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 471  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 472  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 473  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 474  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 475  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 476  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 477  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 478  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 479  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 480  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 481  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 482  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 483  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 484  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 485  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 486  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 487  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 488  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 489  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 490  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 491  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 492  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 493  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 494  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 495  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 496  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 497  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 498  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 499  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 500  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 501  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 502  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 503  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 504  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 505  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 506  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 507  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 508  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 509  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 510  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 511  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 512  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 513  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 514  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 515  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 516  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 517  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 518  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 519  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 520  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 521  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 522  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 523  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 524  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 525  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 526  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 527  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 528  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 529  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 530  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 531  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 532  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 533  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 534  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 535  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 536  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 537  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 538  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 539  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 540  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 541  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 542  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 543  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 544  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 545  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 546  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 547  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 548  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 549  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 550  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 551  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 552  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 553  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 554  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 555  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 556  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 557  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 558  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 559  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 560  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 561  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 562  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 563  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 564  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 565  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 566  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 567  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 568  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 569  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 570  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 571  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 572  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 573  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 574  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 575  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 576  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 577  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 578  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 579  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 580  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 581  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 582  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 583  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 584  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 585  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 586  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 587  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 588  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 589  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 590  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 591  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 592  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 593  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 594  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 595  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 596  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 597  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 598  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 599  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 600  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 601  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 602  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 603  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 604  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 605  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 606  | MD013 | Line length                                                                       |
+| report-ui/.lintro/run-20260206-205237/report.md | 608  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 611  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 614  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/.lintro/run-20260206-205237/report.md | 617  | MD022 | Headings should be surrounded by blank lines                                      |
+| report-ui/README.md                             | 22   | MD032 | Lists should be surrounded by blank lines                                         |
+
+### clippy (0 issues)
+
+No issues found.
+
+### oxfmt (22 issues)
+
+| File                                            | Line | Code   | Message               |
+| ----------------------------------------------- | ---- | ------ | --------------------- |
+| report-ui/eslint.config.js                      | 1    | FORMAT | File is not formatted |
+| report-ui/src/App.tsx                           | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/CommandBar.tsx         | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/JourneyDetailPanel.tsx | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/JourneyList.tsx        | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/JourneyRow.tsx         | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/OutcomePanel.tsx       | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/PageReference.tsx      | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/StateGraph.tsx         | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/StatsSummary.tsx       | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/StepTimeline.tsx       | 1    | FORMAT | File is not formatted |
+| report-ui/src/components/StepTimelineNode.tsx   | 1    | FORMAT | File is not formatted |
+| report-ui/src/lib/flow-utils.ts                 | 1    | FORMAT | File is not formatted |
+| report-ui/src/main.tsx                          | 1    | FORMAT | File is not formatted |
+| report-ui/src/types.ts                          | 1    | FORMAT | File is not formatted |
+| report-ui/vite.config.ts                        | 1    | FORMAT | File is not formatted |
+| src/flowscout/js/discovery.ts                   | 1    | FORMAT | File is not formatted |
+| src/flowscout/js/dom_structure.ts               | 1    | FORMAT | File is not formatted |
+| src/flowscout/js/form_state.ts                  | 1    | FORMAT | File is not formatted |
+| src/flowscout/js/keyboard_hints.ts              | 1    | FORMAT | File is not formatted |
+| src/flowscout/js/signals.ts                     | 1    | FORMAT | File is not formatted |
+| src/flowscout/js/visible_text.ts                | 1    | FORMAT | File is not formatted |
+
+### prettier (12 issues)
+
+| File                                              | Line | Code   | Message                 |
+| ------------------------------------------------- | ---- | ------ | ----------------------- |
+| CLAUDE.md                                         | 1    | FORMAT | Code style issues found |
+| README.md                                         | 1    | FORMAT | Code style issues found |
+| docs/ARCHITECTURE_AND_DATA_MODEL.md               | 1    | FORMAT | Code style issues found |
+| docs/OPERATIONS_AND_WORKFLOWS.md                  | 1    | FORMAT | Code style issues found |
+| docs/PURPOSE_AND_SCOPE.md                         | 1    | FORMAT | Code style issues found |
+| report-ui/.lintro/run-20260206-205206/report.html | 1    | FORMAT | Code style issues found |
+| report-ui/.lintro/run-20260206-205206/report.md   | 1    | FORMAT | Code style issues found |
+| report-ui/.lintro/run-20260206-205237/report.html | 1    | FORMAT | Code style issues found |
+| report-ui/.lintro/run-20260206-205237/report.md   | 1    | FORMAT | Code style issues found |
+| report-ui/README.md                               | 1    | FORMAT | Code style issues found |
+| report-ui/public/flow_bundle.json                 | 1    | FORMAT | Code style issues found |
+| report-ui/src/index.css                           | 1    | FORMAT | Code style issues found |
+
+### actionlint (0 issues)
+
+No issues found.
+
+### semgrep (0 issues)
+
+No issues found.
+
+### astro-check (0 issues)
+
+No issues found.
+
+### gitleaks (0 issues)
+
+No issues found.
+
+### mypy (201 issues)
+
+| File                                | Line | Code           | Message                                                                                       |
+| ----------------------------------- | ---- | -------------- | --------------------------------------------------------------------------------------------- |
+| tests/test_state.py                 | 12   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 15   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 18   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 23   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 27   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 37   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 49   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 60   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 71   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 81   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 95   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_state.py                 | 99   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 29   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 34   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 39   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 44   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 49   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 54   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 59   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 64   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 69   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 74   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_inputs.py                | 79   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 45   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 50   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 56   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 62   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 70   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 86   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 92   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 99   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 116  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 129  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_graph.py                 | 142  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 13   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 16   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 19   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 22   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 25   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 28   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 31   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 34   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 37   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 40   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 43   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 46   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 49   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 54   | no-untyped-def | Function is missing a type annotation for one or more arguments                               |
+| tests/test_elements.py              | 65   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 73   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 81   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 89   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 93   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 97   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 101  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 105  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 111  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 116  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_elements.py              | 121  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 8    | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 11   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 23   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 35   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 47   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 59   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 71   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 83   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_detector.py              | 96   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 11   | no-untyped-def | Function is missing a type annotation for one or more arguments                               |
+| tests/test_actions.py               | 26   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 32   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 42   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 51   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 63   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 73   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 78   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 83   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 93   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 99   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 118  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_actions.py               | 123  | no-untyped-def | Function is missing a return type annotation                                                  |
+| src/flowscout/analysis/detector.py  | 99   | unused-ignore  | Unused "type: ignore" comment                                                                 |
+| src/flowscout/analysis/detector.py  | 99   | attr-defined   | "object" has no attribute "evaluate"                                                          |
+| src/flowscout/core/navigator.py     | 317  | no-any-return  | Returning Any from function declared to return "int"                                          |
+| src/flowscout/core/navigator.py     | 321  | no-any-return  | Returning Any from function declared to return "int"                                          |
+| src/flowscout/core/navigator.py     | 328  | no-any-return  | Returning Any from function declared to return "int"                                          |
+| src/flowscout/core/navigator.py     | 330  | no-any-return  | Returning Any from function declared to return "int"                                          |
+| src/flowscout/storage/db.py         | 280  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 283  | type-arg       | Missing type parameters for generic type "list"                                               |
+| src/flowscout/storage/db.py         | 293  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 298  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 306  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 314  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 324  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 336  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 354  | type-arg       | Missing type parameters for generic type "list"                                               |
+| src/flowscout/storage/db.py         | 363  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 379  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/storage/db.py         | 401  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/discovery/intent.py   | 207  | no-any-return  | Returning Any from function declared to return "str"                                          |
+| src/flowscout/discovery/intent.py   | 209  | no-any-return  | Returning Any from function declared to return "str"                                          |
+| src/flowscout/discovery/intent.py   | 211  | no-any-return  | Returning Any from function declared to return "str"                                          |
+| src/flowscout/discovery/intent.py   | 213  | no-any-return  | Returning Any from function declared to return "str"                                          |
+| src/flowscout/discovery/intent.py   | 214  | no-any-return  | Returning Any from function declared to return "str"                                          |
+| src/flowscout/discovery/elements.py | 203  | unused-ignore  | Unused "type: ignore" comment                                                                 |
+| src/flowscout/discovery/elements.py | 203  | attr-defined   | "object" has no attribute "evaluate"                                                          |
+| src/flowscout/discovery/elements.py | 240  | unused-ignore  | Unused "type: ignore" comment                                                                 |
+| src/flowscout/discovery/elements.py | 240  | attr-defined   | "object" has no attribute "accessibility"                                                     |
+| src/flowscout/discovery/elements.py | 250  | unused-ignore  | Unused "type: ignore" comment                                                                 |
+| src/flowscout/discovery/elements.py | 250  | attr-defined   | "object" has no attribute "evaluate"                                                          |
+| src/flowscout/discovery/elements.py | 259  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/discovery/actions.py  | 123  | no-untyped-def | Function is missing a type annotation for one or more arguments                               |
+| src/flowscout/analysis/narrative.py | 192  | no-any-return  | Returning Any from function declared to return "str"                                          |
+| src/flowscout/analysis/graph.py     | 37   | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/analysis/graph.py     | 203  | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/reporting/html.py     | 1165 | type-arg       | Missing type parameters for generic type "dict"                                               |
+| tests/test_verdict.py               | 16   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_verdict.py               | 29   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 33   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 37   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 45   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 53   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 57   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 61   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 65   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 69   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 73   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 77   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 81   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 85   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 89   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 93   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 97   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 101  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 105  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 109  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 113  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 117  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 121  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 125  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 129  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 133  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 137  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 143  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 153  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 162  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 171  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_verdict.py               | 175  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 13   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_narrative.py             | 51   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 58   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 66   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 72   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 78   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 83   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 88   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 94   | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 102  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 116  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 125  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 134  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 143  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 155  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_narrative.py             | 167  | no-untyped-def | Function is missing a type annotation                                                         |
+| tests/test_intent.py                | 14   | no-untyped-def | Function is missing a type annotation for one or more arguments                               |
+| tests/test_intent.py                | 27   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 32   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 37   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 42   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 47   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 52   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 57   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 62   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 67   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 72   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 77   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 82   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 87   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 92   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 97   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 102  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 107  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 112  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 119  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 123  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 127  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 131  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_intent.py                | 135  | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_bdd.py                   | 27   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_bdd.py                   | 33   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_bdd.py                   | 41   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_bdd.py                   | 57   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_bdd.py                   | 74   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_bdd.py                   | 80   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/test_bdd.py                   | 91   | no-untyped-def | Function is missing a return type annotation                                                  |
+| tests/conftest.py                   | 7    | type-arg       | Missing type parameters for generic type "dict"                                               |
+| tests/conftest.py                   | 32   | type-arg       | Missing type parameters for generic type "dict"                                               |
+| src/flowscout/core/browser.py       | 50   | assignment     | Incompatible types in assignment (expression has type "Playwright", variable has type "None") |
+| src/flowscout/core/browser.py       | 51   | attr-defined   | "None" has no attribute "chromium"                                                            |
+| src/flowscout/core/browser.py       | 137  | no-untyped-def | Function is missing a type annotation                                                         |
+| src/flowscout/core/browser.py       | 141  | no-untyped-def | Function is missing a type annotation                                                         |
+
+### vue-tsc (0 issues)
+
+No issues found.
+
+### shellcheck (0 issues)
+
+No issues found.
+
+### bandit (207 issues)
+
+| File                                                                     | Line | Code | Message                                                                                                                                            |
+| ------------------------------------------------------------------------ | ---- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 29   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 30   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 39   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 40   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 49   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 59   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 60   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 61   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 70   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 71   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 76   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 81   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 90   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 91   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 96   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 97   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 114  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 121  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_actions.py               | 126  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 31   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 38   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 39   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 54   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 55   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 70   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 78   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 85   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 86   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 87   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 88   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 89   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                   | 104  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 21   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 33   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 45   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 57   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 69   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 81   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 94   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_detector.py              | 106  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 14   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 17   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 20   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 23   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 26   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 29   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 32   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 35   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 38   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 41   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 44   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 47   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 50   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 71   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 79   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 87   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 91   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 95   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 99   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 103  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 107  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 114  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 119  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py              | 123  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 48   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 54   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 60   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 68   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 81   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 82   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 83   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 84   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 90   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 97   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 111  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 114  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 127  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 137  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 138  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 139  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 140  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 150  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 151  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                 | 152  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 32   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 37   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 42   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 47   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 52   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 57   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 62   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 67   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 72   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 77   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_inputs.py                | 82   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 30   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 35   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 40   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 45   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 50   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 55   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 60   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 65   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 70   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 75   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 80   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 85   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 90   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 95   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 100  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 105  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 110  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 115  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 121  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 125  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 129  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 133  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                | 137  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 55   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 56   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 63   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 64   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 70   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 76   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 81   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 86   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 92   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 100  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 112  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 121  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 122  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 123  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 132  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 141  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 148  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 149  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 150  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 151  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 163  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 173  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py             | 174  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 13   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 16   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 20   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 21   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 25   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 32   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 33   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 47   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 58   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 69   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 79   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 91   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 97   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_state.py                 | 101  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 31   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 35   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 43   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 51   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 55   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 59   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 63   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 67   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 71   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 75   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 79   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 83   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 87   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 91   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 95   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 99   |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 103  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 107  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 111  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 115  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 119  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 123  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 127  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 131  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 135  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 139  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 149  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 150  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 151  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 159  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 160  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 168  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 169  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 173  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 182  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 183  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 184  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py               | 185  |      | [B101:assert_used] LOW severity, HIGH confidence: Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/inputs.py   | 79   |      | [B105:hardcoded_password_string] LOW severity, MEDIUM confidence: Possible hardcoded password: 'password'                                          |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py | 156  |      | [B608:hardcoded_sql_expressions] MEDIUM severity, LOW confidence: Possible SQL injection vector through string-based query construction.           |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py | 203  |      | [B608:hardcoded_sql_expressions] MEDIUM severity, LOW confidence: Possible SQL injection vector through string-based query construction.           |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/intent.py   | 65   |      | [B608:hardcoded_sql_expressions] MEDIUM severity, LOW confidence: Possible SQL injection vector through string-based query construction.           |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/intent.py   | 157  |      | [B608:hardcoded_sql_expressions] MEDIUM severity, LOW confidence: Possible SQL injection vector through string-based query construction.           |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py  | 77   |      | [B324:hashlib] HIGH severity, HIGH confidence: Use of weak MD5 hash for security. Consider usedforsecurity=False                                   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py | 92   |      | [B324:hashlib] HIGH severity, HIGH confidence: Use of weak MD5 hash for security. Consider usedforsecurity=False                                   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/browser.py       | 242  |      | [B110:try_except_pass] LOW severity, HIGH confidence: Try, Except, Pass detected.                                                                  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py     | 195  |      | [B110:try_except_pass] LOW severity, HIGH confidence: Try, Except, Pass detected.                                                                  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py     | 206  |      | [B110:try_except_pass] LOW severity, HIGH confidence: Try, Except, Pass detected.                                                                  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py     | 224  |      | [B110:try_except_pass] LOW severity, HIGH confidence: Try, Except, Pass detected.                                                                  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py | 243  |      | [B110:try_except_pass] LOW severity, HIGH confidence: Try, Except, Pass detected.                                                                  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py         | 137  |      | [B110:try_except_pass] LOW severity, HIGH confidence: Try, Except, Pass detected.                                                                  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py         | 251  |      | [B110:try_except_pass] LOW severity, HIGH confidence: Try, Except, Pass detected.                                                                  |
+
+### shfmt (0 issues)
+
+No issues found.
+
+### ruff (68 issues)
+
+| File                                                                                       | Line | Code   | Message                                                           |
+| ------------------------------------------------------------------------------------------ | ---- | ------ | ----------------------------------------------------------------- |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/graph.py                       | 12   | F401   | `flowscout.discovery.actions.ActionType` imported but unused      |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/graph.py                       | 15   | F401   | `flowscout.analysis.narrative.FlowNarrative` imported but unused  |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/graph.py                       | 16   | F401   | `flowscout.analysis.verdict.JourneyVerdict` imported but unused   |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 101  | F841   | Local variable `pass_count` is assigned to but never used         |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/bdd.py                          | 18   | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/bdd.py                          | 29   | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 11   | F401   | `flowscout.core.state.PageState` imported but unused              |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 50   | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 51   | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 56   | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 57   | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 58   | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 120  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 126  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 143  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 162  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 168  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 194  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 198  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 204  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 205  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 223  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 249  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 252  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 257  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 277  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 337  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 338  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 351  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 395  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 401  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 403  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 404  | F541   | f-string without any placeholders                                 |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 10   | F401   | `flowscout.analysis.detector.OutcomeDetector` imported but unused |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 15   | F401   | `flowscout.core.state.ExplorationStrategy` imported but unused    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 16   | F401   | `flowscout.discovery.actions.ActionType` imported but unused      |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py                   | 188  | E402   | Module level import not at top of file                            |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/intent.py                     | 48   | F841   | Local variable `ctx` is assigned to but never used                |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 10   | F401   | `flowscout.analysis.graph.Flow` imported but unused               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 11   | F401   | `flowscout.core.state.PageState` imported but unused              |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 12   | F401   | `flowscout.discovery.actions.Action` imported but unused          |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 12   | F401   | `flowscout.discovery.actions.ActionResult` imported but unused    |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 12   | F401   | `flowscout.discovery.actions.OutcomeType` imported but unused     |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_bdd.py                                     | 6    | F401   | `pytest` imported but unused                                      |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                                  | 3    | F401   | `pytest` imported but unused                                      |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_intent.py                                  | 7    | F401   | `flowscout.discovery.intent.ActionIntent` imported but unused     |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 5    | F401   | `flowscout.analysis.narrative.NarrativeStep` imported but unused  |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 6    | F401   | `flowscout.analysis.verdict.JourneyVerdict` imported but unused   |
+| /Users/eiteldagnin/Code/ui-framework/reports/2026/02.February/06-02-2026/12.58.21/tests.py | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/graph.py                       | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/narrative.py                   | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/analysis/verdict.py                     | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/cli.py                                  | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/codegen/playwright_tests.py             | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/browser.py                         | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/core/navigator.py                       | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/actions.py                    | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/elements.py                   | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/inputs.py                     | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/discovery/intent.py                     | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/html.py                       | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/reporting/terminal.py                   | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/src/flowscout/storage/db.py                           | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/tests/conftest.py                                     | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_elements.py                                | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_graph.py                                   | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_narrative.py                               | 0    | FORMAT | Would reformat file                                               |
+| /Users/eiteldagnin/Code/ui-framework/tests/test_verdict.py                                 | 0    | FORMAT | Would reformat file                                               |
+
+### oxlint (6 issues)
+
+| File                               | Line | Code                          | Message                        |
+| ---------------------------------- | ---- | ----------------------------- | ------------------------------ |
+| src/flowscout/js/visible_text.ts   | 1    | eslint(no-unused-expressions) | Expected expression to be used |
+| src/flowscout/js/keyboard_hints.ts | 1    | eslint(no-unused-expressions) | Expected expression to be used |
+| src/flowscout/js/discovery.ts      | 1    | eslint(no-unused-expressions) | Expected expression to be used |
+| src/flowscout/js/form_state.ts     | 1    | eslint(no-unused-expressions) | Expected expression to be used |
+| src/flowscout/js/dom_structure.ts  | 1    | eslint(no-unused-expressions) | Expected expression to be used |
+| src/flowscout/js/signals.ts        | 1    | eslint(no-unused-expressions) | Expected expression to be used |
+
+### yamllint (0 issues)
+
+No issues found.
+
+### rustfmt (0 issues)
+
+No issues found.
+
+### tsc (216 issues)
+
+| File                                            | Line | Code    | Message                                                                                                                                                                  |
+| ----------------------------------------------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| report-ui/src/App.tsx                           | 3    | TS6142  | Module './components/CommandBar' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/CommandBar.tsx', but '--jsx' is not set.                 |
+| report-ui/src/App.tsx                           | 4    | TS6142  | Module './components/JourneyDetailPanel' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/JourneyDetailPanel.tsx', but '--jsx' is not set. |
+| report-ui/src/App.tsx                           | 5    | TS6142  | Module './components/JourneyList' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/JourneyList.tsx', but '--jsx' is not set.               |
+| report-ui/src/App.tsx                           | 6    | TS6142  | Module './components/OutcomePanel' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/OutcomePanel.tsx', but '--jsx' is not set.             |
+| report-ui/src/App.tsx                           | 7    | TS6142  | Module './components/PageReference' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/PageReference.tsx', but '--jsx' is not set.           |
+| report-ui/src/App.tsx                           | 8    | TS6142  | Module './components/StateGraph' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/StateGraph.tsx', but '--jsx' is not set.                 |
+| report-ui/src/App.tsx                           | 9    | TS6142  | Module './components/StatsSummary' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/StatsSummary.tsx', but '--jsx' is not set.             |
+| report-ui/src/App.tsx                           | 89   | TS2802  | Type 'Set<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.                                   |
+| report-ui/src/App.tsx                           | 242  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 244  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 246  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 259  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 261  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 262  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 272  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 274  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 288  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 290  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 297  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 299  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 300  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 309  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 310  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 315  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/App.tsx                           | 323  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 14   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 21   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 22   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 23   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 24   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 25   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 26   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 27   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 28   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 29   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 30   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 31   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 40   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 41   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 42   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 43   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 48   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 49   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 54   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 59   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 60   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 61   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 69   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 83   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/CommandBar.tsx         | 84   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 6    | TS6142  | Module './StepTimeline' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/StepTimeline.tsx', but '--jsx' is not set.                        |
+| report-ui/src/components/JourneyDetailPanel.tsx | 50   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 52   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 53   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 54   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 55   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 65   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 70   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 73   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 76   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 77   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 78   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 81   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 82   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 87   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 97   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 98   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyDetailPanel.tsx | 101  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 4    | TS6142  | Module './JourneyRow' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/JourneyRow.tsx', but '--jsx' is not set.                            |
+| report-ui/src/components/JourneyList.tsx        | 20   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 21   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 22   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 25   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 30   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 32   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 45   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 51   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyList.tsx        | 52   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 18   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 19   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 20   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 21   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 27   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 28   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 29   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 34   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 35   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 45   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 54   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 56   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 57   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 60   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 66   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/JourneyRow.tsx         | 72   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 19   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 20   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 25   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 32   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 33   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 34   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 35   | TS2550  | Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later.           |
+| report-ui/src/components/OutcomePanel.tsx       | 37   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 41   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 42   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 51   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 56   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 58   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 70   | TS2550  | Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later.           |
+| report-ui/src/components/OutcomePanel.tsx       | 76   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 78   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 96   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/OutcomePanel.tsx       | 105  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 15   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 16   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 19   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 21   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 25   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 28   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 29   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 32   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/PageReference.tsx      | 37   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 26   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 34   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 35   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 36   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 37   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 38   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 39   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 40   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 42   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 43   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 44   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 45   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 177  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 178  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 179  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 182  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 186  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 187  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 188  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 190  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StateGraph.tsx         | 191  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 19   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 20   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 23   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 26   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 27   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 46   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 47   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 50   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 51   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 52   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 53   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 54   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 56   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 57   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 58   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 59   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 60   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 61   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 63   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 64   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 65   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 68   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 69   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StatsSummary.tsx       | 70   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 2    | TS6142  | Module './StepTimelineNode' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/components/StepTimelineNode.tsx', but '--jsx' is not set.                |
+| report-ui/src/components/StepTimeline.tsx       | 11   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 18   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 22   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 30   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 39   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 41   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 43   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 45   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 46   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 48   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 49   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 52   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 55   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimeline.tsx       | 62   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 13   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 20   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 24   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 40   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 42   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 45   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 46   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 49   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 50   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 51   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 54   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 57   | TS2550  | Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later.           |
+| report-ui/src/components/StepTimelineNode.tsx   | 61   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 62   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 63   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 65   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 66   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 69   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 74   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 80   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 82   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 82   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 85   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 85   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 88   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 96   | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 108  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/components/StepTimelineNode.tsx   | 109  | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/main.tsx                          | 4    | TS5097  | An import path can only end with a '.tsx' extension when 'allowImportingTsExtensions' is enabled.                                                                        |
+| report-ui/src/main.tsx                          | 4    | TS6142  | Module './App.tsx' was resolved to '/Users/eiteldagnin/Code/ui-framework/report-ui/src/App.tsx', but '--jsx' is not set.                                                 |
+| report-ui/src/main.tsx                          | 7    | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/src/main.tsx                          | 8    | TS17004 | Cannot use JSX unless the '--jsx' flag is provided.                                                                                                                      |
+| report-ui/vite.config.ts                        | 2    | TS2307  | Cannot find module '@vitejs/plugin-react' or its corresponding type declarations.                                                                                        |
+| report-ui/vite.config.ts                        | 3    | TS2307  | Cannot find module '@tailwindcss/vite' or its corresponding type declarations.                                                                                           |
+| src/flowscout/js/keyboard_hints.ts              | 28   | TS2802  | Type 'Set<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.                                   |
+
+### hadolint (0 issues)
+
+No issues found.
+
+### taplo (1 issues)
+
+| File                                                | Line | Code   | Message                            |
+| --------------------------------------------------- | ---- | ------ | ---------------------------------- |
+| /Users/eiteldagnin/Code/ui-framework/pyproject.toml | 0    | format | the file is not properly formatted |
+
+### pydoclint (0 issues)
+
+No issues found.
+
+### cargo_audit (0 issues)
+
+No issues found.

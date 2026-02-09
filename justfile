@@ -24,14 +24,6 @@ history url="":
 report:
   uv run flowscout serve "$(find reports -name 'report.html' | sort | tail -1)"
 
-# Start the experimental report UI (legacy `flow_bundle.json` workflow).
-report-ui:
-  cd report-ui && bun run dev
-
-# Build the experimental report UI bundle.
-report-ui-build:
-  cd report-ui && bun run build
-
 # Compile TypeScript browser scripts to JS.
 build-js:
   cd src/flowscout/js && bunx tsc -p tsconfig.json
@@ -40,4 +32,3 @@ build-js:
 setup:
   uv sync --extra dev
   uv run playwright install chromium
-  cd report-ui && bun install
