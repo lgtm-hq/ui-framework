@@ -30,6 +30,7 @@ from flowscout.storage.db import FlowscoutDB
 console = Console()
 
 DEFAULT_DB_PATH = ".flowscout/history.db"
+DEFAULT_LOW_CONFIDENCE_THRESHOLD = 0.6
 
 
 @click.group()
@@ -240,7 +241,9 @@ async def _run_exploration(
     now = datetime.now(timezone.utc)
     use_smart_workspace = True
     run_dir, workspace_dir = _build_output_dirs(
-        config, now, smart_workspace=use_smart_workspace,
+        config,
+        now,
+        smart_workspace=use_smart_workspace,
     )
     if config.take_screenshots:
         evidence_dir = run_dir / "evidence" / "actions"
@@ -378,9 +381,7 @@ async def _run_exploration(
             if latest_link.is_symlink() or latest_link.exists():
                 latest_link.unlink()
             latest_link.symlink_to(run_dir.resolve(), target_is_directory=True)
-            console.print(
-                f"\n  [bold cyan]Workspace:[/bold cyan] {workspace_dir}"
-            )
+            console.print(f"\n  [bold cyan]Workspace:[/bold cyan] {workspace_dir}")
 
         # Print smart mode summary
         if config.smart_mode and result.archetypes:
@@ -445,6 +446,59 @@ def _print_cross_run_insights(db: FlowscoutDB, run_id: str, start_url: str) -> N
             console.print(
                 f"    [yellow]~[/yellow] {f['label']} — outcomes: {f['outcomes_seen']}"
             )
+
+
+def _compute_benchmark_metrics(
+    result: ExplorationResult,
+    *,
+    low_confidence_threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD,
+) -> dict[str, int | float | bool]:
+    """Compute key v1 benchmark metrics from an exploration result."""
+    all_urls = {state.url for state in result.states.values()}
+    tested_urls: set[str] = set()
+    for action_result in result.results:
+        source = result.states.get(action_result.source_state_id)
+        target = result.states.get(action_result.target_state_id)
+        if source:
+            tested_urls.add(source.url)
+        if target:
+            tested_urls.add(target.url)
+
+    executed_ids = {action_result.action_id for action_result in result.results}
+    total_discovered_actions = len(result.actions)
+    confidence_samples = [
+        action_result.confidence
+        for action_result in result.results
+        if action_result.confidence > 0 or action_result.confidence_reason
+    ]
+    avg_confidence = sum(confidence_samples) / max(len(confidence_samples), 1)
+    low_confidence_count = sum(
+        1 for score in confidence_samples if score < low_confidence_threshold
+    )
+
+    page_coverage_pct = round(len(tested_urls) / max(len(all_urls), 1) * 100)
+    action_coverage_pct = round(
+        len(executed_ids) / max(total_discovered_actions, 1) * 100
+    )
+
+    return {
+        "duration_seconds": result.duration_seconds,
+        "total_states": result.stats.get("total_states", len(result.states)),
+        "total_actions_executed": result.stats.get(
+            "total_actions_executed",
+            len(result.results),
+        ),
+        "total_unique_actions": result.stats.get(
+            "total_unique_actions",
+            len(result.actions),
+        ),
+        "page_coverage_pct": page_coverage_pct,
+        "action_coverage_pct": action_coverage_pct,
+        "confidence_sample_count": len(confidence_samples),
+        "low_confidence_transitions": low_confidence_count,
+        "avg_transition_confidence": round(avg_confidence, 3),
+        "coverage_target_met": page_coverage_pct >= 80,
+    }
 
 
 @main.command()
@@ -549,6 +603,68 @@ def reliability(url: str, db_path: str) -> None:
 
 @main.command()
 @click.argument("json_path", type=click.Path(exists=True))
+@click.option("--db-path", default=DEFAULT_DB_PATH, help="SQLite database path.")
+@click.option(
+    "--low-confidence-threshold",
+    default=DEFAULT_LOW_CONFIDENCE_THRESHOLD,
+    show_default=True,
+    help="Threshold for counting low-confidence transitions.",
+)
+def benchmark(json_path: str, db_path: str, low_confidence_threshold: float) -> None:
+    """Summarize benchmark metrics from a result artifact."""
+    data = json.loads(Path(json_path).read_text())
+    result = ExplorationResult.model_validate(data)
+    metrics = _compute_benchmark_metrics(
+        result,
+        low_confidence_threshold=low_confidence_threshold,
+    )
+
+    table = Table(title="V1 Benchmark Snapshot", border_style="cyan")
+    table.add_column("Metric", style="bold cyan")
+    table.add_column("Value", justify="right")
+    table.add_row("Result file", json_path)
+    table.add_row("Duration (seconds)", f"{metrics['duration_seconds']:.2f}")
+    table.add_row("States discovered", str(metrics["total_states"]))
+    table.add_row("Actions executed", str(metrics["total_actions_executed"]))
+    table.add_row("Unique actions discovered", str(metrics["total_unique_actions"]))
+    table.add_row("Page coverage %", f"{metrics['page_coverage_pct']}%")
+    table.add_row("Action coverage %", f"{metrics['action_coverage_pct']}%")
+    if metrics["confidence_sample_count"]:
+        table.add_row(
+            "Avg transition confidence",
+            f"{metrics['avg_transition_confidence']:.3f}",
+        )
+        table.add_row(
+            f"Low-confidence transitions (< {low_confidence_threshold:.2f})",
+            str(metrics["low_confidence_transitions"]),
+        )
+    else:
+        table.add_row("Avg transition confidence", "n/a (legacy artifact)")
+        table.add_row(
+            f"Low-confidence transitions (< {low_confidence_threshold:.2f})",
+            "n/a (legacy artifact)",
+        )
+    table.add_row(
+        "Coverage target (>=80%)",
+        "PASS" if metrics["coverage_target_met"] else "FAIL",
+    )
+
+    start_url = result.config.get("start_url", "")
+    if start_url and Path(db_path).exists():
+        db = FlowscoutDB(db_path)
+        try:
+            flaky_count = len(db.get_flaky_actions(start_url))
+        finally:
+            db.close()
+        table.add_row("Flaky actions (history)", str(flaky_count))
+    elif start_url:
+        table.add_row("Flaky actions (history)", "n/a (db missing)")
+
+    console.print(table)
+
+
+@main.command()
+@click.argument("json_path", type=click.Path(exists=True))
 @click.option("--output", "-o", default=None, help="Output test file path.")
 @click.option(
     "--framework",
@@ -562,7 +678,10 @@ def reliability(url: str, db_path: str) -> None:
     help="Generate site model and scenario tests from result.",
 )
 def generate(
-    json_path: str, output: str | None, framework: str, site_model: bool,
+    json_path: str,
+    output: str | None,
+    framework: str,
+    site_model: bool,
 ) -> None:
     """Generate test suite from a JSON exploration result."""
     data = json.loads(Path(json_path).read_text())
@@ -595,7 +714,10 @@ def generate(
         ext = ".py" if test_framework == "pytest" else ".spec.ts"
         test_output = output or json_path.replace(".json", f"_scenario_tests{ext}")
         generate_scenario_tests(
-            model, test_output, framework=test_framework, base_url=result.config.get("start_url", ""),
+            model,
+            test_output,
+            framework=test_framework,
+            base_url=result.config.get("start_url", ""),
         )
         console.print(f"  [green]Scenario tests generated:[/green] {test_output}")
 
@@ -605,7 +727,9 @@ def generate(
 
             pom_dir = str(Path(json_path).parent / "pages")
             pom_paths = generate_page_objects(
-                result.page_catalogs, pom_dir, framework=test_framework,
+                result.page_catalogs,
+                pom_dir,
+                framework=test_framework,
                 base_url=result.config.get("start_url", ""),
             )
             if pom_paths:

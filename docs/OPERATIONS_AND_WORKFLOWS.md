@@ -36,6 +36,12 @@ Show historical reliability summary:
 uv run flowscout reliability --url https://example.com
 ```
 
+Build a benchmark snapshot from run artifacts:
+
+```bash
+uv run flowscout benchmark reports/<domain>/<env>/runs/<timestamp>/result.json
+```
+
 ## Safety Defaults and Overrides
 
 `flowscout explore` is non-destructive by default:

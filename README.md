@@ -141,6 +141,14 @@ Show action reliability across multiple runs of the same URL. Flags "flaky" acti
 uv run flowscout reliability --url https://example.com
 ```
 
+### `benchmark`
+
+Summarize baseline metrics from a saved `result.json` artifact (duration, coverage, confidence, low-confidence count, and flaky-action history when DB is available).
+
+```bash
+uv run flowscout benchmark path/to/result.json
+```
+
 ## Output structure
 
 Each exploration run is isolated by site + environment:
