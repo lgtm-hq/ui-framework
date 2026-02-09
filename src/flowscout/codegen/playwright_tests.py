@@ -10,6 +10,8 @@ from pathlib import Path
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
+LOW_CONFIDENCE_THRESHOLD = 0.6
+
 
 def generate_test_suite(
     result: ExplorationResult,
@@ -150,6 +152,7 @@ def _generate_flow_test(
             lines.append(
                 f"    # Expected: {matching_result.expected or 'N/A'} | Actual: {matching_result.actual or 'N/A'} | Verdict: {matching_result.verdict.upper()}"
             )
+        lines.extend(_confidence_comments(matching_result, prefix="    # "))
 
         # Visibility check before interaction
         if action.action_type in (
@@ -224,6 +227,7 @@ def _generate_action_test(
         lines.append(
             f"    # Expected: {r.expected or 'N/A'} | Actual: {r.actual or 'N/A'} | Verdict: {r.verdict.upper()}"
         )
+    lines.extend(_confidence_comments(r, prefix="    # "))
 
     # Visibility check
     if action.action_type in (
@@ -385,6 +389,7 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
                 lines.append(
                     f"    // Expected: {matching_result.expected or 'N/A'} | Actual: {matching_result.actual or 'N/A'} | Verdict: {matching_result.verdict.upper()}"
                 )
+            lines.extend(_confidence_comments(matching_result, prefix="    // "))
 
             sel = action.target_selector.replace("'", "\\'")
 
@@ -450,6 +455,30 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
         lines.append("")
 
     return "\n".join(lines)
+
+
+def _confidence_comments(
+    result: ActionResult | None,
+    *,
+    prefix: str,
+) -> list[str]:
+    """Build deterministic reliability comments for generated test steps."""
+    if not result:
+        return []
+
+    score = max(0.0, min(result.confidence, 1.0))
+    reason = result.confidence_reason or "No confidence reason recorded"
+    comments = [
+        (
+            f"{prefix}Reliability: confidence={score:.2f} "
+            f"({score * 100:.0f}%) | reason={reason}"
+        )
+    ]
+    if score < LOW_CONFIDENCE_THRESHOLD:
+        comments.append(
+            f"{prefix}Reliability flag: LOW_CONFIDENCE transition - review waits/selectors before relying on this assertion."
+        )
+    return comments
 
 
 def _find_result_for_step(
