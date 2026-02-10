@@ -177,7 +177,7 @@ class HTMLReporter:
             execution_rows=execution_rows,
             flow_execution_map=flow_execution_map,
             orphan_execution_rows=orphan_execution_rows,
-            execution_step_map_json=execution_step_map,
+            execution_step_map=execution_step_map,
             input_provenance=input_provenance,
         )
 

@@ -1985,6 +1985,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Page</th>
+                                    <th>Flow</th>
                                     <th>Step</th>
                                     <th>Outcome</th>
                                     <th>Confidence</th>
@@ -1996,8 +1997,16 @@
                             <tbody>
                                 {% for item in diagnostics.low_confidence_items %}
                                 <tr class="diagnostic-row" onclick="jumpToExecutionStep({{ item.step_index }})" title="Open step {{ item.step_index }} in its flow timeline">
+                                    {% set flow_ctx = execution_step_map.get(item.step_index) %}
                                     <td class="cell-dim">{{ item.step_index }}</td>
                                     <td class="cell-action" title="{{ item.source_page }}">{{ item.source_page }}</td>
+                                    <td class="cell-action">
+                                        {% if flow_ctx %}
+                                        {{ flow_ctx.flow_name }} &middot; step {{ flow_ctx.flow_step }}
+                                        {% else %}
+                                        <span class="cell-dim">unmapped</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="cell-action">
                                         <div>{{ item.action_label }}</div>
                                         <div class="diag-step-meta">
@@ -2498,6 +2507,7 @@
                                 <tr>
                                     <th>#</th>
                                     <th>Page</th>
+                                    <th>Flow</th>
                                     <th>Step</th>
                                     <th>Expected</th>
                                     <th>Outcome</th>
@@ -2511,9 +2521,17 @@
                             </thead>
                             <tbody>
                                 {% for row in execution_rows %}
+                                {% set flow_ctx = execution_step_map.get(row.index) %}
                                 <tr id="execution-step-{{ row.index }}" class="execution-log-row" onclick="openExecutionStepModal({{ row.index }})" title="Open detailed step view">
                                     <td class="cell-dim">{{ row.index }}</td>
                                     <td class="cell-action">{{ row.source_page }}</td>
+                                    <td class="cell-action">
+                                        {% if flow_ctx %}
+                                        {{ flow_ctx.flow_name }} &middot; step {{ flow_ctx.flow_step }}
+                                        {% else %}
+                                        <span class="cell-dim">unmapped</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="cell-action">{{ row.action_label }}</td>
                                     <td class="cell-dim" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.expected or '' }}</td>
                                     <td><span class="outcome {{ row.outcome }}">{{ row.outcome }}</span></td>
@@ -2574,7 +2592,7 @@
         /* --- Graph data (used by lazy init) --- */
         const graphData = {{ graph_json|tojson }};
         const executionRows = {{ execution_rows_json|tojson }};
-        const executionStepMap = {{ execution_step_map_json|tojson }};
+        const executionStepMap = {{ execution_step_map|tojson }};
         let graphInitialized = false;
 
         /* --- Lazy graph init on first expand of Exploration Model section --- */
@@ -2834,6 +2852,7 @@
             });
             row.classList.add('execution-row-highlight');
             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            openExecutionStepModal(stepIndex);
         }
 
         function closeExecutionStepModal(evt = null) {
