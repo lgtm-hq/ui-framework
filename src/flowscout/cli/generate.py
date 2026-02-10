@@ -22,6 +22,13 @@ from flowscout.codegen.playwright_tests import generate_test_suite
     help="Test framework (pytest, playwright, or bdd for Gherkin output).",
 )
 @click.option(
+    "--format",
+    "export_format",
+    type=click.Choice(["tests", "markdown", "junit"]),
+    default="tests",
+    help="Output format: tests (default), markdown summary, or JUnit XML.",
+)
+@click.option(
     "--site-model",
     is_flag=True,
     help="Generate site model and scenario tests from result.",
@@ -30,16 +37,34 @@ def generate(
     json_path: str,
     output: str | None,
     framework: str,
+    export_format: str,
     site_model: bool,
 ) -> None:
     """Generate test suite from a JSON exploration result."""
+    data = json.loads(Path(json_path).read_text())
+    result = ExplorationResult.model_validate(data)
+
+    # Handle non-test export formats first
+    if export_format == "markdown":
+        from flowscout.reporting.markdown_export import generate_markdown_report
+
+        md_output = output or json_path.replace(".json", "_report.md")
+        generate_markdown_report(result, md_output)
+        console.print(f"  [green]Markdown report generated:[/green] {md_output}")
+        return
+
+    if export_format == "junit":
+        from flowscout.reporting.junit_export import generate_junit_report
+
+        junit_output = output or json_path.replace(".json", "_junit.xml")
+        generate_junit_report(result, junit_output)
+        console.print(f"  [green]JUnit XML generated:[/green] {junit_output}")
+        return
+
     if site_model and framework == "bdd":
         raise click.ClickException(
             "--site-model does not support framework 'bdd'. Use pytest or playwright.",
         )
-
-    data = json.loads(Path(json_path).read_text())
-    result = ExplorationResult.model_validate(data)
 
     if site_model and result.smart_analyses:
         from flowscout.analysis.archetype import PageAnalysis

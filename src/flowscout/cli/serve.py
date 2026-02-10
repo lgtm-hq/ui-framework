@@ -1,19 +1,18 @@
-"""Serve command — open HTML report in browser."""
+"""Serve command — local HTTP server for HTML reports."""
 
 from __future__ import annotations
 
-import os
-import webbrowser
-
 import click
 
-from flowscout.cli.app import console, main
+from flowscout.cli.app import main
 
 
 @main.command()
 @click.argument("report_path", type=click.Path(exists=True))
-def serve(report_path: str) -> None:
-    """Open an HTML report in the browser."""
-    abs_path = os.path.abspath(report_path)
-    console.print(f"  Opening {abs_path}")
-    webbrowser.open(f"file://{abs_path}")
+@click.option("--port", "-p", default=8765, help="Server port (auto-increments if taken).")
+@click.option("--no-open", is_flag=True, help="Don't auto-open browser.")
+def serve(report_path: str, port: int, no_open: bool) -> None:
+    """Serve an HTML report via local HTTP server."""
+    from flowscout.serve.server import run_server
+
+    run_server(report_path, port=port, open_browser=not no_open)
