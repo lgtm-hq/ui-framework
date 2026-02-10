@@ -2468,13 +2468,14 @@
 
             {% if discovery_timeline %}
             <h3 class="elements-subtitle">State Discovery Progression</h3>
-            <div class="elements-subtitle-hint">Click a row to inspect this state's element summary.</div>
+            <div class="elements-subtitle-hint">Click a row to inspect this specific state snapshot. Multiple states can share the same URL.</div>
             <div class="data-table-wrap" style="margin-bottom: 1rem;">
                 <div class="table-scroll">
                     <table class="data-table">
                         <thead>
                             <tr>
                                 <th>#</th>
+                                <th>State ID</th>
                                 <th>Page</th>
                                 <th class="right">Depth</th>
                                 <th class="right">Interactive</th>
@@ -2487,6 +2488,7 @@
                             {% for row in discovery_timeline %}
                             <tr class="elements-drilldown-row" onclick="openElementsDrilldown('{{ row.state_id }}', 'State Discovery Progression')" title="Open element details for this state">
                                 <td class="cell-dim">{{ row.order }}</td>
+                                <td class="cell-dim"><code>{{ row.state_short }}</code></td>
                                 <td class="cell-action" title="{{ row.url }}">{{ row.title }}</td>
                                 <td class="cell-right">{{ row.depth }}</td>
                                 <td class="cell-right" style="color: var(--accent-green);">{{ row.interactive }}</td>
@@ -2501,13 +2503,14 @@
             </div>
             {% endif %}
 
-            <h3 class="elements-subtitle">Per-Page Inventory</h3>
-            <div class="elements-subtitle-hint">Click a row to inspect the catalog summary for that page.</div>
+            <h3 class="elements-subtitle">Per-State Inventory</h3>
+            <div class="elements-subtitle-hint">Each row is a unique state snapshot. Same URL can appear multiple times when DOM/form/content changed.</div>
             <div class="data-table-wrap" style="margin-bottom: 1rem;">
                 <div class="table-scroll">
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th>State ID</th>
                                 <th>Page</th>
                                 <th>URL</th>
                                 <th class="right">Interactive</th>
@@ -2517,7 +2520,8 @@
                         </thead>
                         <tbody>
                             {% for page in element_inventory.per_page %}
-                            <tr class="elements-drilldown-row" onclick="openElementsDrilldown('{{ page.state_id }}', 'Per-Page Inventory')" title="Open element details for this page">
+                            <tr class="elements-drilldown-row" onclick="openElementsDrilldown('{{ page.state_id }}', 'Per-State Inventory')" title="Open element details for this state">
+                                <td class="cell-dim"><code>{{ page.state_id[:8] }}</code></td>
                                 <td class="cell-action">{{ page.title or page.url or 'Page' }}</td>
                                 <td class="cell-url">{{ page.url }}</td>
                                 <td class="cell-right" style="color: var(--accent-green);">{{ page.interactive_elements }}</td>
@@ -2529,6 +2533,41 @@
                     </table>
                 </div>
             </div>
+
+            {% if url_inventory_rows %}
+            <h3 class="elements-subtitle">Per-URL Inventory (Aggregated)</h3>
+            <div class="elements-subtitle-hint">Merged by URL to reduce duplicate rows while preserving per-state counts above.</div>
+            <div class="data-table-wrap" style="margin-bottom: 1rem;">
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th>URL</th>
+                                <th class="right">States</th>
+                                <th>State IDs</th>
+                                <th class="right">Interactive</th>
+                                <th class="right">Content</th>
+                                <th class="right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in url_inventory_rows %}
+                            <tr>
+                                <td class="cell-action">{{ row.title or row.url or 'Page' }}</td>
+                                <td class="cell-url">{{ row.url or '—' }}</td>
+                                <td class="cell-right">{{ row.state_count }}</td>
+                                <td class="cell-url">{{ row.state_ids_short|join(', ') }}</td>
+                                <td class="cell-right" style="color: var(--accent-green);">{{ row.interactive_elements }}</td>
+                                <td class="cell-right" style="color: var(--accent-amber);">{{ row.non_interactive_elements }}</td>
+                                <td class="cell-right">{{ row.total_elements }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="elements-type-grid">
                 <div class="data-table-wrap">

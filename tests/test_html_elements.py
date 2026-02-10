@@ -2,7 +2,7 @@
 
 from flowscout.analysis.graph import ExplorationResult
 from flowscout.core.state import PageState
-from flowscout.reporting.html import _build_element_drilldown_map
+from flowscout.reporting.html import _build_element_drilldown_map, _build_url_inventory_rows
 
 
 def _make_state(*, state_id: str, title: str, url: str, depth: int = 0) -> PageState:
@@ -127,3 +127,45 @@ def test_build_element_drilldown_map_truncates_large_entry_lists() -> None:
     assert row["total"] == 260
     assert row["entries"][0]["screenshot_link"] == "evidence/states/state-b.png"
     assert row["entries"][0]["screenshot_source"] == "state_snapshot"
+
+
+def test_build_url_inventory_rows_aggregates_states_by_url() -> None:
+    rows = _build_url_inventory_rows(
+        element_inventory={
+            "per_page": [
+                {
+                    "state_id": "aaa111bbb222",
+                    "title": "Popular Movies",
+                    "url": "https://example.com/movies?page=1",
+                    "interactive_elements": 8,
+                    "non_interactive_elements": 1,
+                    "total_elements": 9,
+                },
+                {
+                    "state_id": "ccc333ddd444",
+                    "title": "Popular Movies",
+                    "url": "https://example.com/movies?page=1",
+                    "interactive_elements": 32,
+                    "non_interactive_elements": 43,
+                    "total_elements": 75,
+                },
+                {
+                    "state_id": "eee555fff666",
+                    "title": "Movie Detail",
+                    "url": "https://example.com/movie/7",
+                    "interactive_elements": 5,
+                    "non_interactive_elements": 10,
+                    "total_elements": 15,
+                },
+            ]
+        }
+    )
+
+    assert len(rows) == 2
+    merged = rows[0]
+    assert merged["url"] == "https://example.com/movies?page=1"
+    assert merged["state_count"] == 2
+    assert merged["interactive_elements"] == 40
+    assert merged["non_interactive_elements"] == 44
+    assert merged["total_elements"] == 84
+    assert merged["state_ids_short"] == ["aaa111bb", "ccc333dd"]

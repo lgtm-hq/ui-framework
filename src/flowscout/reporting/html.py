@@ -131,6 +131,9 @@ class HTMLReporter:
             result=result,
             element_inventory=element_inventory,
         )
+        url_inventory_rows = _build_url_inventory_rows(
+            element_inventory=element_inventory,
+        )
         state_screenshot_links = {
             state_id: _to_report_asset_href(state.screenshot_path, report_dir=report_dir)
             for state_id, state in result.states.items()
@@ -191,6 +194,7 @@ class HTMLReporter:
             diagnostics=diagnostics,
             element_inventory=element_inventory,
             discovery_timeline=discovery_timeline,
+            url_inventory_rows=url_inventory_rows,
             element_drilldown_map=element_drilldown_map,
             execution_rows=execution_rows,
             flow_execution_map=flow_execution_map,
@@ -443,6 +447,81 @@ def _build_discovery_timeline(
                 "new_elements": new_elements,
             }
         )
+    return rows
+
+
+def _build_url_inventory_rows(
+    *,
+    element_inventory: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Build URL-level aggregated inventory rows from per-state inventory."""
+    if not element_inventory:
+        return []
+
+    per_state_rows = [
+        row
+        for row in element_inventory.get("per_page", [])
+        if isinstance(row, dict)
+    ]
+    if not per_state_rows:
+        return []
+
+    grouped: dict[str, dict[str, Any]] = {}
+    for row in per_state_rows:
+        state_id = str(row.get("state_id", "")).strip()
+        url = str(row.get("url", "")).strip()
+        title = str(row.get("title", "")).strip()
+        interactive = int(row.get("interactive_elements", 0))
+        non_interactive = int(row.get("non_interactive_elements", 0))
+        total = int(row.get("total_elements", interactive + non_interactive))
+
+        # Keep unknown URLs distinct so we don't merge unrelated empty-url states.
+        group_key = url or f"state:{state_id}"
+        bucket = grouped.setdefault(
+            group_key,
+            {
+                "url": url,
+                "title_counts": Counter(),
+                "interactive_elements": 0,
+                "non_interactive_elements": 0,
+                "total_elements": 0,
+                "state_ids": [],
+            },
+        )
+
+        if title:
+            bucket["title_counts"][title] += 1
+        bucket["interactive_elements"] += interactive
+        bucket["non_interactive_elements"] += non_interactive
+        bucket["total_elements"] += total
+        if state_id:
+            bucket["state_ids"].append(state_id)
+
+    rows: list[dict[str, Any]] = []
+    for bucket in grouped.values():
+        state_ids = list(dict.fromkeys(bucket["state_ids"]))
+        title_counts: Counter[str] = bucket["title_counts"]
+        title = title_counts.most_common(1)[0][0] if title_counts else ""
+        rows.append(
+            {
+                "title": title,
+                "url": bucket["url"],
+                "interactive_elements": int(bucket["interactive_elements"]),
+                "non_interactive_elements": int(bucket["non_interactive_elements"]),
+                "total_elements": int(bucket["total_elements"]),
+                "state_count": len(state_ids),
+                "state_ids": state_ids,
+                "state_ids_short": [sid[:8] for sid in state_ids],
+            }
+        )
+
+    rows.sort(
+        key=lambda row: (
+            -int(row["total_elements"]),
+            -int(row["state_count"]),
+            str(row.get("url", "")),
+        )
+    )
     return rows
 
 
