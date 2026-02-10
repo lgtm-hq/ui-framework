@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import json
 from collections import Counter, defaultdict
 from pathlib import Path
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
-from markupsafe import Markup
 
 from flowscout.analysis.element_inventory import summarize_element_inventory
 from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.discovery.actions import ActionResult
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
@@ -44,6 +44,8 @@ class HTMLReporter:
 
         # Build action label lookup
         action_labels = {aid: a.label for aid, a in result.actions.items()}
+        action_selectors = {aid: a.target_selector for aid, a in result.actions.items()}
+        action_metadata = {aid: dict(a.metadata or {}) for aid, a in result.actions.items()}
 
         # Group flows by category (= test suites)
         flow_groups: dict[str, list] = defaultdict(list)
@@ -109,6 +111,7 @@ class HTMLReporter:
         diagnostics = _build_diagnostics(
             result=result,
             action_labels=action_labels,
+            action_selectors=action_selectors,
             screenshot_links=result_screenshot_links,
         )
         element_inventory = result.element_inventory
@@ -117,6 +120,21 @@ class HTMLReporter:
                 analyses=result.smart_analyses,
                 states_by_id=result.states,
             )
+        discovery_timeline = _build_discovery_timeline(
+            result=result,
+            element_inventory=element_inventory,
+        )
+        execution_rows = _build_execution_rows(
+            result=result,
+            action_labels=action_labels,
+            action_selectors=action_selectors,
+            action_metadata=action_metadata,
+            screenshot_links=result_screenshot_links,
+        )
+        input_provenance = _build_input_provenance(
+            result=result,
+            action_metadata=action_metadata,
+        )
 
         template = _ENV.get_template("report.html.j2")
         html = template.render(
@@ -132,10 +150,12 @@ class HTMLReporter:
             states_by_id=result.states,
             results=result.results,
             actions=action_labels,
+            action_metadata=action_metadata,
             result_screenshot_links=result_screenshot_links,
             error_results=error_results,
-            graph_json=Markup(json.dumps(graph_data)),
-            vis_network_js=Markup(vis_js),
+            graph_json=graph_data,
+            execution_rows_json=execution_rows,
+            vis_network_js=vis_js,
             version=__version__,
             coverage=coverage,
             page_coverage_map=page_coverage_map,
@@ -145,6 +165,9 @@ class HTMLReporter:
             group_pass_rates=group_pass_rates,
             diagnostics=diagnostics,
             element_inventory=element_inventory,
+            discovery_timeline=discovery_timeline,
+            execution_rows=execution_rows,
+            input_provenance=input_provenance,
         )
 
         path = Path(output_path)
@@ -156,13 +179,22 @@ def _to_report_asset_href(path: str | None, *, report_dir: Path) -> str | None:
     """Build a report-friendly href for local screenshot assets."""
     if not path:
         return None
-    asset_path = Path(path)
-    if asset_path.is_absolute():
-        try:
-            return str(asset_path.relative_to(report_dir))
-        except ValueError:
-            return asset_path.as_uri()
-    return str(asset_path)
+    report_dir_abs = report_dir.resolve()
+    raw = Path(path)
+    asset_path = raw if raw.is_absolute() else (Path.cwd() / raw)
+    try:
+        asset_abs = asset_path.resolve()
+    except Exception:
+        asset_abs = asset_path
+
+    try:
+        return str(asset_abs.relative_to(report_dir_abs))
+    except ValueError:
+        if raw.is_absolute():
+            return raw.as_uri()
+        if asset_abs.is_file():
+            return asset_abs.as_uri()
+        return str(raw)
 
 
 def _build_graph_data(result: ExplorationResult) -> dict:
@@ -268,6 +300,145 @@ def _build_page_coverage_map(result: ExplorationResult) -> list[dict]:
     return page_map
 
 
+def _build_input_provenance(
+    *,
+    result: ExplorationResult,
+    action_metadata: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    """Summarize where generated input values came from."""
+    source_counts: Counter[str] = Counter()
+    samples: list[dict[str, str]] = []
+
+    for action in result.actions.values():
+        if action.action_type.value != "fill":
+            continue
+        metadata = action_metadata.get(action.action_id, {})
+        source = metadata.get("input_source", "unknown")
+        source_counts[source] += 1
+        if len(samples) < 10:
+            samples.append(
+                {
+                    "label": action.label,
+                    "source": source,
+                }
+            )
+
+    return {
+        "profile": result.config.get("input_profile", "safe"),
+        "fill_actions": sum(1 for a in result.actions.values() if a.action_type.value == "fill"),
+        "source_breakdown": [
+            {"source": source, "count": count}
+            for source, count in source_counts.most_common()
+        ],
+        "samples": samples,
+    }
+
+
+def _build_discovery_timeline(
+    *,
+    result: ExplorationResult,
+    element_inventory: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Build per-state discovery progression showing newly seen elements."""
+    if not element_inventory:
+        return []
+
+    per_page_rows = {
+        str(row.get("state_id", "")): row
+        for row in element_inventory.get("per_page", [])
+        if isinstance(row, dict)
+    }
+    analyses = result.smart_analyses or {}
+
+    rows: list[dict[str, Any]] = []
+    seen_signatures: set[str] = set()
+    for order, (state_id, state) in enumerate(result.states.items(), start=1):
+        page_row = per_page_rows.get(state_id, {})
+        analysis = analyses.get(state_id, {})
+        catalog = analysis.get("catalog", {}) if isinstance(analysis, dict) else {}
+        entries = catalog.get("entries", []) if isinstance(catalog, dict) else []
+
+        signatures: set[str] = set()
+        if isinstance(entries, list):
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                signatures.add(
+                    "|".join(
+                        [
+                            str(entry.get("element_type", "")),
+                            str(entry.get("selector", "")),
+                            str(entry.get("label", "")),
+                        ]
+                    )
+                )
+        new_elements = len([sig for sig in signatures if sig not in seen_signatures])
+        seen_signatures.update(signatures)
+
+        rows.append(
+            {
+                "order": order,
+                "state_id": state_id,
+                "state_short": state_id[:8],
+                "title": state.title or state.url,
+                "url": state.url,
+                "depth": state.depth,
+                "interactive": int(page_row.get("interactive_elements", 0)),
+                "non_interactive": int(page_row.get("non_interactive_elements", 0)),
+                "total": int(page_row.get("total_elements", 0)),
+                "new_elements": new_elements,
+            }
+        )
+    return rows
+
+
+def _build_execution_rows(
+    *,
+    result: ExplorationResult,
+    action_labels: dict[str, str],
+    action_selectors: dict[str, str],
+    action_metadata: dict[str, dict[str, str]],
+    screenshot_links: list[str | None],
+) -> list[dict[str, Any]]:
+    """Build enriched execution rows for table + modal drill-down."""
+    rows: list[dict[str, Any]] = []
+    for index, action_result in enumerate(result.results, start=1):
+        source_state = result.states.get(action_result.source_state_id)
+        target_state = result.states.get(action_result.target_state_id)
+        metadata = action_metadata.get(action_result.action_id, {})
+
+        rows.append(
+            {
+                "index": index,
+                "source_state_id": action_result.source_state_id,
+                "target_state_id": action_result.target_state_id,
+                "source_state_short": action_result.source_state_id[:8],
+                "target_state_short": action_result.target_state_id[:8],
+                "source_page": source_state.title if source_state and source_state.title else (source_state.url if source_state else action_result.source_state_id[:8]),
+                "target_page": target_state.title if target_state and target_state.title else (target_state.url if target_state else action_result.target_state_id[:8]),
+                "action_id": action_result.action_id,
+                "action_label": action_labels.get(action_result.action_id, action_result.action_id),
+                "target_selector": action_selectors.get(action_result.action_id, ""),
+                "expected": action_result.expected or "",
+                "actual": action_result.actual or "",
+                "outcome": action_result.outcome.value,
+                "verdict": action_result.verdict or "",
+                "confidence_pct": round(float(action_result.confidence or 0.0) * 100),
+                "confidence_reason": action_result.confidence_reason or "",
+                "duration_ms": round(float(action_result.duration_ms or 0.0)),
+                "url_before": action_result.url_before or "",
+                "url_after": action_result.url_after or "",
+                "message": action_result.message or "",
+                "error_messages": list(action_result.error_messages or []),
+                "console_errors": list(action_result.console_errors or []),
+                "screenshot_link": screenshot_links[index - 1],
+                "input_source": metadata.get("input_source", ""),
+                "input_profile": metadata.get("input_profile", ""),
+            }
+        )
+    return rows
+
+
 def _build_defects(result: ExplorationResult) -> dict:
     """Partition flows into failures and warnings."""
     failures = [
@@ -310,6 +481,7 @@ def _build_diagnostics(
     *,
     result: ExplorationResult,
     action_labels: dict[str, str],
+    action_selectors: dict[str, str],
     screenshot_links: list[str | None],
     low_confidence_threshold: float = 0.6,
 ) -> dict:
@@ -334,13 +506,25 @@ def _build_diagnostics(
                     "step_index": index,
                     "source_state_short": action_result.source_state_id[:8],
                     "target_state_short": action_result.target_state_id[:8],
+                    "source_page": _state_display_name(
+                        result,
+                        action_result.source_state_id,
+                    ),
+                    "target_page": _state_display_name(
+                        result,
+                        action_result.target_state_id,
+                    ),
                     "action_label": action_labels.get(
                         action_result.action_id,
                         action_result.action_id,
                     ),
+                    "selector": action_selectors.get(action_result.action_id, ""),
                     "confidence_pct": round(confidence * 100),
                     "confidence_reason": reason,
                     "outcome": outcome,
+                    "expected": action_result.expected or "",
+                    "actual": action_result.actual or "",
+                    "detail": _summarize_action_detail(action_result),
                     "evidence_link": screenshot_links[index - 1],
                 }
             )
@@ -353,6 +537,7 @@ def _build_diagnostics(
         flaky_items.append(
             {
                 "source_state_short": source_state_id[:8],
+                "source_page": _state_display_name(result, source_state_id),
                 "action_label": action_labels.get(action_id, action_id),
                 "action_id": action_id,
                 "outcomes": sorted(outcomes),
@@ -390,3 +575,31 @@ def _build_diagnostics(
         "flaky_items": flaky_items[:25],
         "flaky_paths_count": len(flaky_items),
     }
+
+
+def _state_display_name(result: ExplorationResult, state_id: str) -> str:
+    """Return human-readable page label for a state id."""
+    state = result.states.get(state_id)
+    if not state:
+        return state_id[:8]
+    if state.title and state.title.strip():
+        return state.title.strip()
+    if state.url and state.url.strip():
+        return state.url.strip()
+    return state_id[:8]
+
+
+def _summarize_action_detail(action_result: ActionResult) -> str:
+    """Return compact diagnostic detail from result error fields."""
+    if getattr(action_result, "error_messages", None):
+        errors = action_result.error_messages
+        if errors:
+            return str(errors[0])
+    if getattr(action_result, "console_errors", None):
+        console_errors = action_result.console_errors
+        if console_errors:
+            return str(console_errors[0])
+    message = (getattr(action_result, "message", "") or "").strip()
+    if message:
+        return message
+    return ""

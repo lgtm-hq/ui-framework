@@ -338,6 +338,51 @@
             transition: width 0.6s ease;
         }
 
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .page-nav {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 1rem 0 1.25rem;
+        }
+
+        .page-btn {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            padding: 0.35rem 0.75rem;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .page-btn:hover {
+            border-color: var(--border-base);
+            color: var(--text-secondary);
+        }
+
+        .page-btn.active {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan-dim);
+            background: rgba(103, 232, 249, 0.08);
+        }
+
+        [data-report-page].page-hidden {
+            display: none !important;
+        }
+
         /* --- Coverage bars --- */
         .coverage-bars {
             display: flex;
@@ -804,6 +849,29 @@
             gap: 0.25rem;
         }
 
+        .step-target {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            max-width: 100%;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border-dim);
+            border-radius: 6px;
+            padding: 0.2rem 0.45rem;
+            margin-bottom: 0.15rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .step-target-label {
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
         .step-expected,
         .step-actual {
             font-size: 0.75rem;
@@ -1077,6 +1145,31 @@
             white-space: nowrap;
         }
 
+        .diagnostic-row {
+            cursor: pointer;
+        }
+
+        .diagnostic-row:hover {
+            background: #0d2230 !important;
+        }
+
+        .diag-step-meta {
+            margin-top: 0.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .diag-step-meta .meta-line {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            color: var(--text-muted);
+            max-width: 460px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         /* ============================================================
            TABLES (shared)
            ============================================================ */
@@ -1185,6 +1278,267 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .execution-row-highlight {
+            background: #0c2235 !important;
+            box-shadow: inset 3px 0 0 var(--accent-cyan);
+        }
+
+        .execution-log-row {
+            cursor: pointer;
+        }
+
+        .execution-log-row:hover {
+            background: #102334 !important;
+        }
+
+        .input-provenance {
+            margin-top: 0.75rem;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: 0.75rem 0.875rem;
+        }
+
+        .input-provenance-title {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .input-provenance-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .elements-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .elements-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .elements-subtitle {
+            margin: 0.75rem 0 0.5rem;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .elements-subtitle-small {
+            padding: 0.75rem 1rem 0.25rem;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .execution-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0, 8, 18, 0.78);
+            backdrop-filter: blur(2px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .execution-modal.visible {
+            display: flex;
+        }
+
+        .execution-modal-dialog {
+            width: min(980px, 95vw);
+            max-height: 92vh;
+            overflow: auto;
+            background:
+                radial-gradient(circle at 82% -14%, rgba(45, 212, 191, 0.10), transparent 42%),
+                radial-gradient(circle at -8% 12%, rgba(59, 130, 246, 0.12), transparent 45%),
+                linear-gradient(180deg, #0c151f 0%, #0a121a 100%);
+            border: 1px solid rgba(45, 212, 191, 0.24);
+            border-radius: 12px;
+            box-shadow:
+                0 24px 80px rgba(0, 0, 0, 0.65),
+                inset 0 1px 0 rgba(45, 212, 191, 0.08);
+        }
+
+        .execution-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.875rem 1.05rem;
+            border-bottom: 1px solid var(--border-dim);
+            background: linear-gradient(180deg, rgba(15, 36, 56, 0.44) 0%, rgba(10, 20, 31, 0.08) 100%);
+        }
+
+        .execution-modal-header h3 {
+            margin: 0;
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .execution-modal-close {
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(28, 46, 65, 0.62), rgba(14, 26, 39, 0.82));
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.35rem 0.68rem;
+            cursor: pointer;
+        }
+
+        .execution-modal-close:hover {
+            border-color: rgba(45, 212, 191, 0.5);
+            color: var(--text-primary);
+        }
+
+        .execution-modal-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .execution-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .execution-detail-card {
+            position: relative;
+            background: linear-gradient(180deg, rgba(13, 27, 42, 0.95), rgba(10, 20, 32, 0.95));
+            border: 1px solid rgba(45, 212, 191, 0.14);
+            border-radius: 10px;
+            padding: 0.68rem 0.8rem;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+        }
+
+        .execution-detail-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--card-accent, rgba(45, 212, 191, 0.7));
+        }
+
+        .execution-detail-card--step { --card-accent: rgba(167, 139, 250, 0.75); }
+        .execution-detail-card--action { --card-accent: rgba(34, 211, 238, 0.75); }
+        .execution-detail-card--outcome { --card-accent: rgba(45, 212, 191, 0.75); }
+        .execution-detail-card--verdict { --card-accent: rgba(251, 191, 36, 0.72); }
+        .execution-detail-card--confidence { --card-accent: rgba(96, 165, 250, 0.72); }
+        .execution-detail-card--input { --card-accent: rgba(192, 132, 252, 0.72); }
+        .execution-detail-card--from { --card-accent: rgba(45, 212, 191, 0.52); }
+        .execution-detail-card--to { --card-accent: rgba(45, 212, 191, 0.52); }
+
+        .execution-detail-value .verdict,
+        .execution-detail-value .outcome {
+            font-size: 0.6875rem;
+        }
+
+        .execution-detail-label {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .execution-detail-value {
+            font-size: 0.84rem;
+            color: var(--text-secondary);
+            word-break: break-word;
+        }
+
+        .execution-focus-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .execution-focus-card {
+            background: linear-gradient(180deg, rgba(14, 27, 40, 0.95), rgba(11, 22, 33, 0.95));
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: 0.72rem 0.8rem;
+        }
+
+        .execution-focus-card.expected {
+            border-color: rgba(167, 139, 250, 0.3);
+            box-shadow: inset 0 1px 0 rgba(167, 139, 250, 0.12);
+        }
+
+        .execution-focus-card.actual {
+            border-color: rgba(103, 232, 249, 0.28);
+            box-shadow: inset 0 1px 0 rgba(103, 232, 249, 0.12);
+        }
+
+        .execution-focus-card.selector {
+            border-color: rgba(251, 191, 36, 0.3);
+            box-shadow: inset 0 1px 0 rgba(251, 191, 36, 0.10);
+        }
+
+        .execution-focus-header {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .step-tag.selector {
+            color: var(--accent-amber);
+            background: var(--accent-amber-dim);
+            border: 1px solid rgba(251, 191, 36, 0.25);
+        }
+
+        .execution-focus-body {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .execution-detail-text {
+            background: linear-gradient(180deg, rgba(13, 27, 42, 0.94), rgba(9, 18, 28, 0.96));
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: 0.75rem 0.8rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .execution-detail-text strong {
+            color: var(--text-primary);
+        }
+
+        .execution-detail-image {
+            width: 100%;
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            background: var(--bg-overlay);
         }
 
         .evidence-cell {
@@ -1392,9 +1746,17 @@
     </header>
 
     <main class="report-container">
+        <div class="page-nav animate-in">
+            <button class="page-btn active" data-page="overview" onclick="setReportPage('overview', this)">Overview</button>
+            <button class="page-btn" data-page="diagnostics" onclick="setReportPage('diagnostics', this)">Diagnostics</button>
+            <button class="page-btn" data-page="suites" onclick="setReportPage('suites', this)">Test Suites</button>
+            <button class="page-btn" data-page="elements" onclick="setReportPage('elements', this)">Elements</button>
+            <button class="page-btn" data-page="model" onclick="setReportPage('model', this)">Model</button>
+            <button class="page-btn" data-page="log" onclick="setReportPage('log', this)">Execution Log</button>
+        </div>
 
         <!-- Target URL -->
-        <div class="target-banner animate-in">
+        <div class="target-banner animate-in" data-report-page="overview">
             <div>
                 <div class="target-label">target</div>
                 <div class="target-url">{{ start_url }}</div>
@@ -1409,7 +1771,7 @@
         {% set warn_pct = (flow_counts.warn / [flows|length, 1]|max * 100)|round|int %}
         {% set inventory_total = element_inventory.total_elements if element_inventory else 0 %}
 
-        <div class="dashboard animate-in delay-1">
+        <div class="dashboard animate-in delay-1" data-report-page="overview">
             <!-- Pass rate donut -->
             <div class="pass-rate-ring" style="background: conic-gradient(
                 var(--accent-green) 0deg {{ (pass_pct * 3.6)|round|int }}deg,
@@ -1510,6 +1872,28 @@
                     </div>
                     {% endif %}
                 </div>
+                <div class="quick-actions">
+                    <button class="filter-btn" onclick="jumpToTestCases('all')">Open Test Cases</button>
+                    {% if flow_counts.fail %}
+                    <button class="filter-btn active-fail" onclick="jumpToTestCases('fail')">Focus Failures ({{ flow_counts.fail }})</button>
+                    {% endif %}
+                    {% if flow_counts.warn %}
+                    <button class="filter-btn active-warn" onclick="jumpToTestCases('warn')">Focus Warnings ({{ flow_counts.warn }})</button>
+                    {% endif %}
+                </div>
+                <div class="input-provenance">
+                    <div class="input-provenance-title">Input Data Source</div>
+                    <div class="input-provenance-meta">
+                        Profile: <strong>{{ input_provenance.profile }}</strong> · Fill actions: <strong>{{ input_provenance.fill_actions }}</strong>
+                    </div>
+                    {% if input_provenance.source_breakdown %}
+                    <div class="diag-reason-list">
+                        {% for item in input_provenance.source_breakdown %}
+                        <span class="diag-chip">{{ item.source }} ({{ item.count }})</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
@@ -1517,7 +1901,7 @@
              SECTION G: DEFECTS (shown above test suites if failures exist)
              ============================================================ -->
         {% if defects.failures or defects.warnings %}
-        <section class="section animate-in delay-2">
+        <section id="defects" class="section animate-in delay-2" data-report-page="overview">
             <div class="section-header">
                 <h2 style="color: var(--accent-red);">Defects</h2>
                 <div class="section-count" style="color: var(--accent-red); border-color: var(--accent-red-dim);">{{ defects.failures|length + defects.warnings|length }}</div>
@@ -1554,7 +1938,7 @@
         <!-- ============================================================
              SECTION H: DIAGNOSTICS
              ============================================================ -->
-        <section class="section section-collapsible collapsed animate-in delay-2">
+        <section id="diagnostics-section" class="section section-collapsible collapsed animate-in delay-2" data-report-page="diagnostics">
             <div class="section-header" onclick="toggleSection(this.parentElement)">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Exploration Diagnostics</h2>
@@ -1605,25 +1989,33 @@
                                     <th>Outcome</th>
                                     <th>Confidence</th>
                                     <th>Reason</th>
+                                    <th>Detail</th>
                                     <th>Evidence</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for item in diagnostics.low_confidence_items %}
-                                <tr>
+                                <tr class="diagnostic-row" onclick="jumpToExecutionStep({{ item.step_index }})" title="Open step {{ item.step_index }} in execution log">
                                     <td class="cell-dim">{{ item.step_index }}</td>
-                                    <td class="cell-id">{{ item.source_state_short }}</td>
-                                    <td class="cell-action">{{ item.action_label }}</td>
+                                    <td class="cell-action" title="{{ item.source_page }} ({{ item.source_state_short }})">{{ item.source_page }}</td>
+                                    <td class="cell-action">
+                                        <div>{{ item.action_label }}</div>
+                                        <div class="diag-step-meta">
+                                            {% if item.expected %}<span class="meta-line">Expected: {{ item.expected }}</span>{% endif %}
+                                            {% if item.actual %}<span class="meta-line">Actual: {{ item.actual }}</span>{% endif %}
+                                        </div>
+                                    </td>
                                     <td><span class="outcome {{ item.outcome }}">{{ item.outcome }}</span></td>
                                     <td class="confidence-cell">{{ item.confidence_pct }}%</td>
                                     <td class="cell-dim confidence-reason">{{ item.confidence_reason }}</td>
+                                    <td class="cell-dim confidence-reason" title="{{ item.detail }}">{{ item.detail or "—" }}</td>
                                     <td>
                                         {% if item.evidence_link %}
                                         <div class="evidence-cell">
-                                            <a class="evidence-thumb-link" href="{{ item.evidence_link }}" target="_blank" rel="noopener noreferrer">
+                                            <a class="evidence-thumb-link" href="{{ item.evidence_link }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
                                                 <img class="evidence-thumb" src="{{ item.evidence_link }}" alt="evidence step {{ item.step_index }}" loading="lazy">
                                             </a>
-                                            <a class="evidence-open-link" href="{{ item.evidence_link }}" target="_blank" rel="noopener noreferrer">open</a>
+                                            <a class="evidence-open-link" href="{{ item.evidence_link }}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">open</a>
                                         </div>
                                         {% else %}
                                         <span class="cell-dim">—</span>
@@ -1652,7 +2044,7 @@
                             <tbody>
                                 {% for item in diagnostics.flaky_items %}
                                 <tr>
-                                    <td class="cell-id">{{ item.source_state_short }}</td>
+                                    <td class="cell-action" title="{{ item.source_page }} ({{ item.source_state_short }})">{{ item.source_page }}</td>
                                     <td class="cell-action">{{ item.action_label }}</td>
                                     <td class="cell-dim">{{ item.outcomes|join(', ') }}</td>
                                     <td class="cell-right">{{ item.occurrences }}</td>
@@ -1669,7 +2061,7 @@
         <!-- ============================================================
              SECTION C: TEST SUITES (primary view)
              ============================================================ -->
-        <section class="section animate-in delay-2">
+        <section id="test-suites" class="section animate-in delay-2" data-report-page="suites">
             <div class="section-header">
                 <h2>Test Suites</h2>
                 <div class="section-count">{{ flows|length }} cases in {{ flow_groups|length }} suites</div>
@@ -1743,10 +2135,11 @@
                                             {% if step.verdict %}<span class="verdict {{ sv }}">{{ sv }}</span>{% endif %}
                                         </div>
                                         <div class="step-details">
+                                            {% if step.target_description %}<div class="step-target"><span class="step-target-label">Target</span><span>{{ step.target_description }}</span></div>{% endif %}
                                             {% if step.expected %}<div class="step-expected"><span class="step-tag expected">Expected</span><span class="step-text">{{ step.expected }}</span></div>{% endif %}
                                             {% if step.actual %}<div class="step-actual"><span class="step-tag actual">Actual</span><span class="step-text">{{ step.actual }}</span></div>{% endif %}
                                             {% if step.target_selector %}
-                                            <button class="step-selector-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">selector</button>
+                                            <button class="step-selector-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">show technical selector</button>
                                             <div class="step-selector-detail">{{ step.target_selector }}</div>
                                             {% endif %}
                                         </div>
@@ -1792,10 +2185,153 @@
         </section>
 
         <!-- ============================================================
-             SECTION D: COVERAGE ANALYSIS
+             SECTION D: ELEMENT DISCOVERY
+             ============================================================ -->
+        <section id="elements-section" class="section animate-in delay-3" data-report-page="elements">
+            <div class="section-header">
+                <h2>Discovered Elements</h2>
+                <div class="section-count">{{ element_inventory.total_elements if element_inventory else 0 }}</div>
+                <div class="section-line"></div>
+            </div>
+            {% if element_inventory %}
+            <div class="elements-summary-grid">
+                <div class="diag-card">
+                    <div class="diag-label">Interactive</div>
+                    <div class="diag-value pass">{{ element_inventory.interactive_elements }}</div>
+                </div>
+                <div class="diag-card">
+                    <div class="diag-label">Content</div>
+                    <div class="diag-value warn">{{ element_inventory.non_interactive_elements }}</div>
+                </div>
+                <div class="diag-card">
+                    <div class="diag-label">Pages Analyzed</div>
+                    <div class="diag-value">{{ element_inventory.pages_with_elements }}</div>
+                </div>
+                <div class="diag-card">
+                    <div class="diag-label">Interactive Mix</div>
+                    <div class="diag-value">{{ element_inventory.interactive_pct }}%</div>
+                </div>
+            </div>
+
+            {% if discovery_timeline %}
+            <h3 class="elements-subtitle">State Discovery Progression</h3>
+            <div class="data-table-wrap" style="margin-bottom: 1rem;">
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Page</th>
+                                <th class="right">Depth</th>
+                                <th class="right">Interactive</th>
+                                <th class="right">Content</th>
+                                <th class="right">Total</th>
+                                <th class="right">New vs prior</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in discovery_timeline %}
+                            <tr>
+                                <td class="cell-dim">{{ row.order }}</td>
+                                <td class="cell-action" title="{{ row.url }}">{{ row.title }}</td>
+                                <td class="cell-right">{{ row.depth }}</td>
+                                <td class="cell-right" style="color: var(--accent-green);">{{ row.interactive }}</td>
+                                <td class="cell-right" style="color: var(--accent-amber);">{{ row.non_interactive }}</td>
+                                <td class="cell-right">{{ row.total }}</td>
+                                <td class="cell-right" style="color: {% if row.new_elements > 0 %}var(--accent-cyan){% else %}var(--text-muted){% endif %};">+{{ row.new_elements }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <h3 class="elements-subtitle">Per-Page Inventory</h3>
+            <div class="data-table-wrap" style="margin-bottom: 1rem;">
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th>URL</th>
+                                <th class="right">Interactive</th>
+                                <th class="right">Content</th>
+                                <th class="right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for page in element_inventory.per_page %}
+                            <tr>
+                                <td class="cell-action">{{ page.title or page.state_id[:8] }}</td>
+                                <td class="cell-url">{{ page.url }}</td>
+                                <td class="cell-right" style="color: var(--accent-green);">{{ page.interactive_elements }}</td>
+                                <td class="cell-right" style="color: var(--accent-amber);">{{ page.non_interactive_elements }}</td>
+                                <td class="cell-right">{{ page.total_elements }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="elements-type-grid">
+                <div class="data-table-wrap">
+                    <div class="elements-subtitle-small">Top Interactive Types</div>
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th class="right">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in element_inventory.top_interactive_types %}
+                                <tr>
+                                    <td class="cell-dim">{{ row.element_type }}</td>
+                                    <td class="cell-right">{{ row.count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="data-table-wrap">
+                    <div class="elements-subtitle-small">Top Content Types</div>
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th class="right">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in element_inventory.top_non_interactive_types %}
+                                <tr>
+                                    <td class="cell-dim">{{ row.element_type }}</td>
+                                    <td class="cell-right">{{ row.count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="untested-callout">
+                <span class="callout-icon">&#9432;</span>
+                <span>No element inventory available for this run.</span>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- ============================================================
+             SECTION E: COVERAGE ANALYSIS
              ============================================================ -->
         {% if states|length >= 3 %}
-        <section class="section section-collapsible collapsed animate-in delay-3">
+        <section id="coverage-analysis" class="section section-collapsible collapsed animate-in delay-3" data-report-page="model">
             <div class="section-header" onclick="toggleSection(this.parentElement)">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Coverage Analysis</h2>
@@ -1846,7 +2382,7 @@
         <!-- ============================================================
              SECTION E: EXPLORATION MODEL (graph + pages)
              ============================================================ -->
-        <section class="section section-collapsible collapsed animate-in delay-3" id="exploration-model">
+        <section class="section section-collapsible collapsed animate-in delay-3" id="exploration-model" data-report-page="model">
             <div class="section-header" onclick="toggleSection(this.parentElement)">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Exploration Model</h2>
@@ -1895,11 +2431,11 @@
         <!-- ============================================================
              SECTION F: EXECUTION LOG
              ============================================================ -->
-        <section class="section section-collapsible collapsed animate-in delay-4">
+        <section id="execution-log" class="section section-collapsible collapsed animate-in delay-4" data-report-page="log">
             <div class="section-header" onclick="toggleSection(this.parentElement)">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Step Execution Log</h2>
-                <div class="section-count">{{ results|length }}</div>
+                <div class="section-count">{{ execution_rows|length }}</div>
                 <div class="section-line"></div>
             </div>
             <div class="section-body">
@@ -1922,31 +2458,30 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for r in results %}
-                                <tr>
-                                    <td class="cell-dim">{{ loop.index }}</td>
-                                    <td class="cell-id">{{ r.source_state_id[:8] }}</td>
-                                    <td class="cell-action">{{ actions.get(r.action_id, r.action_id) }}</td>
-                                    <td class="cell-dim" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ r.expected or '' }}</td>
-                                    <td><span class="outcome {{ r.outcome.value }}">{{ r.outcome.value }}</span></td>
-                                    <td>{% if r.verdict %}<span class="verdict {{ r.verdict }}">{{ r.verdict }}</span>{% endif %}</td>
-                                    <td class="cell-id">{{ r.target_state_id[:8] }}</td>
-                                    <td class="confidence-cell">{{ "%.0f"|format((r.confidence or 0) * 100) }}%</td>
-                                    <td class="cell-dim confidence-reason">{{ r.confidence_reason or '—' }}</td>
-                                    {% set shot = result_screenshot_links[loop.index0] %}
-                                    <td>
-                                        {% if shot %}
+                                {% for row in execution_rows %}
+                                <tr id="execution-step-{{ row.index }}" class="execution-log-row" onclick="openExecutionStepModal({{ row.index }})" title="Open detailed step view">
+                                    <td class="cell-dim">{{ row.index }}</td>
+                                    <td class="cell-id">{{ row.source_state_short }}</td>
+                                    <td class="cell-action">{{ row.action_label }}</td>
+                                    <td class="cell-dim" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.expected or '' }}</td>
+                                    <td><span class="outcome {{ row.outcome }}">{{ row.outcome }}</span></td>
+                                    <td>{% if row.verdict %}<span class="verdict {{ row.verdict }}">{{ row.verdict }}</span>{% endif %}</td>
+                                    <td class="cell-action" title="{{ row.target_state_id }}">{{ row.target_page }}</td>
+                                    <td class="confidence-cell">{{ row.confidence_pct }}%</td>
+                                    <td class="cell-dim confidence-reason">{{ row.confidence_reason or '—' }}</td>
+                                    <td onclick="event.stopPropagation()">
+                                        {% if row.screenshot_link %}
                                         <div class="evidence-cell">
-                                            <a class="evidence-thumb-link" href="{{ shot }}" target="_blank" rel="noopener noreferrer">
-                                                <img class="evidence-thumb" src="{{ shot }}" alt="evidence step {{ loop.index }}" loading="lazy">
+                                            <a class="evidence-thumb-link" href="{{ row.screenshot_link }}" target="_blank" rel="noopener noreferrer">
+                                                <img class="evidence-thumb" src="{{ row.screenshot_link }}" alt="evidence step {{ row.index }}" loading="lazy">
                                             </a>
-                                            <a class="evidence-open-link" href="{{ shot }}" target="_blank" rel="noopener noreferrer">open</a>
+                                            <a class="evidence-open-link" href="{{ row.screenshot_link }}" target="_blank" rel="noopener noreferrer">open</a>
                                         </div>
                                         {% else %}
                                         <span class="cell-dim">—</span>
                                         {% endif %}
                                     </td>
-                                    <td class="cell-right">{{ "%.0f"|format(r.duration_ms) }}ms</td>
+                                    <td class="cell-right">{{ row.duration_ms }}ms</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -1955,6 +2490,16 @@
                 </div>
             </div>
         </section>
+
+        <div id="execution-modal" class="execution-modal" onclick="closeExecutionStepModal(event)">
+            <div class="execution-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="execution-modal-title">
+                <div class="execution-modal-header">
+                    <h3 id="execution-modal-title">Execution Step</h3>
+                    <button class="execution-modal-close" onclick="closeExecutionStepModal()">Close</button>
+                </div>
+                <div id="execution-modal-body" class="execution-modal-body"></div>
+            </div>
+        </div>
 
     </main>
 
@@ -1968,14 +2513,15 @@
     <!-- ============================================================
          VIS.JS (deferred — loaded but graph not initialized until section expands)
          ============================================================ -->
-    <script>{{ vis_network_js }}</script>
+    <script>{{ vis_network_js|safe }}</script>
 
     <!-- ============================================================
          SCRIPTS
          ============================================================ -->
     <script>
         /* --- Graph data (used by lazy init) --- */
-        const graphData = {{ graph_json }};
+        const graphData = {{ graph_json|tojson }};
+        const executionRows = {{ execution_rows_json|tojson }};
         let graphInitialized = false;
 
         /* --- Lazy graph init on first expand of Exploration Model section --- */
@@ -2081,6 +2627,44 @@
             });
         }
 
+        function setReportPage(page, btnEl = null) {
+            document.querySelectorAll('[data-report-page]').forEach((el) => {
+                el.classList.toggle('page-hidden', el.dataset.reportPage !== page);
+            });
+
+            document.querySelectorAll('.page-btn').forEach((btn) => {
+                btn.classList.remove('active');
+            });
+            if (!btnEl) {
+                btnEl = document.querySelector('.page-btn[data-page="' + page + '"]');
+            }
+            if (btnEl) {
+                btnEl.classList.add('active');
+            }
+
+            if (page === 'diagnostics') {
+                const diagnostics = document.getElementById('diagnostics-section');
+                if (diagnostics && diagnostics.classList.contains('collapsed')) {
+                    diagnostics.classList.remove('collapsed');
+                }
+            }
+
+            if (page === 'model') {
+                const model = document.getElementById('exploration-model');
+                if (model && model.classList.contains('collapsed')) {
+                    model.classList.remove('collapsed');
+                }
+                initGraph();
+            }
+
+            if (page === 'log') {
+                const log = document.getElementById('execution-log');
+                if (log && log.classList.contains('collapsed')) {
+                    log.classList.remove('collapsed');
+                }
+            }
+        }
+
         /* --- Toggle collapsible section --- */
         function toggleSection(sectionEl) {
             sectionEl.classList.toggle('collapsed');
@@ -2097,28 +2681,45 @@
 
         /* --- Filter test cases by verdict --- */
         function filterTestCases(verdict, btnEl) {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'active-fail', 'active-warn'));
+            const suitesRoot = document.getElementById('test-suites');
+            if (!suitesRoot) return;
+
+            suitesRoot.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'active-fail', 'active-warn'));
+            if (!btnEl) {
+                btnEl = suitesRoot.querySelector('.filter-toolbar .filter-btn[data-filter="' + verdict + '"]');
+            }
             if (btnEl) {
                 if (verdict === 'fail') btnEl.classList.add('active-fail');
                 else if (verdict === 'warn') btnEl.classList.add('active-warn');
                 else btnEl.classList.add('active');
             }
 
-            document.querySelectorAll('.test-case').forEach(card => {
+            suitesRoot.querySelectorAll('.test-case').forEach(card => {
                 card.style.display = (verdict === 'all' || card.dataset.verdict === verdict) ? '' : 'none';
             });
 
             /* Hide empty suites */
-            document.querySelectorAll('.test-suite').forEach(suite => {
+            suitesRoot.querySelectorAll('.test-suite').forEach(suite => {
                 const visible = suite.querySelectorAll('.test-case:not([style*="display: none"])');
                 suite.style.display = visible.length > 0 ? '' : 'none';
             });
         }
 
+        function jumpToTestCases(verdict) {
+            setReportPage('suites');
+            const section = document.getElementById('test-suites');
+            filterTestCases(verdict, null);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
         /* --- Search test cases --- */
         function searchTestCases(query) {
+            const suitesRoot = document.getElementById('test-suites');
+            if (!suitesRoot) return;
             const q = query.toLowerCase().trim();
-            document.querySelectorAll('.test-case').forEach(card => {
+            suitesRoot.querySelectorAll('.test-case').forEach(card => {
                 if (!q) {
                     card.style.display = '';
                 } else {
@@ -2126,7 +2727,7 @@
                 }
             });
             /* Hide empty suites */
-            document.querySelectorAll('.test-suite').forEach(suite => {
+            suitesRoot.querySelectorAll('.test-suite').forEach(suite => {
                 const visible = suite.querySelectorAll('.test-case:not([style*="display: none"])');
                 suite.style.display = visible.length > 0 ? '' : 'none';
             });
@@ -2140,6 +2741,7 @@
 
         /* --- Expand specific test case from defects section --- */
         function expandTestCase(flowId) {
+            setReportPage('suites');
             const el = document.querySelector('.test-case[data-flow-id="' + flowId + '"]');
             if (!el) return;
             /* Ensure parent suite is not collapsed */
@@ -2150,6 +2752,115 @@
             el.open = true;
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+
+        function jumpToExecutionStep(stepIndex) {
+            setReportPage('log');
+            const section = document.getElementById('execution-log');
+            if (section && section.classList.contains('collapsed')) {
+                section.classList.remove('collapsed');
+            }
+            const row = document.getElementById('execution-step-' + stepIndex);
+            if (!row) return;
+            document.querySelectorAll('.execution-row-highlight').forEach((el) => {
+                el.classList.remove('execution-row-highlight');
+            });
+            row.classList.add('execution-row-highlight');
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function closeExecutionStepModal(evt = null) {
+            if (evt && evt.target && evt.currentTarget && evt.target !== evt.currentTarget) {
+                return;
+            }
+            const modal = document.getElementById('execution-modal');
+            if (!modal) return;
+            modal.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        function openExecutionStepModal(stepIndex) {
+            const modal = document.getElementById('execution-modal');
+            const body = document.getElementById('execution-modal-body');
+            if (!modal || !body) return;
+
+            const row = executionRows.find((item) => item.index === stepIndex);
+            if (!row) return;
+
+            const esc = (value) => String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+
+            const errors = (row.error_messages || []).map(esc).join('<br>');
+            const consoleErrors = (row.console_errors || []).map(esc).join('<br>');
+            const titleCaseToken = (value) => String(value || '')
+                .replaceAll('_', ' ')
+                .split(' ')
+                .filter(Boolean)
+                .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+                .join(' ');
+            const outcomeKey = String(row.outcome || '').toLowerCase();
+            const verdictKey = String(row.verdict || '').toLowerCase();
+            const outcomeBadge = outcomeKey
+                ? '<span class="outcome ' + esc(outcomeKey) + '">' + esc(titleCaseToken(outcomeKey)) + '</span>'
+                : '<span class="cell-dim">—</span>';
+            const verdictBadge = verdictKey
+                ? '<span class="verdict ' + esc(verdictKey) + '">' + esc(verdictKey) + '</span>'
+                : '<span class="verdict inconclusive">n/a</span>';
+            const evidenceHtml = row.screenshot_link
+                ? '<a class="evidence-open-link" href="' + esc(row.screenshot_link) + '" target="_blank" rel="noopener noreferrer">Open evidence image in new tab</a>' +
+                  '<div style="margin-top:0.5rem;"><img class="execution-detail-image" src="' + esc(row.screenshot_link) + '" alt="evidence step ' + row.index + '"></div>'
+                : '<span class="cell-dim">No screenshot captured for this step.</span>';
+            const inputSource = row.input_source
+                ? esc(row.input_source) + (row.input_profile ? ' (' + esc(row.input_profile) + ')' : '')
+                : 'n/a';
+
+            body.innerHTML =
+                '<div class="execution-detail-grid">' +
+                    '<div class="execution-detail-card execution-detail-card--step"><div class="execution-detail-label">Step</div><div class="execution-detail-value">#' + row.index + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--action"><div class="execution-detail-label">Action</div><div class="execution-detail-value">' + esc(row.action_label) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--outcome"><div class="execution-detail-label">Outcome</div><div class="execution-detail-value">' + outcomeBadge + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--verdict"><div class="execution-detail-label">Verdict</div><div class="execution-detail-value">' + verdictBadge + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--confidence"><div class="execution-detail-label">Confidence</div><div class="execution-detail-value">' + row.confidence_pct + '% · ' + esc(row.confidence_reason || '—') + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--input"><div class="execution-detail-label">Input Source</div><div class="execution-detail-value">' + inputSource + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--from"><div class="execution-detail-label">From</div><div class="execution-detail-value">' + esc(row.source_page) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--to"><div class="execution-detail-label">To</div><div class="execution-detail-value">' + esc(row.target_page) + '</div></div>' +
+                '</div>' +
+                '<div class="execution-focus-grid">' +
+                    '<div class="execution-focus-card expected">' +
+                        '<div class="execution-focus-header"><span class="step-tag expected">Expected</span></div>' +
+                        '<div class="execution-focus-body">' + esc(row.expected || '—') + '</div>' +
+                    '</div>' +
+                    '<div class="execution-focus-card actual">' +
+                        '<div class="execution-focus-header"><span class="step-tag actual">Actual</span></div>' +
+                        '<div class="execution-focus-body">' + esc(row.actual || '—') + '</div>' +
+                    '</div>' +
+                    '<div class="execution-focus-card selector">' +
+                        '<div class="execution-focus-header"><span class="step-tag selector">Selector</span></div>' +
+                        '<div class="execution-focus-body">' + esc(row.target_selector || '—') + '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="execution-detail-text"><strong>URL:</strong><br>before: ' + esc(row.url_before || '—') + '<br>after: ' + esc(row.url_after || '—') + '</div>' +
+                (errors ? '<div class="execution-detail-text"><strong>Validation / Errors:</strong><br>' + errors + '</div>' : '') +
+                (consoleErrors ? '<div class="execution-detail-text"><strong>Console Errors:</strong><br>' + consoleErrors + '</div>' : '') +
+                (row.message ? '<div class="execution-detail-text"><strong>Message:</strong><br>' + esc(row.message) + '</div>' : '') +
+                '<div class="execution-detail-text"><strong>Evidence:</strong><br>' + evidenceHtml + '</div>';
+
+            modal.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setReportPage('overview');
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeExecutionStepModal();
+            }
+        });
     </script>
 
 </body>

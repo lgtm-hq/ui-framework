@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from itertools import islice
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
@@ -14,6 +15,11 @@ from flowscout.discovery.actions import Action, ActionResult, ActionType, Outcom
 
 if TYPE_CHECKING:
     pass
+
+
+_MAX_PATHS_PER_LEAF = 25
+_MAX_TOTAL_LINEAR_FLOWS = 500
+_MAX_CYCLE_FLOWS = 200
 
 
 class Flow(BaseModel):
@@ -133,28 +139,48 @@ class ExplorationGraph:
         ]
 
         flow_counter = 0
+        total_linear_flows = 0
+        linear_flow_limit_hit = False
         for leaf in leaf_nodes:
             try:
-                paths = list(
-                    nx.all_simple_paths(self._graph, self._root_state_id, leaf)
-                )
+                per_leaf_count = 0
+                for path in nx.all_simple_paths(self._graph, self._root_state_id, leaf):
+                    if (
+                        per_leaf_count >= _MAX_PATHS_PER_LEAF
+                        or total_linear_flows >= _MAX_TOTAL_LINEAR_FLOWS
+                    ):
+                        linear_flow_limit_hit = True
+                        break
+
+                    flow_counter += 1
+                    per_leaf_count += 1
+                    total_linear_flows += 1
+                    flow = self._path_to_flow(path, flow_counter)
+                    flows.append(flow)
+
+                if total_linear_flows >= _MAX_TOTAL_LINEAR_FLOWS:
+                    linear_flow_limit_hit = True
+                    break
             except nx.NetworkXError:
                 continue
 
-            for path in paths:
-                flow_counter += 1
-                flow = self._path_to_flow(path, flow_counter)
-                flows.append(flow)
-
         # Detect cycles
         try:
-            for cycle in nx.simple_cycles(self._graph):
+            for cycle in islice(nx.simple_cycles(self._graph), _MAX_CYCLE_FLOWS):
                 if len(cycle) > 1:
                     flow_counter += 1
                     flow = self._cycle_to_flow(cycle, flow_counter)
                     flows.append(flow)
         except nx.NetworkXError:
             pass
+
+        if linear_flow_limit_hit and self.results:
+            flows.extend(self._result_fallback_flows(start_index=flow_counter + 1))
+
+        # Fallback for interaction-heavy runs with no root->leaf paths
+        # (for example single-page apps or auth screens with self-loops).
+        if not flows and self.results:
+            flows.extend(self._result_fallback_flows(start_index=flow_counter + 1))
 
         # Assign categories and tags
         for flow in flows:
@@ -217,6 +243,10 @@ class ExplorationGraph:
                 action_ids.append(edge.get("action_id", ""))
                 outcomes.append(OutcomeType(edge.get("outcome", "no_change")))
 
+        action_labels = [
+            self.actions[aid].label for aid in action_ids if aid in self.actions
+        ]
+
         # Build cycle name from state titles
         cycle_titles = []
         for sid in cycle_nodes:
@@ -224,20 +254,142 @@ class ExplorationGraph:
             if state and state.title:
                 cycle_titles.append(state.title)
         if cycle_titles:
-            cycle_name = " \u2194 ".join(dict.fromkeys(cycle_titles))
+            unique_titles = list(dict.fromkeys(cycle_titles))
+            cycle_name = " \u2194 ".join(unique_titles)
+            if len(unique_titles) == 1 and action_labels:
+                cycle_name = f"{unique_titles[0]} \u00b7 {action_labels[0]}"
         else:
             cycle_name = f"Cycle {index}"
 
         return Flow(
             flow_id=f"cycle-{index}",
             name=cycle_name,
-            description=f"Cycle through {len(cycle_nodes)} states",
+            description=(
+                " \u2192 ".join(action_labels)
+                if action_labels
+                else f"Cycle through {len(cycle_nodes)} states"
+            ),
             state_ids=closed,
             action_ids=action_ids,
             outcomes=outcomes,
             is_cycle=True,
             depth=len(cycle_nodes),
         )
+
+    @staticmethod
+    def _fallback_outcome_label(outcome: OutcomeType) -> str:
+        """Return a readable outcome label for fallback flow names."""
+        labels = {
+            OutcomeType.NAVIGATION: "Navigation",
+            OutcomeType.DOM_CHANGE: "DOM Change",
+            OutcomeType.VISUAL_CHANGE: "Visual Change",
+            OutcomeType.NO_CHANGE: "No Visible Change",
+            OutcomeType.VALIDATION_ERROR: "Validation Feedback",
+            OutcomeType.NETWORK_ERROR: "Network Error",
+            OutcomeType.CONSOLE_ERROR: "Console Error",
+            OutcomeType.TIMEOUT: "Timeout",
+            OutcomeType.EXCEPTION: "Exception",
+        }
+        return labels.get(outcome, outcome.value.replace("_", " ").title())
+
+    @staticmethod
+    def _fallback_action_summary(action: Action | None, action_id: str) -> str:
+        """Return a concise, human-readable action summary."""
+        if not action:
+            return action_id
+
+        label = action.label.strip()
+        for prefix in (
+            "Click: ",
+            "Fill: ",
+            "Check: ",
+            "Uncheck: ",
+            "Select option: ",
+            "Select radio: ",
+            "Toggle: ",
+            "Open dropdown: ",
+            "Tab: ",
+        ):
+            if label.startswith(prefix):
+                label = label[len(prefix) :].strip()
+                break
+
+        if action.action_type == ActionType.FILL and " = '" in label:
+            label = label.split(" = '", 1)[0].strip()
+
+        verb_by_type = {
+            ActionType.CLICK: "Click",
+            ActionType.FILL: "Enter",
+            ActionType.SELECT_OPTION: "Select",
+            ActionType.CHECK: "Check",
+            ActionType.UNCHECK: "Uncheck",
+            ActionType.SUBMIT_FORM: "Submit",
+            ActionType.PRESS_KEY: "Press",
+            ActionType.HOVER: "Hover",
+            ActionType.NAVIGATE: "Navigate",
+        }
+        verb = verb_by_type.get(action.action_type, "Use")
+        return f"{verb} {label}".strip()
+
+    def _result_fallback_flows(self, start_index: int) -> list[Flow]:
+        """Build one-step flows directly from recorded results.
+
+        This keeps reporting actionable when path-based extraction yields
+        zero flows (typically due to self-loops/no leaf nodes).
+        """
+        flows: list[Flow] = []
+        seen: set[tuple[str, str]] = set()
+        index = start_index
+
+        for result in self.results:
+            dedupe_key = (
+                result.action_id,
+                result.outcome.value,
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+
+            source_state = self.states.get(result.source_state_id)
+            target_state = self.states.get(result.target_state_id)
+            action = self.actions.get(result.action_id)
+
+            source_name = (
+                source_state.title if source_state and source_state.title else "State"
+            )
+            target_name = (
+                target_state.title if target_state and target_state.title else "State"
+            )
+            action_summary = self._fallback_action_summary(action, result.action_id)
+            outcome_summary = self._fallback_outcome_label(result.outcome)
+
+            if source_name == target_name:
+                name = f"{source_name} · {action_summary} · {outcome_summary}"
+            else:
+                name = f"{source_name} \u2192 {target_name} · {action_summary}"
+                if result.outcome != OutcomeType.NAVIGATION:
+                    name = f"{name} · {outcome_summary}"
+
+            description = action_summary
+            if result.actual:
+                description = f"{description} \u2192 {result.actual}"
+            elif result.message:
+                description = f"{description} \u2192 {result.message}"
+
+            flow = Flow(
+                flow_id=f"flow-{index}",
+                name=name,
+                description=description,
+                state_ids=[result.source_state_id, result.target_state_id],
+                action_ids=[result.action_id],
+                outcomes=[result.outcome],
+                is_cycle=False,
+                depth=1,
+            )
+            flows.append(flow)
+            index += 1
+
+        return flows
 
     def _categorize_flow(self, flow: Flow) -> tuple[str, list[str]]:
         """Assign a category and interaction tags to a flow."""
