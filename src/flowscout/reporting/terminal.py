@@ -47,10 +47,10 @@ class TerminalReporter:
         lines = [
             f"[bold]URL:[/bold] {url}",
             f"[bold]Strategy:[/bold] {config.strategy.value}",
-            f"[bold]Max depth:[/bold] {config.max_depth}  |  "
-            f"[bold]Max states:[/bold] {config.max_states}  |  "
+            f"[bold]Max depth:[/bold] {config.max_depth}",
+            f"[bold]Max states:[/bold] {config.max_states}",
             f"[bold]Max actions/state:[/bold] {config.max_actions_per_state}",
-            f"[bold]Headless:[/bold] {config.headless}  |  "
+            f"[bold]Headless:[/bold] {config.headless}",
             f"[bold]Screenshots:[/bold] {config.take_screenshots}",
             f"[bold]Input profile:[/bold] {config.input_profile.value}",
         ]
