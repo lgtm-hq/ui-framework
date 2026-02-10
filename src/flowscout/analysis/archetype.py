@@ -80,6 +80,7 @@ class CatalogEntry(BaseModel):
     """A single element in the page catalog."""
 
     selector: str
+    dom_id: str = ""
     tag: str
     label: str
     zone_type: ZoneType = ZoneType.MAIN_CONTENT
@@ -345,6 +346,7 @@ def build_page_analysis(raw: dict[str, Any]) -> PageAnalysis:
         catalog_entries.append(
             CatalogEntry(
                 selector=entry.get("selector", ""),
+                dom_id=entry.get("dom_id", ""),
                 tag=entry.get("tag", ""),
                 label=entry.get("label", ""),
                 zone_type=zone,

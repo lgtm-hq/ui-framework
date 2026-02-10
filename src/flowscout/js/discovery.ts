@@ -86,6 +86,15 @@
     const ariaLabel = el.getAttribute("aria-label");
     if (ariaLabel) return ariaLabel.trim();
 
+    // Input buttons expose their user-facing caption via value.
+    if (el instanceof HTMLInputElement) {
+      const type = (el.type || "").toLowerCase();
+      if (["submit", "button", "reset", "image"].includes(type)) {
+        const valueLabel = (el.value || "").trim();
+        if (valueLabel) return valueLabel;
+      }
+    }
+
     // Check associated label
     if (el.id) {
       const label = document.querySelector(`label[for="${el.id}"]`);
@@ -95,6 +104,14 @@
       }
     }
 
+    // Input placeholders and names are better than empty text nodes.
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      const placeholder = (el.getAttribute("placeholder") || "").trim();
+      if (placeholder) return placeholder;
+      const name = (el.getAttribute("name") || "").trim();
+      if (name) return name;
+    }
+
     // Use innerText (respects visibility, ignores CSS pseudo-elements)
     // Fall back to textContent for non-HTMLElement nodes
     const text = (el as HTMLElement).innerText || el.textContent || "";
@@ -102,10 +119,42 @@
   }
 
   function isVisible(el: Element): boolean {
-    if ((el as HTMLElement).offsetParent === null && getComputedStyle(el).position !== "fixed")
+    const node = el as HTMLElement;
+
+    // Modern visibility API catches many CSS-hidden cases.
+    const checkVisibilityFn = (node as any).checkVisibility;
+    if (typeof checkVisibilityFn === "function") {
+      try {
+        if (!checkVisibilityFn.call(node, { checkOpacity: true, checkVisibilityCSS: true })) {
+          return false;
+        }
+      } catch {
+        // Fallback to manual checks below.
+      }
+    }
+
+    const style = getComputedStyle(node);
+    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse")
       return false;
-    const rect = el.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
+    if (Number.parseFloat(style.opacity || "1") === 0) return false;
+    if (node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true") return false;
+    if (node.closest("[hidden], [aria-hidden='true']")) return false;
+
+    const rect = node.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return false;
+
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    if (rect.bottom < 0 || rect.right < 0 || rect.top > viewportHeight || rect.left > viewportWidth) {
+      return false;
+    }
+
+    // Ensure the element is actually hit-test visible in the viewport.
+    const centerX = Math.min(Math.max(rect.left + rect.width / 2, 0), Math.max(viewportWidth - 1, 0));
+    const centerY = Math.min(Math.max(rect.top + rect.height / 2, 0), Math.max(viewportHeight - 1, 0));
+    const topElement = document.elementFromPoint(centerX, centerY);
+    if (!topElement) return false;
+    return topElement === node || node.contains(topElement) || topElement.contains(node);
   }
 
   function getDataAttrs(el: Element): Record<string, string> {
@@ -166,6 +215,7 @@
 
     results.push({
       selector: selector,
+      dom_id: el.id || null,
       tag: tag,
       input_type: el.getAttribute("type") || null,
       role: el.getAttribute("role") || null,

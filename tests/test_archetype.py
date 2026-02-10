@@ -419,6 +419,7 @@ class TestPageCatalog:
         raw["element_catalog"] = [
             {
                 "selector": "a[href='/home']",
+                "dom_id": "home-link",
                 "tag": "a",
                 "label": "Home",
                 "zone": "navigation",
@@ -454,6 +455,7 @@ class TestPageCatalog:
 
         assert catalog.archetype == PageArchetype.LISTING
         assert len(catalog.entries) == 3
+        assert catalog.entries[0].dom_id == "home-link"
 
         nav_entries = [e for e in catalog.entries if e.zone_type == ZoneType.NAVIGATION]
         assert len(nav_entries) == 1

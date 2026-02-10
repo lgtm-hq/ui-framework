@@ -270,6 +270,16 @@ def _clean_catalog_label(value: Any) -> str:
     return text
 
 
+def _extract_dom_id_from_selector(selector: str) -> str:
+    """Extract a DOM id token from an id-based CSS selector."""
+    text = str(selector or "").strip()
+    if not text.startswith("#"):
+        return ""
+    token = text[1:].split()[0]
+    token = token.split(".")[0].split("[")[0].split(":")[0]
+    return token.strip()
+
+
 def _compute_coverage(result: ExplorationResult) -> dict:
     """Compute page, interaction, and pass-rate coverage metrics."""
     # Page coverage: unique URLs touched in results vs total discovered states
@@ -501,6 +511,9 @@ def _build_element_drilldown_map(
                 label = _clean_catalog_label(entry.get("label"))
                 semantic_name = str(entry.get("semantic_name") or "").strip()
                 selector = str(entry.get("selector") or "").strip()
+                dom_id = str(entry.get("dom_id") or "").strip()
+                if not dom_id:
+                    dom_id = _extract_dom_id_from_selector(selector)
                 tag = str(entry.get("tag") or "").strip().lower() or "unknown"
                 aria_role = str(entry.get("aria_role") or "").strip().lower()
                 input_type = str(entry.get("input_type") or "").strip().lower()
@@ -521,6 +534,7 @@ def _build_element_drilldown_map(
                     {
                         "label": display_label,
                         "selector": selector,
+                        "dom_id": dom_id,
                         "element_type": element_type,
                         "zone_type": zone_type,
                         "tag": tag,
@@ -604,6 +618,12 @@ def _build_execution_rows(
                 "action_id": action_result.action_id,
                 "action_label": action_labels.get(action_result.action_id, action_result.action_id),
                 "target_selector": action_selectors.get(action_result.action_id, ""),
+                "dom_id": (
+                    metadata.get("dom_id", "")
+                    or _extract_dom_id_from_selector(
+                        action_selectors.get(action_result.action_id, ""),
+                    )
+                ),
                 "expected": action_result.expected or "",
                 "actual": action_result.actual or "",
                 "outcome": action_result.outcome.value,

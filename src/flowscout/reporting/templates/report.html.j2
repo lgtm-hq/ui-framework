@@ -3126,6 +3126,7 @@
             const entryRows = (info.entries || []).map((entry, idx) => {
                 const kindClass = entry.is_interactive ? 'interactive' : 'content';
                 const kindLabel = entry.is_interactive ? 'Interactive' : 'Content';
+                const domId = entry.dom_id || '—';
                 const locator = entry.selector || '—';
                 const typeLabel = pretty(entry.element_type || 'other');
                 const zoneLabel = pretty(entry.zone_type || 'main_content');
@@ -3147,6 +3148,7 @@
                     '</td>' +
                     '<td class="cell-dim">' + esc(typeLabel) + '</td>' +
                     '<td class="cell-dim">' + esc(zoneLabel) + '</td>' +
+                    '<td class="cell-url">' + esc(domId) + '</td>' +
                     '<td class="cell-url">' + esc(locator) + '</td>' +
                     '<td>' + screenshotCell + '</td>' +
                 '</tr>';
@@ -3164,7 +3166,8 @@
                                     '<th>Kind</th>' +
                                     '<th>Type</th>' +
                                     '<th>Zone</th>' +
-                                    '<th>Locator</th>' +
+                                    '<th>DOM ID</th>' +
+                                    '<th>Selector</th>' +
                                     '<th>Screenshot</th>' +
                                 '</tr>' +
                             '</thead>' +
@@ -3266,12 +3269,16 @@
                         '<div class="execution-focus-body">' + esc(row.actual || '—') + '</div>' +
                     '</div>' +
                     '<div class="execution-focus-card selector">' +
+                        '<div class="execution-focus-header"><span class="step-tag selector">DOM ID</span></div>' +
+                        '<div class="execution-focus-body">' + esc(row.dom_id || '—') + '</div>' +
+                    '</div>' +
+                    '<div class="execution-focus-card selector">' +
                         '<div class="execution-focus-header"><span class="step-tag selector">Selector</span></div>' +
                         '<div class="execution-focus-body">' + esc(row.target_selector || '—') + '</div>' +
                     '</div>' +
                 '</div>' +
                 '<div class="execution-detail-text"><strong>URL:</strong><br>before: ' + esc(row.url_before || '—') + '<br>after: ' + esc(row.url_after || '—') + '</div>' +
-                '<div class="execution-detail-text"><strong>Technical Details:</strong><br>action_id: ' + esc(row.action_id || '—') + '<br>source_state_id: ' + esc(row.source_state_id || '—') + '<br>target_state_id: ' + esc(row.target_state_id || '—') + '</div>' +
+                '<div class="execution-detail-text"><strong>Technical Details:</strong><br>action_id: ' + esc(row.action_id || '—') + '<br>dom_id: ' + esc(row.dom_id || '—') + '<br>source_state_id: ' + esc(row.source_state_id || '—') + '<br>target_state_id: ' + esc(row.target_state_id || '—') + '</div>' +
                 (errors ? '<div class="execution-detail-text"><strong>Validation / Errors:</strong><br>' + errors + '</div>' : '') +
                 (consoleErrors ? '<div class="execution-detail-text"><strong>Console Errors:</strong><br>' + consoleErrors + '</div>' : '') +
                 (row.message ? '<div class="execution-detail-text"><strong>Message:</strong><br>' + esc(row.message) + '</div>' : '') +

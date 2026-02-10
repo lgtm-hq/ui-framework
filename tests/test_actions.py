@@ -63,6 +63,8 @@ class TestGenerateActions:
         assert len(actions) == 1
         assert actions[0].action_type == ActionType.FILL
         assert "@" in (actions[0].value or "")
+        assert actions[0].metadata["input_profile"] == "safe"
+        assert "input_source" in actions[0].metadata
 
     def test_select_generates_option_actions(self):
         elem = _make_elem(
@@ -94,11 +96,34 @@ class TestGenerateActions:
         assert len(actions) == 1
         assert actions[0].action_type == ActionType.CHECK
 
+    def test_action_metadata_includes_dom_id_when_present(self):
+        elem = _make_elem(
+            element_type=ElementType.INPUT_CHECKBOX,
+            tag="input",
+            input_type="checkbox",
+            dom_id="toggle-track-desktop",
+            selector="#toggle-track-desktop",
+        )
+        actions = generate_actions([elem])
+        assert len(actions) == 1
+        assert actions[0].metadata["dom_id"] == "toggle-track-desktop"
+        assert actions[0].metadata["selector"] == "#toggle-track-desktop"
+
     def test_tab_generates_click(self):
         elem = _make_elem(element_type=ElementType.TAB)
         actions = generate_actions([elem])
         assert len(actions) == 1
         assert actions[0].action_type == ActionType.CLICK
+
+    def test_low_signal_icon_button_is_skipped(self):
+        elem = _make_elem(
+            label="",
+            aria_label=None,
+            name=None,
+            selector="#container > div:nth-of-type(3) > button",
+        )
+        actions = generate_actions([elem])
+        assert actions == []
 
     def test_sorted_by_priority(self):
         link = _make_elem(

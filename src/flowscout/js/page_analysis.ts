@@ -219,6 +219,7 @@
   // --- Element Catalog ---
   function buildElementCatalog(): Array<{
     selector: string;
+    dom_id: string;
     tag: string;
     label: string;
     zone: string;
@@ -229,6 +230,7 @@
   }> {
     const catalog: Array<{
       selector: string;
+      dom_id: string;
       tag: string;
       label: string;
       zone: string;
@@ -265,6 +267,7 @@
 
       catalog.push({
         selector,
+        dom_id: el.id || "",
         tag,
         label,
         zone,

@@ -62,6 +62,11 @@ INPUT_TYPE_MAP: dict[str, ElementType] = {
     "datetime-local": ElementType.INPUT_DATE,
     "checkbox": ElementType.INPUT_CHECKBOX,
     "radio": ElementType.INPUT_RADIO,
+    # Input controls that behave like clickable buttons, not fillable fields.
+    "submit": ElementType.BUTTON,
+    "button": ElementType.BUTTON,
+    "reset": ElementType.BUTTON,
+    "image": ElementType.BUTTON,
 }
 
 # Map accessibility tree roles to ElementType
@@ -88,6 +93,10 @@ class InteractiveElement(BaseModel):
     element_id: str = Field(description="Stable hash for deduplication")
     element_type: ElementType
     selector: str = Field(description="CSS selector to target this element")
+    dom_id: str | None = Field(
+        default=None,
+        description="Raw DOM id attribute when present",
+    )
     label: str = Field(description="Human-readable label")
     tag: str = Field(description="HTML tag name")
     href: str | None = None
@@ -254,6 +263,7 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
             element_id=build_element_id(raw["selector"], raw.get("label", "")),
             element_type=etype,
             selector=raw["selector"],
+            dom_id=raw.get("dom_id"),
             label=_sanitize_label(raw.get("label", "")),
             tag=raw["tag"],
             href=raw.get("href"),
@@ -371,6 +381,7 @@ async def _discover_dropdown_options(
                     element_id=build_element_id(selector, label),
                     element_type=ElementType.DROPDOWN_OPTION,
                     selector=selector,
+                    dom_id=raw.get("dom_id"),
                     label=label,
                     tag=raw["tag"],
                     href=raw.get("href"),

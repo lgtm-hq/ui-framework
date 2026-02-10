@@ -8,7 +8,7 @@ from hashlib import md5
 from pydantic import BaseModel, Field
 
 from flowscout.discovery.elements import ElementType, InteractiveElement
-from flowscout.discovery.inputs import generate_input_value
+from flowscout.discovery.inputs import generate_input_value, generate_input_value_with_source
 from flowscout.discovery.intent import ActionIntent, infer_intent
 
 
@@ -93,6 +93,39 @@ _FILLABLE_TYPES = {
 }
 
 
+def _is_low_signal_click_target(elem: InteractiveElement) -> bool:
+    """Return whether a click target is too low-signal to be useful in reports."""
+    if elem.element_type not in (ElementType.BUTTON, ElementType.GENERIC_CLICKABLE):
+        return False
+
+    label = (elem.label or "").strip().lower()
+    if label in {"x", "×", "✕", "✖"}:
+        return True
+
+    has_semantic_label = bool(
+        (elem.label or "").strip()
+        or (elem.aria_label or "").strip()
+        or (elem.name or "").strip()
+    )
+    if has_semantic_label:
+        return False
+
+    selector = elem.selector
+    return ("nth-of-type" in selector) or (" > " in selector)
+
+
+def _element_identity_metadata(elem: InteractiveElement) -> dict[str, str]:
+    """Return stable locator metadata for reportability/debugging."""
+    metadata: dict[str, str] = {"selector": elem.selector}
+    if elem.dom_id:
+        metadata["dom_id"] = elem.dom_id
+    if elem.name:
+        metadata["name"] = elem.name
+    if elem.aria_label:
+        metadata["aria_label"] = elem.aria_label
+    return metadata
+
+
 def generate_actions(
     elements: list[InteractiveElement],
     *,
@@ -129,6 +162,12 @@ def _actions_for_element(
     etype = elem.element_type
 
     def _make(action_type: ActionType, **kwargs) -> Action:
+        raw_metadata = kwargs.get("metadata")
+        merged_metadata = {
+            **_element_identity_metadata(elem),
+            **dict(raw_metadata or {}),
+        }
+        kwargs["metadata"] = merged_metadata
         a = Action(action_type=action_type, **kwargs)
         a.intent = infer_intent(
             elem, action_type.value, value=kwargs.get("value"), form_selector=None
@@ -137,6 +176,9 @@ def _actions_for_element(
 
     # Links and buttons → CLICK
     if etype in (ElementType.LINK, ElementType.BUTTON, ElementType.GENERIC_CLICKABLE):
+        if _is_low_signal_click_target(elem):
+            return []
+
         # Skip external links
         if etype == ElementType.LINK and elem.href:
             if (
@@ -170,12 +212,16 @@ def _actions_for_element(
 
     # Fillable inputs → FILL with heuristic value
     elif etype in _FILLABLE_TYPES:
-        value = generate_input_value(
+        value, source = generate_input_value_with_source(
             elem,
             scenario="valid",
             input_profile=input_profile,
         )
-        meta: dict[str, str] = {"element_type": etype.value}
+        meta: dict[str, str] = {
+            "element_type": etype.value,
+            "input_source": source,
+            "input_profile": input_profile,
+        }
         actions.append(
             _make(
                 ActionType.FILL,
@@ -323,13 +369,15 @@ def generate_form_submit_actions(
 
         # Generate field values
         field_values: dict[str, str] = {}
+        field_value_sources: dict[str, str] = {}
         for inp in inputs:
-            value = generate_input_value(
+            value, source = generate_input_value_with_source(
                 inp,
                 scenario="valid",
                 input_profile=input_profile,
             )
             field_values[inp.selector] = value
+            field_value_sources[inp.selector] = source
 
         submit_selector = submits[0].selector if submits else form_selector
         import json
@@ -350,6 +398,7 @@ def generate_form_submit_actions(
                 value=None,
                 metadata={
                     "field_values_json": json.dumps(field_values),
+                    "field_sources_json": json.dumps(field_value_sources),
                     "form_selector": form_selector,
                 },
                 priority=15,
