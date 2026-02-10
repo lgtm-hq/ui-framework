@@ -714,7 +714,7 @@ def _build_output_dirs(
         domain = re.sub(r"[^\w.\-]", "_", netloc)
         environment = re.sub(r"[^\w.\-]", "_", config.environment or "dev")
         workspace = base / domain / environment
-        timestamp = now.strftime("%Y-%m-%d_%H.%M.%S")
+        timestamp = now.strftime("%Y-%m-%d_%H.%M.%S.%f")
         run_dir = workspace / "runs" / timestamp
         run_dir.mkdir(parents=True, exist_ok=True)
         return run_dir, workspace
@@ -1289,6 +1289,11 @@ def generate(
     site_model: bool,
 ) -> None:
     """Generate test suite from a JSON exploration result."""
+    if site_model and framework == "bdd":
+        raise click.ClickException(
+            "--site-model does not support framework 'bdd'. Use pytest or playwright.",
+        )
+
     data = json.loads(Path(json_path).read_text())
     result = ExplorationResult.model_validate(data)
 

@@ -198,7 +198,7 @@ class FlowscoutDB:
 
     def save_run(self, result: ExplorationResult) -> str:
         """Save a complete exploration run. Returns the run_id."""
-        run_id = f"run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        run_id = f"run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')}"
 
         self.conn.execute(
             """INSERT INTO runs
