@@ -37,6 +37,14 @@ class TestStepVerdict:
         )
         assert sv.verdict == Verdict.FAIL
 
+    def test_exception_includes_observed_detail(self, computer):
+        sv = computer.compute_step_verdict(
+            OutcomeType.EXCEPTION,
+            _intent(IntentClass.INPUT),
+            observed_detail="TimeoutError",
+        )
+        assert "TimeoutError" in sv.actual
+
     def test_invalid_scenario_validation_error_passes(self, computer):
         sv = computer.compute_step_verdict(
             OutcomeType.VALIDATION_ERROR,
@@ -112,6 +120,14 @@ class TestStepVerdict:
             OutcomeType.VALIDATION_ERROR, _intent(IntentClass.SUBMIT)
         )
         assert sv.verdict == Verdict.WARN
+
+    def test_validation_error_includes_observed_detail(self, computer):
+        sv = computer.compute_step_verdict(
+            OutcomeType.VALIDATION_ERROR,
+            _intent(IntentClass.SUBMIT),
+            observed_detail="Username is required",
+        )
+        assert "Username is required" in sv.actual
 
     def test_submit_timeout_fails(self, computer):
         sv = computer.compute_step_verdict(

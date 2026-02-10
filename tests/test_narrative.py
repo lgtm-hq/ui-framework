@@ -62,12 +62,13 @@ class TestNarrateStep:
         assert step.step_number == 1
 
     def test_fill_description(self, generator):
-        action = _make_action(ActionType.FILL, label="Fill: email")
+        action = _make_action(ActionType.FILL, label="Fill: Username = 'Jane Doe'")
         action.value = "test@example.com"
         result = _make_result(OutcomeType.DOM_CHANGE)
         step = generator.narrate_step(action, result, _make_state(), _make_state(), 1)
         assert "Enter" in step.action_description
         assert "test@example.com" in step.action_description
+        assert " = " not in step.action_description
 
     def test_submit_description(self, generator):
         action = _make_action(ActionType.SUBMIT_FORM, label="Submit form")
@@ -168,6 +169,17 @@ class TestNarrateFlow:
         )
         assert "failure" in narrative.conclusion
 
+    def test_conclusion_with_warning(self, generator):
+        svs = [StepVerdict(verdict=Verdict.WARN, reason="hmm")]
+        narrative = generator.narrate_flow(
+            "Flow 1",
+            [_make_action()],
+            [_make_result(OutcomeType.NO_CHANGE)],
+            [_make_state(), _make_state("s2")],
+            step_verdicts=svs,
+        )
+        assert "warning" in narrative.conclusion.lower()
+
     def test_gherkin_has_scenario(self, generator):
         narrative = generator.narrate_flow(
             "Login Flow",
@@ -191,6 +203,24 @@ class TestToGherkin:
         )
         result = generator.to_gherkin(narrative)
         assert "Scenario" in result
+
+    def test_toggle_then_clause_is_expectation_based(self, generator):
+        action = _make_action(ActionType.CHECK, label="Check: Toggle Switch")
+        action.intent = ActionIntent(
+            intent_class=IntentClass.TOGGLE,
+            target_description="Toggle Switch",
+            expected_effect="The toggle state should change",
+        )
+        result = _make_result(OutcomeType.NO_CHANGE)
+        step = generator.narrate_step(
+            action,
+            result,
+            _make_state(),
+            _make_state("s2"),
+            1,
+            intent=action.intent,
+        )
+        assert "state should change" in step.gherkin_then
 
 
 class TestToPlainEnglish:

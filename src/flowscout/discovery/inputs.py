@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -89,6 +90,23 @@ def generate_input_value(
     input_profile: str = "safe",
     context_store: ContextStore | None = None,
 ) -> str:
+    """Backward-compatible wrapper returning only the generated value."""
+    value, _ = generate_input_value_with_source(
+        element,
+        scenario=scenario,
+        input_profile=input_profile,
+        context_store=context_store,
+    )
+    return value
+
+
+def generate_input_value_with_source(
+    element: InteractiveElement,
+    scenario: str = "valid",
+    *,
+    input_profile: str = "safe",
+    context_store: ContextStore | None = None,
+) -> tuple[str, str]:
     """Generate a value for an input field based on heuristics.
 
     Resolution order:
@@ -108,14 +126,17 @@ def generate_input_value(
     ):
         query = context_store.get_search_query()
         if query:
-            return query
+            return query, "context_store_search_entity"
 
     # 1. Check HTML5 type
     if element.input_type and element.input_type in TYPE_TO_PATTERN:
         pattern_key = TYPE_TO_PATTERN[element.input_type]
         if pattern_key in FIELD_PATTERNS:
-            return FIELD_PATTERNS[pattern_key].get(
-                scenario, FIELD_PATTERNS[pattern_key]["valid"]
+            return (
+                FIELD_PATTERNS[pattern_key].get(
+                    scenario, FIELD_PATTERNS[pattern_key]["valid"]
+                ),
+                f"input_type:{pattern_key}",
             )
 
     # 2. Match field identifiers against known patterns
@@ -127,16 +148,19 @@ def generate_input_value(
     ).lower()
 
     # Try exact key matches first, then substring matches
-    for pattern_key, values in FIELD_PATTERNS.items():
-        if pattern_key in identifiers:
-            return values.get(scenario, values["valid"])
+    for pattern_key, values in _ordered_field_patterns():
+        if _pattern_in_identifiers(pattern_key=pattern_key, identifiers=identifiers):
+            return (
+                values.get(scenario, values["valid"]),
+                f"field_pattern:{pattern_key}",
+            )
 
     # 3. Fallback
     if scenario == "valid":
         if input_profile == "safe":
-            return "test input"
-        return "test input value"
-    return ""
+            return "test input", "fallback:safe"
+        return "test input value", "fallback:contextual"
+    return "", "fallback:invalid_empty"
 
 
 def _is_search_field(element: InteractiveElement) -> bool:
@@ -150,3 +174,32 @@ def _is_search_field(element: InteractiveElement) -> bool:
         ),
     ).lower()
     return any(kw in identifiers for kw in ("search", "query", " q "))
+
+
+def _pattern_in_identifiers(*, pattern_key: str, identifiers: str) -> bool:
+    """Match pattern keys against identifiers using token boundaries."""
+    normalized_identifiers = re.sub(r"[^a-z0-9]+", " ", identifiers).strip()
+    normalized_pattern = re.sub(r"[^a-z0-9]+", " ", pattern_key).strip()
+    if not normalized_identifiers or not normalized_pattern:
+        return False
+    escaped = re.escape(normalized_pattern)
+    regex = re.compile(rf"\b{escaped}\b")
+    return bool(regex.search(normalized_identifiers))
+
+
+def _ordered_field_patterns() -> list[tuple[str, dict[str, str]]]:
+    """Return field patterns with domain-critical credentials matched first."""
+    preferred = ("username", "user", "email", "password", "passwd")
+    rows: list[tuple[str, dict[str, str]]] = []
+    seen: set[str] = set()
+
+    for key in preferred:
+        if key in FIELD_PATTERNS:
+            rows.append((key, FIELD_PATTERNS[key]))
+            seen.add(key)
+
+    for key, values in FIELD_PATTERNS.items():
+        if key in seen:
+            continue
+        rows.append((key, values))
+    return rows

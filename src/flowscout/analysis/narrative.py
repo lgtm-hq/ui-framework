@@ -26,6 +26,7 @@ class NarrativeStep(BaseModel):
     gherkin_when: str = ""
     gherkin_then: str = ""
     target_selector: str = ""
+    target_description: str = ""
     element_type: str = ""
 
 
@@ -92,12 +93,25 @@ class NarrativeGenerator:
         step_verdict: StepVerdict | None = None,
     ) -> NarrativeStep:
         """Generate a narrative for a single action step."""
-        desc = self._action_description(action, result)
-        expected = _humanize(intent.expected_effect) if intent else ""
-        actual = self._outcome_description(result, target_state)
+        desc = self._action_description(action, result, source_state)
+        expected = (
+            _humanize(step_verdict.expected)
+            if step_verdict and step_verdict.expected
+            else (_humanize(intent.expected_effect) if intent else "")
+        )
+        actual = (
+            step_verdict.actual
+            if step_verdict and step_verdict.actual
+            else self._outcome_description(result, target_state)
+        )
 
         gherkin_when = self._gherkin_when(action)
-        gherkin_then = self._gherkin_then(result, target_state)
+        gherkin_then = self._gherkin_then(
+            action=action,
+            result=result,
+            target_state=target_state,
+            intent=intent,
+        )
 
         # Determine element type from metadata or action type
         elem_type = action.metadata.get("element_type", "")
@@ -113,6 +127,11 @@ class NarrativeGenerator:
             gherkin_when=gherkin_when,
             gherkin_then=gherkin_then,
             target_selector=action.target_selector,
+            target_description=(
+                intent.target_description
+                if intent and intent.target_description
+                else ""
+            ),
             element_type=elem_type,
         )
 
@@ -153,11 +172,14 @@ class NarrativeGenerator:
             steps.append(step)
 
         # Conclusion from verdict counts
-        sum(1 for s in steps if s.verdict == Verdict.PASS)
+        pass_count = sum(1 for s in steps if s.verdict == Verdict.PASS)
         fail_count = sum(1 for s in steps if s.verdict == Verdict.FAIL)
+        warn_count = sum(1 for s in steps if s.verdict == Verdict.WARN)
         total = len(steps)
         if fail_count > 0:
             conclusion = f"{fail_count} failure(s) out of {total} steps"
+        elif warn_count > 0:
+            conclusion = f"{pass_count} steps passed with {warn_count} warning(s)"
         elif total > 0:
             conclusion = f"All {total} steps passed"
         else:
@@ -200,6 +222,8 @@ class NarrativeGenerator:
     @staticmethod
     def _clean_label(action: Action) -> str:
         """Get the element label, stripping the action-type prefix and selectors."""
+        import re
+
         label = action.label
         prefixes = (
             "Click: ",
@@ -221,6 +245,8 @@ class NarrativeGenerator:
             if label.startswith(prefix):
                 label = label[len(prefix) :]
                 break
+        if action.action_type == ActionType.FILL:
+            label = re.sub(r"\s*=\s*'.*'$", "", label).strip()
         # If the result is a CSS selector, try the intent target description
         if _is_css_selector(label) and action.intent:
             target = action.intent.target_description
@@ -243,7 +269,12 @@ class NarrativeGenerator:
                 return path.split("/")[-1] or url
         return "the next page"
 
-    def _action_description(self, action: Action, result: ActionResult) -> str:
+    def _action_description(
+        self,
+        action: Action,
+        result: ActionResult,
+        source_state: PageState | None,
+    ) -> str:
         """Generate a context-aware plain-English action description."""
         label = self._clean_label(action)
         # Final safety: if label still looks like a selector, use generic text
@@ -259,9 +290,17 @@ class NarrativeGenerator:
             case ActionType.SELECT_OPTION:
                 return f"Select '{action.value}' from the '{label}' dropdown"
             case ActionType.CHECK:
-                return f"Check the '{label}' checkbox"
+                return self._describe_toggle(
+                    label=label,
+                    source_state=source_state,
+                    action_word="Enable",
+                )
             case ActionType.UNCHECK:
-                return f"Uncheck the '{label}' checkbox"
+                return self._describe_toggle(
+                    label=label,
+                    source_state=source_state,
+                    action_word="Disable",
+                )
             case ActionType.SUBMIT_FORM:
                 return self._describe_submit(action, label)
             case ActionType.HOVER:
@@ -271,6 +310,20 @@ class NarrativeGenerator:
             case ActionType.NAVIGATE:
                 return f"Navigate directly to {action.value}"
         return f"Perform {action.action_type.value} on '{label}'"
+
+    def _describe_toggle(
+        self,
+        *,
+        label: str,
+        source_state: PageState | None,
+        action_word: str,
+    ) -> str:
+        """Generate an explicit toggle description with page context."""
+        control = "toggle switch" if "toggle" in label.lower() else "option"
+        location = self._page_name(source_state) if source_state else "current page"
+        if label and label != "the element":
+            return f"{action_word} '{label}' ({control}) on '{location}'"
+        return f"{action_word} the {control} on '{location}'"
 
     def _describe_submit(self, action: Action, label: str) -> str:
         """Generate a context-aware description for form submission."""
@@ -295,8 +348,11 @@ class NarrativeGenerator:
         intent = action.intent
         if intent:
             if intent.intent_class == IntentClass.SELECT:
-                return f"Select '{label}'"
+                return f"Click '{label}'"
             if intent.intent_class == IntentClass.REVEAL:
+                reveal_text = intent.expected_effect.lower()
+                if any(word in reveal_text for word in ("close", "dismiss", "hide")):
+                    return f"Dismiss '{label}'"
                 return f"Open the '{label}' dropdown"
             if intent.intent_class == IntentClass.TOGGLE:
                 return f"Toggle '{label}'"
@@ -374,8 +430,11 @@ class NarrativeGenerator:
         intent = action.intent
         if intent:
             if intent.intent_class == IntentClass.SELECT:
-                return f'When I select "{label}"'
+                return f'When I click "{label}"'
             if intent.intent_class == IntentClass.REVEAL:
+                reveal_text = intent.expected_effect.lower()
+                if any(word in reveal_text for word in ("close", "dismiss", "hide")):
+                    return f'When I dismiss "{label}"'
                 return f'When I open the "{label}" dropdown'
             if intent.intent_class == IntentClass.TOGGLE:
                 return f'When I toggle "{label}"'
@@ -386,10 +445,44 @@ class NarrativeGenerator:
 
     def _gherkin_then(
         self,
+        *,
+        action: Action,
         result: ActionResult,
         target_state: PageState | None,
+        intent: ActionIntent | None,
     ) -> str:
         """Generate a Gherkin Then clause."""
+        if intent:
+            label = self._clean_label(action)
+            match intent.intent_class:
+                case IntentClass.NAVIGATE:
+                    name = self._page_name(target_state, result.url_after)
+                    return f'Then the page should navigate to "{name}"'
+                case IntentClass.INPUT:
+                    return f'Then the "{label}" field should reflect the entered input'
+                case IntentClass.TOGGLE:
+                    return (
+                        f'Then the "{label}" control state should change '
+                        "(enabled/disabled or checked/unchecked)"
+                    )
+                case IntentClass.SUBMIT:
+                    return "Then the form submission should be processed or validated"
+                case IntentClass.REVEAL:
+                    reveal_text = intent.expected_effect.lower()
+                    if any(
+                        word in reveal_text for word in ("close", "dismiss", "hide")
+                    ):
+                        return (
+                            f'Then the message or panel for "{label}" should be closed'
+                        )
+                    return (
+                        f'Then additional content for "{label}" should become visible'
+                    )
+                case IntentClass.SELECT:
+                    if action.action_type == ActionType.CLICK:
+                        return f'Then the application should respond to clicking "{label}"'
+                    return f'Then the selection for "{label}" should be applied'
+
         match result.outcome:
             case OutcomeType.NAVIGATION:
                 name = self._page_name(target_state, result.url_after)

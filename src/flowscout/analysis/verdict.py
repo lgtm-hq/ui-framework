@@ -46,15 +46,18 @@ class VerdictComputer:
         intent: ActionIntent | None,
         *,
         is_invalid_scenario: bool = False,
+        observed_detail: str = "",
     ) -> StepVerdict:
         """Compute verdict for a single action result."""
+        detail_suffix = f": {observed_detail}" if observed_detail else ""
+
         # Always-fail outcomes
         if outcome == OutcomeType.NETWORK_ERROR:
             return StepVerdict(
                 verdict=Verdict.FAIL,
                 reason="Network error occurred",
                 expected=intent.expected_effect if intent else "Successful action",
-                actual="Network error (4xx/5xx response)",
+                actual=f"Network error (4xx/5xx response){detail_suffix}",
             )
 
         if outcome == OutcomeType.EXCEPTION:
@@ -62,7 +65,7 @@ class VerdictComputer:
                 verdict=Verdict.FAIL,
                 reason="Exception thrown during action",
                 expected=intent.expected_effect if intent else "Successful action",
-                actual="JavaScript exception or browser error",
+                actual=f"JavaScript exception or browser error{detail_suffix}",
             )
 
         # Invalid form scenario special handling
@@ -72,7 +75,7 @@ class VerdictComputer:
                     verdict=Verdict.PASS,
                     reason="Form correctly rejected invalid input",
                     expected="Validation errors for invalid input",
-                    actual="Validation error displayed",
+                    actual=f"Validation error displayed{detail_suffix}",
                 )
             if outcome == OutcomeType.NAVIGATION:
                 return StepVerdict(
@@ -99,7 +102,7 @@ class VerdictComputer:
             )
 
         expected = intent.expected_effect
-        actual = outcome.value
+        actual = self._actual_outcome_text(outcome, observed_detail=observed_detail)
 
         # Console error is always a warning
         if outcome == OutcomeType.CONSOLE_ERROR:
@@ -237,6 +240,35 @@ class VerdictComputer:
             expected=expected,
             actual=actual,
         )
+
+    @staticmethod
+    def _actual_outcome_text(
+        outcome: OutcomeType,
+        *,
+        observed_detail: str = "",
+    ) -> str:
+        """Return human-readable observed result text."""
+        detail_suffix = f": {observed_detail}" if observed_detail else ""
+        match outcome:
+            case OutcomeType.NAVIGATION:
+                return "Page navigation occurred"
+            case OutcomeType.DOM_CHANGE:
+                return "Visible DOM/content change observed"
+            case OutcomeType.NO_CHANGE:
+                return "No visible UI change observed"
+            case OutcomeType.VALIDATION_ERROR:
+                return f"Validation error was shown{detail_suffix}"
+            case OutcomeType.NETWORK_ERROR:
+                return f"Network error response was observed{detail_suffix}"
+            case OutcomeType.CONSOLE_ERROR:
+                return f"Browser console error was detected{detail_suffix}"
+            case OutcomeType.TIMEOUT:
+                return "Action timed out"
+            case OutcomeType.EXCEPTION:
+                return f"Exception occurred during action{detail_suffix}"
+            case OutcomeType.VISUAL_CHANGE:
+                return "Visual-only change observed"
+        return outcome.value
 
     def compute_journey_verdict(
         self, step_verdicts: list[StepVerdict]

@@ -3,7 +3,10 @@
 import pytest
 
 from flowscout.discovery.elements import ElementType, InteractiveElement
-from flowscout.discovery.inputs import generate_input_value
+from flowscout.discovery.inputs import (
+    generate_input_value,
+    generate_input_value_with_source,
+)
 
 
 def _make_input(
@@ -59,8 +62,7 @@ class TestGenerateInputValue:
     def test_username_by_name(self):
         elem = _make_input(name="username")
         result = generate_input_value(elem)
-        assert len(result) >= 3, f"Username should be at least 3 chars, got {result!r}"
-        assert result.strip(), f"Username should not be blank, got {result!r}"
+        assert result == "janedoe42"
 
     def test_invalid_scenario(self):
         elem = _make_input(input_type="email")
@@ -81,3 +83,14 @@ class TestGenerateInputValue:
         elem = _make_input(name="custom_field_xyz")
         result = generate_input_value(elem, input_profile="contextual")
         assert result == "test input value"
+
+    def test_value_source_reports_field_pattern(self):
+        elem = _make_input(name="username")
+        value, source = generate_input_value_with_source(elem)
+        assert value
+        assert source.startswith("field_pattern:")
+
+    def test_value_source_reports_fallback(self):
+        elem = _make_input(name="custom_field_xyz")
+        _, source = generate_input_value_with_source(elem, input_profile="safe")
+        assert source == "fallback:safe"
