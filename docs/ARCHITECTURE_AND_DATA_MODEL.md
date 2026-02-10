@@ -92,10 +92,8 @@ Tables:
 - `runs`
 - `states`
 - `actions`
-- `edges`
-- `transition_facts`
-
-`transition_facts` aggregates repeated transitions across runs so you can identify stable paths, drift, and regressions.
+- `results`
+- `flows`
 
 ## Artifacts
 
@@ -106,8 +104,13 @@ Per crawl output directory:
 - `evidence/actions/*.png` (when screenshots are enabled)
 - `tests.py` (when test generation is enabled)
 - `site_model.json` (smart mode)
-- `pages/*.py` + `pom_tests.py` + `scenario_tests.py` (smart mode test generation)
+- `pom_tests.py` (smart mode test generation)
 - `tests.feature` / `narrative_report.md` (optional generation modes)
+
+Per site workspace (outside run directory):
+
+- `pages/*.py` (smart mode page objects)
+- `scenario_tests.py` (smart mode scenario test generation)
 
 History export:
 

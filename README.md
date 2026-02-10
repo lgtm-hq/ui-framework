@@ -38,6 +38,12 @@ uv run flowscout serve reports/2026/02.February/07-02-2026/14.30.00/report.html
 
 Opens the interactive HTML dashboard in your browser. The report is a standalone file — you can also open it directly in any browser.
 
+Report navigation model:
+
+- `Test Suites` is the primary flow-centric view (each flow includes its own execution timeline).
+- `Diagnostics` deep-links directly to the relevant flow step.
+- `All Actions` is an advanced run-level list for unmatched or cross-flow troubleshooting.
+
 ## Commands
 
 ### `explore`
@@ -79,7 +85,7 @@ By default, exploration runs in non-destructive mode:
 - form submissions are blocked unless `--allow-form-submits` is passed,
 - high-impact actions with destructive keywords are filtered before execution.
 - invalid/negative form submissions are only generated when `--input-profile negative` is used.
-- action screenshots are captured by default and linked in the execution log.
+- action screenshots are captured by default and linked in flow timelines and the all-actions view.
 - each step records a transition confidence score with a reason.
 - HTML report includes an exploration diagnostics section for low-confidence and flaky transitions.
 
@@ -180,11 +186,14 @@ reports/<domain>/<environment>/runs/<timestamp>/
   site_model.json      Site model: page types, navigation, scenarios (--smart)
   tests.py             Flow replay tests (--generate-tests)
   pom_tests.py         POM-based tests (--smart --generate-tests)
-  scenario_tests.py    Scenario-based tests from site model (--smart --generate-tests)
+
+reports/<domain>/<environment>/
   pages/               Page Object Model classes (--smart --generate-tests)
     movie_listing_page.py
     movie_detail_page.py
     ...
+  scenario_tests.py    Scenario-based tests from site model (--smart --generate-tests)
+  latest -> runs/<timestamp> (symlink to most recent run)
 ```
 
 In smart mode, `result.json` also includes an `element_inventory` summary (interactive vs non-interactive catalog totals and per-page breakdown).
