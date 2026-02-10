@@ -39,11 +39,6 @@ class TerminalReporter:
 
     def print_banner(self, url: str, config: ExplorerConfig) -> None:
         """Print startup banner with configuration summary."""
-        smart_label = (
-            "[bold magenta]Smart mode:[/bold magenta] ON"
-            if config.smart_mode
-            else ""
-        )
         lines = [
             f"[bold]URL:[/bold] {url}",
             f"[bold]Strategy:[/bold] {config.strategy.value}",
@@ -54,8 +49,16 @@ class TerminalReporter:
             f"[bold]Screenshots:[/bold] {config.take_screenshots}",
             f"[bold]Input profile:[/bold] {config.input_profile.value}",
         ]
-        if smart_label:
-            lines.append(smart_label)
+        if config.smart_mode:
+            lines.extend(
+                [
+                    "[bold magenta]Smart mode:[/bold magenta] ON",
+                    f"[magenta]  Saturation stop:[/magenta] {'ON' if config.smart_stop_on_saturation else 'OFF'}",
+                    f"[magenta]  Min archetypes:[/magenta] {config.smart_min_archetypes_before_stop}",
+                    f"[magenta]  Min features:[/magenta] {config.smart_min_features_before_stop}",
+                    f"[magenta]  Signature repeat limit:[/magenta] {config.smart_archetype_instance_limit}",
+                ]
+            )
         panel = Panel(
             "\n".join(lines),
             title="[bold cyan]flowscout[/bold cyan]",
