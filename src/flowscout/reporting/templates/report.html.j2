@@ -1841,7 +1841,65 @@
         ::-webkit-scrollbar-thumb { background: var(--border-base); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
 
-        /* === Responsive === */
+        /* === Screen reader only === */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* === Skip to content === */
+        .skip-to-content {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            z-index: 100;
+            padding: 0.5rem 1rem;
+            background: var(--accent-green);
+            color: var(--bg-deep);
+            font-family: var(--font-mono);
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 0 0 6px 0;
+        }
+        .skip-to-content:focus {
+            left: 0;
+        }
+
+        /* === Focus indicators === */
+        :focus-visible {
+            outline: 2px solid var(--accent-cyan);
+            outline-offset: 2px;
+        }
+
+        .page-btn:focus-visible,
+        .filter-btn:focus-visible {
+            outline: 2px solid var(--accent-cyan);
+            outline-offset: 2px;
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-cyan) 20%, transparent);
+        }
+
+        .suite-header:focus-visible,
+        .test-case-header:focus-visible,
+        .section-collapsible .section-header:focus-visible {
+            outline: 2px solid var(--accent-cyan);
+            outline-offset: -2px;
+            border-radius: 8px;
+        }
+
+        .execution-modal-close:focus-visible {
+            outline: 2px solid var(--accent-cyan);
+            outline-offset: 2px;
+        }
+
+        /* === Responsive — Tablet (768px) === */
         @media (max-width: 768px) {
             .header-meta {
                 display: flex;
@@ -1864,16 +1922,40 @@
             .metric-cards { grid-template-columns: repeat(2, 1fr); }
             .metric-value { font-size: 1.25rem; }
             .coverage-label { width: 100px; }
+            .filter-toolbar { flex-direction: column; align-items: stretch; }
             .search-box { width: 100%; margin-left: 0; }
+            .page-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+            .page-btn { min-height: 44px; display: inline-flex; align-items: center; }
+            .filter-btn { min-height: 44px; }
+        }
+
+        /* === Responsive — Mobile (480px) === */
+        @media (max-width: 480px) {
+            .metric-cards { grid-template-columns: 1fr; }
+            .page-nav { gap: 0.35rem; }
+            .page-btn { font-size: 0.625rem; padding: 0.35rem 0.5rem; }
+            .data-table-wrap { border-radius: 8px; }
+            .data-table { display: block; overflow-x: auto; }
+            .execution-modal-dialog { width: 95vw; max-height: 90vh; }
+            .execution-detail-grid { grid-template-columns: 1fr; }
+            .execution-focus-grid { grid-template-columns: 1fr; }
+            .diagnostics-grid { grid-template-columns: 1fr; }
+            .elements-summary-grid { grid-template-columns: 1fr; }
+            .elements-type-grid { grid-template-columns: 1fr; }
+            .suite-header { padding: 0.625rem 0.75rem; }
+            .suite-meta { gap: 0.25rem; }
+            .tc-name { font-size: 0.8125rem; }
         }
     </style>
 </head>
 <body>
 
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+
     <!-- ============================================================
          SECTION A: HEADER
          ============================================================ -->
-    <header class="report-header">
+    <header class="report-header" role="banner">
         <div class="report-container">
             <div class="header-inner">
                 <div class="brand">
@@ -1934,15 +2016,15 @@
         </div>
     </header>
 
-    <main class="report-container">
-        <div class="page-nav animate-in">
+    <main id="main-content" class="report-container" role="main">
+        <nav class="page-nav animate-in" role="navigation" aria-label="Report sections">
             <button class="page-btn active" data-page="overview" onclick="setReportPage('overview', this)">Overview</button>
             <button class="page-btn" data-page="diagnostics" onclick="setReportPage('diagnostics', this)">Diagnostics</button>
             <button class="page-btn" data-page="suites" onclick="setReportPage('suites', this)">Test Suites</button>
             <button class="page-btn" data-page="elements" onclick="setReportPage('elements', this)">Elements</button>
             <button class="page-btn" data-page="model" onclick="setReportPage('model', this)">Model</button>
             <button class="page-btn" data-page="log" onclick="setReportPage('log', this)">All Actions</button>
-        </div>
+        </nav>
 
         <!-- Target URL -->
         <div class="target-banner animate-in" data-report-page="overview">
@@ -2128,7 +2210,7 @@
              SECTION H: DIAGNOSTICS
              ============================================================ -->
         <section id="diagnostics-section" class="section section-collapsible collapsed animate-in delay-2" data-report-page="diagnostics">
-            <div class="section-header" onclick="toggleSection(this.parentElement)">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Exploration Diagnostics</h2>
                 <div class="section-count">{{ diagnostics.low_confidence_count }} low-confidence &middot; {{ diagnostics.flaky_paths_count }} flaky</div>
@@ -2170,6 +2252,7 @@
                 <div class="data-table-wrap" style="margin-bottom: 1rem;">
                     <div class="table-scroll">
                         <table class="data-table">
+                            <caption class="sr-only">Low-confidence exploration steps</caption>
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -2231,6 +2314,7 @@
                 <div class="data-table-wrap">
                     <div class="table-scroll">
                         <table class="data-table">
+                            <caption class="sr-only">Flaky transitions</caption>
                             <thead>
                                 <tr>
                                     <th>Page</th>
@@ -2267,19 +2351,19 @@
             </div>
 
             <!-- Filter + search toolbar -->
-            <div class="filter-toolbar">
+            <div class="filter-toolbar" role="toolbar" aria-label="Filter test cases">
                 <button class="filter-btn active" data-filter="all" onclick="filterTestCases('all', this)">All ({{ flows|length }})</button>
                 <button class="filter-btn" data-filter="pass" onclick="filterTestCases('pass', this)">Pass ({{ flow_counts.pass }})</button>
                 {% if flow_counts.fail %}<button class="filter-btn" data-filter="fail" onclick="filterTestCases('fail', this)">Fail ({{ flow_counts.fail }})</button>{% endif %}
                 {% if flow_counts.warn %}<button class="filter-btn" data-filter="warn" onclick="filterTestCases('warn', this)">Warn ({{ flow_counts.warn }})</button>{% endif %}
-                <input type="text" class="search-box" placeholder="Search test cases..." oninput="searchTestCases(this.value)">
+                <input type="text" class="search-box" placeholder="Search test cases..." aria-label="Search test cases" oninput="searchTestCases(this.value)">
             </div>
 
             <!-- Test suites -->
             {% for category, group_flows in flow_groups.items() %}
             {% set gs = group_summaries[category] %}
             <div class="test-suite" data-category="{{ category }}">
-                <div class="suite-header" onclick="toggleSuite(this)">
+                <div class="suite-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSuite(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSuite(this)}">
                     <svg class="suite-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                     <span class="suite-name">{{ category }}</span>
                     <div class="suite-meta">
@@ -2357,6 +2441,7 @@
                                 <div class="elements-subtitle-small">Flow Timeline</div>
                                 <div class="table-scroll">
                                     <table class="data-table">
+                                        <caption class="sr-only">Flow timeline for {{ flow.name }}</caption>
                                         <thead>
                                             <tr>
                                                 <th>Step</th>
@@ -2475,6 +2560,7 @@
             <div class="data-table-wrap" style="margin-bottom: 1rem;">
                 <div class="table-scroll">
                     <table class="data-table">
+                        <caption class="sr-only">State discovery progression</caption>
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -2511,6 +2597,7 @@
             <div class="data-table-wrap" style="margin-bottom: 1rem;">
                 <div class="table-scroll">
                     <table class="data-table">
+                        <caption class="sr-only">Per-state element inventory</caption>
                         <thead>
                             <tr>
                                 <th>State ID</th>
@@ -2543,6 +2630,7 @@
             <div class="data-table-wrap" style="margin-bottom: 1rem;">
                 <div class="table-scroll">
                     <table class="data-table">
+                        <caption class="sr-only">Per-URL element inventory (aggregated)</caption>
                         <thead>
                             <tr>
                                 <th>Page</th>
@@ -2577,6 +2665,7 @@
                     <div class="elements-subtitle-small">Top Interactive Types</div>
                     <div class="table-scroll">
                         <table class="data-table">
+                            <caption class="sr-only">Top interactive element types</caption>
                             <thead>
                                 <tr>
                                     <th>Type</th>
@@ -2598,6 +2687,7 @@
                     <div class="elements-subtitle-small">Top Content Types</div>
                     <div class="table-scroll">
                         <table class="data-table">
+                            <caption class="sr-only">Top content element types</caption>
                             <thead>
                                 <tr>
                                     <th>Type</th>
@@ -2629,7 +2719,7 @@
              ============================================================ -->
         {% if states|length >= 3 %}
         <section id="coverage-analysis" class="section section-collapsible collapsed animate-in delay-3" data-report-page="model">
-            <div class="section-header" onclick="toggleSection(this.parentElement)">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Coverage Analysis</h2>
                 <div class="section-count">{{ states|length }} pages</div>
@@ -2639,6 +2729,7 @@
                 <div class="coverage-table-wrap">
                     <div class="table-scroll">
                         <table class="data-table">
+                            <caption class="sr-only">Page coverage analysis</caption>
                             <thead>
                                 <tr>
                                     <th>Page</th>
@@ -2680,7 +2771,7 @@
              SECTION E: EXPLORATION MODEL (graph + pages)
              ============================================================ -->
         <section class="section section-collapsible collapsed animate-in delay-3" id="exploration-model" data-report-page="model">
-            <div class="section-header" onclick="toggleSection(this.parentElement)">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Exploration Model</h2>
                 <div class="section-count">{{ states|length }} pages &middot; {{ results|length }} actions</div>
@@ -2699,6 +2790,7 @@
                 <div class="data-table-wrap" style="margin-top: 1.5rem;">
                     <div class="table-scroll">
                         <table class="data-table">
+                            <caption class="sr-only">Discovered pages</caption>
                             <thead>
                                 <tr>
                                     <th>Page</th>
@@ -2727,7 +2819,7 @@
              SECTION F: ALL ACTIONS (ADVANCED)
              ============================================================ -->
         <section id="execution-log" class="section section-collapsible collapsed animate-in delay-4" data-report-page="log">
-            <div class="section-header" onclick="toggleSection(this.parentElement)">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>All Actions (Advanced)</h2>
                 <div class="section-count">{{ execution_rows|length }} total &middot; {{ orphan_execution_rows|length }} unmatched</div>
@@ -2743,6 +2835,7 @@
                 <div class="data-table-wrap">
                     <div class="table-scroll">
                         <table class="data-table">
+                            <caption class="sr-only">All execution actions</caption>
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -2824,7 +2917,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="report-container">
+    <footer class="report-container" role="contentinfo">
         <div class="report-footer">
             generated by <span>flowscout</span> v{{ version }}
         </div>
@@ -2993,6 +3086,8 @@
                 const diagnostics = document.getElementById('diagnostics-section');
                 if (diagnostics && diagnostics.classList.contains('collapsed')) {
                     diagnostics.classList.remove('collapsed');
+                    const header = diagnostics.querySelector('.section-header');
+                    if (header) header.setAttribute('aria-expanded', 'true');
                 }
             }
 
@@ -3000,6 +3095,8 @@
                 const model = document.getElementById('exploration-model');
                 if (model && model.classList.contains('collapsed')) {
                     model.classList.remove('collapsed');
+                    const header = model.querySelector('.section-header');
+                    if (header) header.setAttribute('aria-expanded', 'true');
                 }
                 initGraph();
             }
@@ -3008,6 +3105,8 @@
                 const log = document.getElementById('execution-log');
                 if (log && log.classList.contains('collapsed')) {
                     log.classList.remove('collapsed');
+                    const header = log.querySelector('.section-header');
+                    if (header) header.setAttribute('aria-expanded', 'true');
                 }
             }
         }
@@ -3015,6 +3114,10 @@
         /* --- Toggle collapsible section --- */
         function toggleSection(sectionEl) {
             sectionEl.classList.toggle('collapsed');
+            const header = sectionEl.querySelector('.section-header');
+            if (header) {
+                header.setAttribute('aria-expanded', String(!sectionEl.classList.contains('collapsed')));
+            }
             /* Lazy-init graph when Exploration Model is first expanded */
             if (sectionEl.id === 'exploration-model' && !sectionEl.classList.contains('collapsed')) {
                 initGraph();
@@ -3024,6 +3127,8 @@
         /* --- Toggle test suite --- */
         function toggleSuite(headerEl) {
             headerEl.parentElement.classList.toggle('collapsed');
+            const isExpanded = !headerEl.parentElement.classList.contains('collapsed');
+            headerEl.setAttribute('aria-expanded', String(isExpanded));
         }
 
         /* --- Filter test cases by verdict --- */
@@ -3132,6 +3237,46 @@
             openExecutionStepModal(stepIndex);
         }
 
+        /* --- Focus trap for modals --- */
+        let _lastFocusedElement = null;
+
+        function _trapFocus(modalEl) {
+            const focusable = modalEl.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            first.focus();
+
+            modalEl._focusTrapHandler = function(e) {
+                if (e.key !== 'Tab') return;
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            };
+            modalEl.addEventListener('keydown', modalEl._focusTrapHandler);
+        }
+
+        function _releaseFocusTrap(modalEl) {
+            if (modalEl._focusTrapHandler) {
+                modalEl.removeEventListener('keydown', modalEl._focusTrapHandler);
+                modalEl._focusTrapHandler = null;
+            }
+            if (_lastFocusedElement && _lastFocusedElement.focus) {
+                _lastFocusedElement.focus();
+                _lastFocusedElement = null;
+            }
+        }
+
         function closeExecutionStepModal(evt = null) {
             if (evt && evt.target && evt.currentTarget && evt.target !== evt.currentTarget) {
                 return;
@@ -3140,6 +3285,7 @@
             if (!modal) return;
             modal.classList.remove('visible');
             document.body.style.overflow = '';
+            _releaseFocusTrap(modal);
         }
 
         function closeElementsModal(evt = null) {
@@ -3150,9 +3296,11 @@
             if (!modal) return;
             modal.classList.remove('visible');
             document.body.style.overflow = '';
+            _releaseFocusTrap(modal);
         }
 
         function openElementsDrilldown(stateId, sourceLabel = 'Elements') {
+            _lastFocusedElement = document.activeElement;
             const modal = document.getElementById('elements-modal');
             const title = document.getElementById('elements-modal-title');
             const body = document.getElementById('elements-modal-body');
@@ -3277,9 +3425,11 @@
 
             modal.classList.add('visible');
             document.body.style.overflow = 'hidden';
+            _trapFocus(modal);
         }
 
         function openExecutionStepModal(stepIndex) {
+            _lastFocusedElement = document.activeElement;
             const modal = document.getElementById('execution-modal');
             const body = document.getElementById('execution-modal-body');
             if (!modal || !body) return;
@@ -3361,6 +3511,7 @@
 
             modal.classList.add('visible');
             document.body.style.overflow = 'hidden';
+            _trapFocus(modal);
         }
 
         document.addEventListener('DOMContentLoaded', () => {
