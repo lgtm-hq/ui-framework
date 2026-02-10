@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -76,7 +78,7 @@ class CoverageTracker:
             >= self._archetype_instance_limit
         )
 
-    def summary(self) -> dict:
+    def summary(self) -> dict[str, Any]:
         """Return a summary dict for reporting."""
         return {
             "archetypes_seen": dict(self._state.archetypes_seen),

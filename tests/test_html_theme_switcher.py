@@ -97,8 +97,12 @@ def test_report_moves_selector_into_flow_timeline_table(tmp_path: Path) -> None:
                     steps=[
                         NarrativeStep(
                             step_number=1,
-                            action_description="Enter 'janedoe42' into the Username field",
-                            expected="The user-name field should contain the entered value",
+                            action_description=(
+                                "Enter 'janedoe42' into the Username field"
+                            ),
+                            expected=(
+                                "The user-name field should contain the entered value"
+                            ),
                             actual="No visible UI change observed",
                             target_selector="#user-name",
                             target_description="Username",

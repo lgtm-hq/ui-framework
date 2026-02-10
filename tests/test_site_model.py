@@ -1,5 +1,7 @@
 """Tests for the site model builder."""
 
+from typing import Any
+
 from flowscout.analysis.archetype import (
     CatalogEntry,
     PageAnalysis,
@@ -19,14 +21,15 @@ from flowscout.analysis.site_model import (
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
 def _make_state(
-    state_id: str, url: str = "https://example.com", title: str = "",
+    state_id: str,
+    url: str = "https://example.com",
+    title: str = "",
 ) -> PageState:
     return PageState(
         state_id=state_id,
@@ -76,7 +79,7 @@ def _make_result(
     states: dict[str, PageState] | None = None,
     actions: dict[str, Action] | None = None,
     results: list[ActionResult] | None = None,
-    smart_analyses: dict | None = None,
+    smart_analyses: dict[str, Any] | None = None,
 ) -> ExplorationResult:
     return ExplorationResult(
         states=states or {},
@@ -92,9 +95,13 @@ def _make_result(
 
 
 class TestPageTypeGrouping:
-    def test_states_with_same_signature_form_one_page_type(self):
-        s1 = _make_state("s1", url="https://example.com/products?page=1", title="Products")
-        s2 = _make_state("s2", url="https://example.com/products?page=2", title="Products")
+    def test_states_with_same_signature_form_one_page_type(self) -> None:
+        s1 = _make_state(
+            "s1", url="https://example.com/products?page=1", title="Products"
+        )
+        s2 = _make_state(
+            "s2", url="https://example.com/products?page=2", title="Products"
+        )
 
         analyses = {
             "s1": _make_analysis(PageArchetype.LISTING, "sig_a"),
@@ -109,7 +116,7 @@ class TestPageTypeGrouping:
         assert model.page_types[0].instance_count == 2
         assert model.page_types[0].archetype == PageArchetype.LISTING
 
-    def test_different_signatures_form_different_page_types(self):
+    def test_different_signatures_form_different_page_types(self) -> None:
         s1 = _make_state("s1", url="https://example.com/products")
         s2 = _make_state("s2", url="https://example.com/product/1")
 
@@ -126,7 +133,7 @@ class TestPageTypeGrouping:
         archetypes = {pt.archetype for pt in model.page_types}
         assert archetypes == {PageArchetype.LISTING, PageArchetype.DETAIL}
 
-    def test_features_extracted_from_analysis(self):
+    def test_features_extracted_from_analysis(self) -> None:
         s1 = _make_state("s1")
         analyses = {
             "s1": _make_analysis(
@@ -145,7 +152,7 @@ class TestPageTypeGrouping:
         assert "has_search" in features
         assert "has_pagination" in features
 
-    def test_build_without_analyses_uses_url_fallback(self):
+    def test_build_without_analyses_uses_url_fallback(self) -> None:
         s1 = _make_state("s1", url="https://example.com/products")
         s2 = _make_state("s2", url="https://example.com/about")
 
@@ -162,7 +169,7 @@ class TestPageTypeGrouping:
 
 
 class TestNavigationEdges:
-    def test_cross_page_type_transition_creates_edge(self):
+    def test_cross_page_type_transition_creates_edge(self) -> None:
         s1 = _make_state("s1", url="https://example.com/products")
         s2 = _make_state("s2", url="https://example.com/product/1")
         action = Action(
@@ -197,7 +204,7 @@ class TestNavigationEdges:
         assert edge.to_page_type == "sig_b"
         assert edge.trigger == "Click product"
 
-    def test_same_page_type_transition_ignored(self):
+    def test_same_page_type_transition_ignored(self) -> None:
         s1 = _make_state("s1", url="https://example.com/products?page=1")
         s2 = _make_state("s2", url="https://example.com/products?page=2")
         action = Action(
@@ -228,16 +235,36 @@ class TestNavigationEdges:
 
         assert len(model.navigation_edges) == 0
 
-    def test_edges_deduplicated_with_count(self):
+    def test_edges_deduplicated_with_count(self) -> None:
         s1 = _make_state("s1")
         s2 = _make_state("s2")
         s3 = _make_state("s3")
 
-        a1 = Action(action_id="a1", action_type=ActionType.CLICK, target_selector="a", label="Item 1")
-        a2 = Action(action_id="a2", action_type=ActionType.CLICK, target_selector="a", label="Item 2")
+        a1 = Action(
+            action_id="a1",
+            action_type=ActionType.CLICK,
+            target_selector="a",
+            label="Item 1",
+        )
+        a2 = Action(
+            action_id="a2",
+            action_type=ActionType.CLICK,
+            target_selector="a",
+            label="Item 2",
+        )
 
-        r1 = ActionResult(action_id="a1", source_state_id="s1", target_state_id="s2", outcome=OutcomeType.NAVIGATION)
-        r2 = ActionResult(action_id="a2", source_state_id="s3", target_state_id="s2", outcome=OutcomeType.NAVIGATION)
+        r1 = ActionResult(
+            action_id="a1",
+            source_state_id="s1",
+            target_state_id="s2",
+            outcome=OutcomeType.NAVIGATION,
+        )
+        r2 = ActionResult(
+            action_id="a2",
+            source_state_id="s3",
+            target_state_id="s2",
+            outcome=OutcomeType.NAVIGATION,
+        )
 
         analyses = {
             "s1": _make_analysis(PageArchetype.LISTING, "sig_a"),
@@ -253,16 +280,26 @@ class TestNavigationEdges:
         builder = SiteModelBuilder()
         model = builder.build(result, analyses)
 
-        click_edges = [e for e in model.navigation_edges if e.action_type == ActionType.CLICK]
+        click_edges = [
+            e for e in model.navigation_edges if e.action_type == ActionType.CLICK
+        ]
         assert len(click_edges) == 1
         assert click_edges[0].occurrence_count == 2
 
-    def test_timeout_results_filtered_out(self):
+    def test_timeout_results_filtered_out(self) -> None:
         s1 = _make_state("s1")
         s2 = _make_state("s2")
-        action = Action(action_id="a1", action_type=ActionType.CLICK, target_selector="a", label="Click")
+        action = Action(
+            action_id="a1",
+            action_type=ActionType.CLICK,
+            target_selector="a",
+            label="Click",
+        )
         action_result = ActionResult(
-            action_id="a1", source_state_id="s1", target_state_id="s2", outcome=OutcomeType.TIMEOUT,
+            action_id="a1",
+            source_state_id="s1",
+            target_state_id="s2",
+            outcome=OutcomeType.TIMEOUT,
         )
 
         analyses = {
@@ -287,11 +324,11 @@ class TestNavigationEdges:
 
 
 class TestUrlPatternInference:
-    def test_single_url_uses_literal(self):
+    def test_single_url_uses_literal(self) -> None:
         pattern = _infer_url_pattern(["https://example.com/products"])
         assert "products" in pattern
 
-    def test_varying_segment_becomes_wildcard(self):
+    def test_varying_segment_becomes_wildcard(self) -> None:
         urls = [
             "https://example.com/products/1",
             "https://example.com/products/2",
@@ -301,7 +338,7 @@ class TestUrlPatternInference:
         assert "[^/]+" in pattern
         assert "products" in pattern
 
-    def test_common_prefix_preserved(self):
+    def test_common_prefix_preserved(self) -> None:
         urls = [
             "https://example.com/shop/items/a",
             "https://example.com/shop/items/b",
@@ -310,7 +347,7 @@ class TestUrlPatternInference:
         assert "shop" in pattern
         assert "items" in pattern
 
-    def test_empty_urls(self):
+    def test_empty_urls(self) -> None:
         assert _infer_url_pattern([]) == ""
 
 
@@ -320,17 +357,22 @@ class TestUrlPatternInference:
 
 
 class TestNameInference:
-    def test_common_subject_from_titles(self):
-        subject = _common_subject_from_titles(["Movies - Popular", "Movies - Top Rated"])
+    def test_common_subject_from_titles(self) -> None:
+        subject = _common_subject_from_titles(
+            ["Movies - Popular", "Movies - Top Rated"]
+        )
         assert subject.lower() == "movies"
 
-    def test_fallback_to_archetype(self):
+    def test_fallback_to_archetype(self) -> None:
         name = _infer_page_type_name(
-            PageArchetype.LISTING, [], [], [],
+            PageArchetype.LISTING,
+            [],
+            [],
+            [],
         )
         assert name == "Listing"
 
-    def test_subject_from_url(self):
+    def test_subject_from_url(self) -> None:
         name = _infer_page_type_name(
             PageArchetype.DETAIL,
             ["https://example.com/products/1"],
@@ -346,12 +388,12 @@ class TestNameInference:
 
 
 class TestUrlTemplate:
-    def test_numeric_id_replaced(self):
+    def test_numeric_id_replaced(self) -> None:
         template = _url_to_template("https://example.com/products/123")
         assert "{id}" in template
         assert "products" in template
 
-    def test_static_path_preserved(self):
+    def test_static_path_preserved(self) -> None:
         template = _url_to_template("https://example.com/about")
         assert "about" in template
         assert "{id}" not in template
@@ -363,16 +405,24 @@ class TestUrlTemplate:
 
 
 class TestSiteModelSummary:
-    def test_summary_counts(self):
+    def test_summary_counts(self) -> None:
         s1 = _make_state("s1")
         s2 = _make_state("s2")
         analyses = {
             "s1": _make_analysis(PageArchetype.LISTING, "sig_a"),
             "s2": _make_analysis(PageArchetype.DETAIL, "sig_b"),
         }
-        action = Action(action_id="a1", action_type=ActionType.CLICK, target_selector="a", label="Click")
+        action = Action(
+            action_id="a1",
+            action_type=ActionType.CLICK,
+            target_selector="a",
+            label="Click",
+        )
         action_result = ActionResult(
-            action_id="a1", source_state_id="s1", target_state_id="s2", outcome=OutcomeType.NAVIGATION,
+            action_id="a1",
+            source_state_id="s1",
+            target_state_id="s2",
+            outcome=OutcomeType.NAVIGATION,
         )
         result = _make_result(
             states={"s1": s1, "s2": s2},
@@ -393,7 +443,7 @@ class TestSiteModelSummary:
 
 
 class TestSiteModelSerialization:
-    def test_round_trip_json(self):
+    def test_round_trip_json(self) -> None:
         s1 = _make_state("s1")
         analyses = {"s1": _make_analysis(PageArchetype.LISTING, "sig_a")}
         result = _make_result(states={"s1": s1})

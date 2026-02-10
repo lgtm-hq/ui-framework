@@ -78,7 +78,9 @@ class TestIElementDiscovererProtocol:
         import inspect
 
         hints = {}
-        for name, method in inspect.getmembers(IElementDiscoverer, predicate=inspect.isfunction):
+        for name, method in inspect.getmembers(
+            IElementDiscoverer, predicate=inspect.isfunction
+        ):
             if not name.startswith("_"):
                 hints[name] = method
         assert "discover" in hints
@@ -105,9 +107,8 @@ class TestIBrowserProtocol:
             "analyze_page_structure",
         ]
         for method_name in required:
-            assert hasattr(BrowserManager, method_name), (
-                f"BrowserManager missing {method_name}"
-            )
+            has = hasattr(BrowserManager, method_name)
+            assert has, f"BrowserManager missing {method_name}"
 
 
 class TestProtocolsAreRuntimeCheckable:
@@ -124,8 +125,7 @@ class TestProtocolsAreRuntimeCheckable:
             IElementDiscoverer,
         ],
     )
-    def test_runtime_checkable(self, protocol) -> None:
+    def test_runtime_checkable(self, protocol: type) -> None:
         # runtime_checkable protocols have _is_runtime_protocol set
-        assert getattr(protocol, "_is_runtime_protocol", False), (
-            f"{protocol.__name__} is not @runtime_checkable"
-        )
+        is_rt = getattr(protocol, "_is_runtime_protocol", False)
+        assert is_rt, f"{protocol.__name__} is not @runtime_checkable"

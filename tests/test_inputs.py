@@ -1,5 +1,8 @@
 """Tests for heuristic input data generation."""
 
+from collections.abc import Callable
+from typing import Any
+
 import pytest
 
 from flowscout.discovery.elements import ElementType, InteractiveElement
@@ -54,43 +57,45 @@ class TestGenerateInputValue:
             "phone_by_placeholder",
         ],
     )
-    def test_type_and_name_matching(self, kwargs, assertion):
+    def test_type_and_name_matching(
+        self, kwargs: dict[str, Any], assertion: Callable[[str], bool]
+    ) -> None:
         elem = _make_input(**kwargs)
         result = generate_input_value(elem)
         assert assertion(result), f"Failed for {kwargs}: got {result!r}"
 
-    def test_username_by_name(self):
+    def test_username_by_name(self) -> None:
         elem = _make_input(name="username")
         result = generate_input_value(elem)
         assert result == "janedoe42"
 
-    def test_invalid_scenario(self):
+    def test_invalid_scenario(self) -> None:
         elem = _make_input(input_type="email")
         result = generate_input_value(elem, scenario="invalid")
         assert "@" not in result
 
-    def test_fallback_for_unknown(self):
+    def test_fallback_for_unknown(self) -> None:
         elem = _make_input(name="custom_field_xyz")
         result = generate_input_value(elem)
         assert result == "test input"
 
-    def test_safe_profile_uses_safe_fallback(self):
+    def test_safe_profile_uses_safe_fallback(self) -> None:
         elem = _make_input(name="custom_field_xyz")
         result = generate_input_value(elem, input_profile="safe")
         assert result == "test input"
 
-    def test_contextual_profile_uses_contextual_fallback(self):
+    def test_contextual_profile_uses_contextual_fallback(self) -> None:
         elem = _make_input(name="custom_field_xyz")
         result = generate_input_value(elem, input_profile="contextual")
         assert result == "test input value"
 
-    def test_value_source_reports_field_pattern(self):
+    def test_value_source_reports_field_pattern(self) -> None:
         elem = _make_input(name="username")
         value, source = generate_input_value_with_source(elem)
         assert value
         assert source.startswith("field_pattern:")
 
-    def test_value_source_reports_fallback(self):
+    def test_value_source_reports_fallback(self) -> None:
         elem = _make_input(name="custom_field_xyz")
         _, source = generate_input_value_with_source(elem, input_profile="safe")
         assert source == "fallback:safe"

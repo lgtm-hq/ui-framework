@@ -1,6 +1,7 @@
 """Tests for action generation."""
 
 import json
+from typing import Any
 
 from flowscout.discovery.actions import (
     ActionType,
@@ -11,7 +12,7 @@ from flowscout.discovery.actions import (
 from flowscout.discovery.elements import ElementType, InteractiveElement
 
 
-def _make_elem(**kwargs) -> InteractiveElement:
+def _make_elem(**kwargs: Any) -> InteractiveElement:
     defaults = {
         "element_id": "test",
         "element_type": ElementType.BUTTON,
@@ -26,13 +27,13 @@ def _make_elem(**kwargs) -> InteractiveElement:
 
 
 class TestGenerateActions:
-    def test_button_generates_click(self):
+    def test_button_generates_click(self) -> None:
         elem = _make_elem()
         actions = generate_actions([elem])
         assert len(actions) == 1
         assert actions[0].action_type == ActionType.CLICK
 
-    def test_link_generates_click(self):
+    def test_link_generates_click(self) -> None:
         elem = _make_elem(
             element_type=ElementType.LINK,
             tag="a",
@@ -43,7 +44,7 @@ class TestGenerateActions:
         assert actions[0].action_type == ActionType.CLICK
         assert actions[0].metadata["href"] == "/page"
 
-    def test_external_link_filtered(self):
+    def test_external_link_filtered(self) -> None:
         elem = _make_elem(
             element_type=ElementType.LINK,
             tag="a",
@@ -52,7 +53,7 @@ class TestGenerateActions:
         actions = generate_actions([elem], base_url="https://mysite.com")
         assert len(actions) == 0
 
-    def test_input_generates_fill(self):
+    def test_input_generates_fill(self) -> None:
         elem = _make_elem(
             element_type=ElementType.INPUT_EMAIL,
             tag="input",
@@ -66,7 +67,7 @@ class TestGenerateActions:
         assert actions[0].metadata["input_profile"] == "safe"
         assert "input_source" in actions[0].metadata
 
-    def test_select_generates_option_actions(self):
+    def test_select_generates_option_actions(self) -> None:
         elem = _make_elem(
             element_type=ElementType.SELECT,
             tag="select",
@@ -76,17 +77,17 @@ class TestGenerateActions:
         assert len(actions) == 3
         assert all(a.action_type == ActionType.SELECT_OPTION for a in actions)
 
-    def test_disabled_element_skipped(self):
+    def test_disabled_element_skipped(self) -> None:
         elem = _make_elem(is_disabled=True)
         actions = generate_actions([elem])
         assert len(actions) == 0
 
-    def test_invisible_element_skipped(self):
+    def test_invisible_element_skipped(self) -> None:
         elem = _make_elem(is_visible=False)
         actions = generate_actions([elem])
         assert len(actions) == 0
 
-    def test_checkbox_generates_check(self):
+    def test_checkbox_generates_check(self) -> None:
         elem = _make_elem(
             element_type=ElementType.INPUT_CHECKBOX,
             tag="input",
@@ -96,7 +97,7 @@ class TestGenerateActions:
         assert len(actions) == 1
         assert actions[0].action_type == ActionType.CHECK
 
-    def test_action_metadata_includes_dom_id_when_present(self):
+    def test_action_metadata_includes_dom_id_when_present(self) -> None:
         elem = _make_elem(
             element_type=ElementType.INPUT_CHECKBOX,
             tag="input",
@@ -109,13 +110,13 @@ class TestGenerateActions:
         assert actions[0].metadata["dom_id"] == "toggle-track-desktop"
         assert actions[0].metadata["selector"] == "#toggle-track-desktop"
 
-    def test_tab_generates_click(self):
+    def test_tab_generates_click(self) -> None:
         elem = _make_elem(element_type=ElementType.TAB)
         actions = generate_actions([elem])
         assert len(actions) == 1
         assert actions[0].action_type == ActionType.CLICK
 
-    def test_low_signal_icon_button_is_skipped(self):
+    def test_low_signal_icon_button_is_skipped(self) -> None:
         elem = _make_elem(
             label="",
             aria_label=None,
@@ -125,7 +126,7 @@ class TestGenerateActions:
         actions = generate_actions([elem])
         assert actions == []
 
-    def test_sorted_by_priority(self):
+    def test_sorted_by_priority(self) -> None:
         link = _make_elem(
             element_id="link1",
             element_type=ElementType.LINK,
@@ -144,23 +145,23 @@ class TestGenerateActions:
 
 
 class TestBuildActionId:
-    def test_deterministic(self):
+    def test_deterministic(self) -> None:
         id1 = build_action_id("button#x", "click")
         id2 = build_action_id("button#x", "click")
         assert id1 == id2
 
-    def test_different_inputs(self):
+    def test_different_inputs(self) -> None:
         id1 = build_action_id("button#x", "click")
         id2 = build_action_id("button#y", "click")
         assert id1 != id2
 
 
 class TestEdgeCases:
-    def test_empty_element_list(self):
+    def test_empty_element_list(self) -> None:
         actions = generate_actions([])
         assert actions == []
 
-    def test_all_disabled_elements(self):
+    def test_all_disabled_elements(self) -> None:
         elems = [
             _make_elem(element_id="d1", is_disabled=True),
             _make_elem(element_id="d2", is_disabled=True),
@@ -168,7 +169,7 @@ class TestEdgeCases:
         actions = generate_actions(elems)
         assert actions == []
 
-    def test_all_invisible_elements(self):
+    def test_all_invisible_elements(self) -> None:
         elems = [
             _make_elem(element_id="h1", is_visible=False),
             _make_elem(element_id="h2", is_visible=False),
@@ -176,7 +177,7 @@ class TestEdgeCases:
         actions = generate_actions(elems)
         assert actions == []
 
-    def test_intent_attached_to_actions(self):
+    def test_intent_attached_to_actions(self) -> None:
         elem = _make_elem(
             element_type=ElementType.LINK,
             tag="a",
@@ -190,7 +191,7 @@ class TestEdgeCases:
 
 
 class TestGenerateFormSubmitActions:
-    def test_groups_elements_by_form(self):
+    def test_groups_elements_by_form(self) -> None:
         email = _make_elem(
             element_id="e1",
             element_type=ElementType.INPUT_EMAIL,
@@ -210,7 +211,7 @@ class TestGenerateFormSubmitActions:
         assert len(actions) == 1
         assert all(a.action_type == ActionType.SUBMIT_FORM for a in actions)
 
-    def test_field_values_contain_input_data(self):
+    def test_field_values_contain_input_data(self) -> None:
         email = _make_elem(
             element_id="e1",
             element_type=ElementType.INPUT_EMAIL,
@@ -231,7 +232,7 @@ class TestGenerateFormSubmitActions:
         assert '#f input[name="email"]' in fields
         assert "@" in fields['#f input[name="email"]']
 
-    def test_invalid_submission_empties_required_in_negative_profile(self):
+    def test_invalid_submission_empties_required_in_negative_profile(self) -> None:
         email = _make_elem(
             element_id="e1",
             element_type=ElementType.INPUT_EMAIL,
@@ -248,13 +249,15 @@ class TestGenerateFormSubmitActions:
             label="Submit",
             parent_form_selector="#f",
         )
-        actions = generate_form_submit_actions([email, submit], input_profile="negative")
+        actions = generate_form_submit_actions(
+            [email, submit], input_profile="negative"
+        )
         invalid = [a for a in actions if a.metadata.get("scenario") == "invalid"]
         assert len(invalid) == 1
         fields = json.loads(invalid[0].metadata["field_values_json"])
         assert fields['#f input[name="email"]'] == ""
 
-    def test_safe_profile_skips_invalid_submission(self):
+    def test_safe_profile_skips_invalid_submission(self) -> None:
         email = _make_elem(
             element_id="e1",
             element_type=ElementType.INPUT_EMAIL,
@@ -275,10 +278,10 @@ class TestGenerateFormSubmitActions:
         invalid = [a for a in actions if a.metadata.get("scenario") == "invalid"]
         assert invalid == []
 
-    def test_no_elements_returns_empty(self):
+    def test_no_elements_returns_empty(self) -> None:
         assert generate_form_submit_actions([]) == []
 
-    def test_form_without_explicit_submit(self):
+    def test_form_without_explicit_submit(self) -> None:
         email = _make_elem(
             element_id="e1",
             element_type=ElementType.INPUT_EMAIL,
@@ -297,7 +300,7 @@ class TestGenerateFormSubmitActions:
         actions = generate_form_submit_actions([email, btn])
         assert len(actions) >= 1
 
-    def test_intent_is_submit(self):
+    def test_intent_is_submit(self) -> None:
         email = _make_elem(
             element_id="e1",
             element_type=ElementType.INPUT_EMAIL,

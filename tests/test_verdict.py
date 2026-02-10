@@ -12,7 +12,7 @@ from flowscout.discovery.intent import ActionIntent, IntentClass
 
 
 @pytest.fixture
-def computer():
+def computer() -> VerdictComputer:
     return VerdictComputer()
 
 
@@ -25,19 +25,21 @@ def _intent(cls: IntentClass, expected: str = "Test effect") -> ActionIntent:
 
 
 class TestStepVerdict:
-    def test_network_error_always_fails(self, computer):
+    def test_network_error_always_fails(self, computer: VerdictComputer) -> None:
         sv = computer.compute_step_verdict(
             OutcomeType.NETWORK_ERROR, _intent(IntentClass.NAVIGATE)
         )
         assert sv.verdict == Verdict.FAIL
 
-    def test_exception_always_fails(self, computer):
+    def test_exception_always_fails(self, computer: VerdictComputer) -> None:
         sv = computer.compute_step_verdict(
             OutcomeType.EXCEPTION, _intent(IntentClass.INPUT)
         )
         assert sv.verdict == Verdict.FAIL
 
-    def test_exception_includes_observed_detail(self, computer):
+    def test_exception_includes_observed_detail(
+        self, computer: VerdictComputer
+    ) -> None:
         sv = computer.compute_step_verdict(
             OutcomeType.EXCEPTION,
             _intent(IntentClass.INPUT),
@@ -45,7 +47,9 @@ class TestStepVerdict:
         )
         assert "TimeoutError" in sv.actual
 
-    def test_invalid_scenario_validation_error_passes(self, computer):
+    def test_invalid_scenario_validation_error_passes(
+        self, computer: VerdictComputer
+    ) -> None:
         sv = computer.compute_step_verdict(
             OutcomeType.VALIDATION_ERROR,
             _intent(IntentClass.SUBMIT),
@@ -53,7 +57,7 @@ class TestStepVerdict:
         )
         assert sv.verdict == Verdict.PASS
 
-    def test_invalid_scenario_navigation_fails(self, computer):
+    def test_invalid_scenario_navigation_fails(self, computer: VerdictComputer) -> None:
         sv = computer.compute_step_verdict(
             OutcomeType.NAVIGATION,
             _intent(IntentClass.SUBMIT),
@@ -92,11 +96,19 @@ class TestStepVerdict:
         ],
         ids=lambda val: val.value if hasattr(val, "value") else str(val),
     )
-    def test_intent_outcome_verdict(self, computer, outcome, intent_class, expected_verdict):
+    def test_intent_outcome_verdict(
+        self,
+        computer: VerdictComputer,
+        outcome: OutcomeType,
+        intent_class: IntentClass,
+        expected_verdict: Verdict,
+    ) -> None:
         sv = computer.compute_step_verdict(outcome, _intent(intent_class))
         assert sv.verdict == expected_verdict
 
-    def test_validation_error_includes_observed_detail(self, computer):
+    def test_validation_error_includes_observed_detail(
+        self, computer: VerdictComputer
+    ) -> None:
         sv = computer.compute_step_verdict(
             OutcomeType.VALIDATION_ERROR,
             _intent(IntentClass.SUBMIT),
@@ -104,15 +116,15 @@ class TestStepVerdict:
         )
         assert "Username is required" in sv.actual
 
-    def test_no_intent_timeout_warns(self, computer):
+    def test_no_intent_timeout_warns(self, computer: VerdictComputer) -> None:
         sv = computer.compute_step_verdict(OutcomeType.TIMEOUT, None)
         assert sv.verdict == Verdict.WARN
 
-    def test_no_intent_other_inconclusive(self, computer):
+    def test_no_intent_other_inconclusive(self, computer: VerdictComputer) -> None:
         sv = computer.compute_step_verdict(OutcomeType.DOM_CHANGE, None)
         assert sv.verdict == Verdict.INCONCLUSIVE
 
-    def test_fallback_inconclusive(self, computer):
+    def test_fallback_inconclusive(self, computer: VerdictComputer) -> None:
         sv = computer.compute_step_verdict(
             OutcomeType.VISUAL_CHANGE, _intent(IntentClass.NAVIGATE)
         )
@@ -120,7 +132,7 @@ class TestStepVerdict:
 
 
 class TestJourneyVerdict:
-    def test_all_pass(self, computer):
+    def test_all_pass(self, computer: VerdictComputer) -> None:
         steps = [
             StepVerdict(verdict=Verdict.PASS, reason="ok"),
             StepVerdict(verdict=Verdict.PASS, reason="ok"),
@@ -130,7 +142,7 @@ class TestJourneyVerdict:
         assert jv.pass_count == 2
         assert jv.fail_count == 0
 
-    def test_any_fail_means_fail(self, computer):
+    def test_any_fail_means_fail(self, computer: VerdictComputer) -> None:
         steps = [
             StepVerdict(verdict=Verdict.PASS, reason="ok"),
             StepVerdict(verdict=Verdict.FAIL, reason="broken"),
@@ -139,7 +151,7 @@ class TestJourneyVerdict:
         assert jv.verdict == Verdict.FAIL
         assert jv.fail_count == 1
 
-    def test_warn_without_fail_means_warn(self, computer):
+    def test_warn_without_fail_means_warn(self, computer: VerdictComputer) -> None:
         steps = [
             StepVerdict(verdict=Verdict.PASS, reason="ok"),
             StepVerdict(verdict=Verdict.WARN, reason="hmm"),
@@ -148,11 +160,11 @@ class TestJourneyVerdict:
         assert jv.verdict == Verdict.WARN
         assert jv.warn_count == 1
 
-    def test_empty_steps_inconclusive(self, computer):
+    def test_empty_steps_inconclusive(self, computer: VerdictComputer) -> None:
         jv = computer.compute_journey_verdict([])
         assert jv.verdict == Verdict.INCONCLUSIVE
 
-    def test_fail_takes_priority_over_warn(self, computer):
+    def test_fail_takes_priority_over_warn(self, computer: VerdictComputer) -> None:
         steps = [
             StepVerdict(verdict=Verdict.WARN, reason="hmm"),
             StepVerdict(verdict=Verdict.FAIL, reason="broken"),

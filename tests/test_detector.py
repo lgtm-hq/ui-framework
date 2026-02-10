@@ -7,10 +7,10 @@ from flowscout.discovery.actions import OutcomeType
 
 
 class TestOutcomeDetector:
-    def setup_method(self):
+    def setup_method(self) -> None:
         self.detector = OutcomeDetector()
 
-    def test_url_change_is_navigation(self):
+    def test_url_change_is_navigation(self) -> None:
         result = self.detector.classify(
             url_before="https://example.com/a",
             url_after="https://example.com/b",
@@ -22,7 +22,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.NAVIGATION
 
-    def test_network_error(self):
+    def test_network_error(self) -> None:
         result = self.detector.classify(
             url_before="https://example.com",
             url_after="https://example.com",
@@ -34,7 +34,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.NETWORK_ERROR
 
-    def test_console_error(self):
+    def test_console_error(self) -> None:
         result = self.detector.classify(
             url_before="https://example.com",
             url_after="https://example.com",
@@ -46,7 +46,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.CONSOLE_ERROR
 
-    def test_validation_error(self):
+    def test_validation_error(self) -> None:
         result = self.detector.classify(
             url_before="https://example.com",
             url_after="https://example.com",
@@ -58,7 +58,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.VALIDATION_ERROR
 
-    def test_dom_change(self):
+    def test_dom_change(self) -> None:
         result = self.detector.classify(
             url_before="https://example.com",
             url_after="https://example.com",
@@ -70,7 +70,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.DOM_CHANGE
 
-    def test_no_change(self):
+    def test_no_change(self) -> None:
         result = self.detector.classify(
             url_before="https://example.com",
             url_after="https://example.com",
@@ -82,7 +82,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.NO_CHANGE
 
-    def test_priority_navigation_over_dom_change(self):
+    def test_priority_navigation_over_dom_change(self) -> None:
         """Navigation takes priority even when DOM also changed."""
         result = self.detector.classify(
             url_before="https://example.com/a",
@@ -95,7 +95,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.NAVIGATION
 
-    def test_400_is_network_error(self):
+    def test_400_is_network_error(self) -> None:
         result = self.detector.classify(
             url_before="https://example.com",
             url_after="https://example.com",
@@ -107,7 +107,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.NETWORK_ERROR
 
-    def test_multiple_error_types_priority(self):
+    def test_multiple_error_types_priority(self) -> None:
         """When network errors, console errors, and validation errors all occur,
         network error should take priority."""
         result = self.detector.classify(
@@ -121,7 +121,7 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.NETWORK_ERROR
 
-    def test_console_and_validation_errors(self):
+    def test_console_and_validation_errors(self) -> None:
         """Console errors take priority over validation errors in the detector."""
         result = self.detector.classify(
             url_before="https://example.com",
@@ -138,7 +138,7 @@ class TestOutcomeDetector:
 class _FakePage:
     """Minimal page stub for testing find_error_messages."""
 
-    def __init__(self, return_value):
+    def __init__(self, return_value: list[str]) -> None:
         self._return_value = return_value
 
     async def evaluate(self, js, *args):

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from flowscout.analysis.archetype import (
     ArchetypeRegistry,
-    CatalogEntry,
     PageAnalysis,
     PageArchetype,
-    PageCatalog,
     ZoneType,
     build_page_analysis,
     classify_archetype,
@@ -17,12 +17,14 @@ from flowscout.analysis.archetype import (
     _generate_semantic_name,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers — mock raw dicts
 # ---------------------------------------------------------------------------
 
-def _listing_raw(item_count: int = 12, has_pagination: bool = True, has_filters: bool = False) -> dict:
+
+def _listing_raw(
+    item_count: int = 12, has_pagination: bool = True, has_filters: bool = False
+) -> dict[str, Any]:
     return {
         "repeated_groups": [
             {
@@ -30,7 +32,9 @@ def _listing_raw(item_count: int = 12, has_pagination: bool = True, has_filters:
                 "count": item_count,
                 "tag_signature": "div>a>img+div>h3+p",
                 "item_texts": [f"Item {i}" for i in range(min(item_count, 10))],
-                "item_selectors": [f".grid > div:nth-of-type({i})" for i in range(1, 4)],
+                "item_selectors": [
+                    f".grid > div:nth-of-type({i})" for i in range(1, 4)
+                ],
             }
         ],
         "content_metrics": {
@@ -57,7 +61,7 @@ def _listing_raw(item_count: int = 12, has_pagination: bool = True, has_filters:
     }
 
 
-def _detail_raw() -> dict:
+def _detail_raw() -> dict[str, Any]:
     return {
         "repeated_groups": [],
         "content_metrics": {
@@ -84,7 +88,7 @@ def _detail_raw() -> dict:
     }
 
 
-def _form_raw(input_count: int = 5) -> dict:
+def _form_raw(input_count: int = 5) -> dict[str, Any]:
     return {
         "repeated_groups": [],
         "content_metrics": {
@@ -111,7 +115,7 @@ def _form_raw(input_count: int = 5) -> dict:
     }
 
 
-def _search_results_raw() -> dict:
+def _search_results_raw() -> dict[str, Any]:
     return {
         "repeated_groups": [
             {
@@ -146,7 +150,7 @@ def _search_results_raw() -> dict:
     }
 
 
-def _landing_raw() -> dict:
+def _landing_raw() -> dict[str, Any]:
     return {
         "repeated_groups": [
             {
@@ -181,7 +185,7 @@ def _landing_raw() -> dict:
     }
 
 
-def _error_raw() -> dict:
+def _error_raw() -> dict[str, Any]:
     return {
         "repeated_groups": [],
         "content_metrics": {
@@ -208,7 +212,7 @@ def _error_raw() -> dict:
     }
 
 
-def _empty_raw() -> dict:
+def _empty_raw() -> dict[str, Any]:
     return {
         "repeated_groups": [],
         "content_metrics": {
@@ -239,6 +243,7 @@ def _empty_raw() -> dict:
 # TestClassifyArchetype
 # ---------------------------------------------------------------------------
 
+
 class TestClassifyArchetype:
     """Parametrized archetype classification tests."""
 
@@ -252,52 +257,54 @@ class TestClassifyArchetype:
             (_error_raw, PageArchetype.ERROR),
         ],
     )
-    def test_primary_archetype(self, raw_factory, expected_archetype):
+    def test_primary_archetype(
+        self, raw_factory: Any, expected_archetype: PageArchetype
+    ) -> None:
         raw = raw_factory()
         archetype, confidence = classify_archetype(raw)
         assert archetype == expected_archetype
         assert confidence > 0
 
-    def test_listing_with_many_items(self):
+    def test_listing_with_many_items(self) -> None:
         raw = _listing_raw(item_count=20, has_pagination=True, has_filters=True)
         archetype, confidence = classify_archetype(raw)
         assert archetype == PageArchetype.LISTING
         assert confidence > 0.3
 
-    def test_listing_without_pagination(self):
+    def test_listing_without_pagination(self) -> None:
         raw = _listing_raw(item_count=8, has_pagination=False)
         archetype, _ = classify_archetype(raw)
         assert archetype == PageArchetype.LISTING
 
-    def test_form_with_many_inputs(self):
+    def test_form_with_many_inputs(self) -> None:
         raw = _form_raw(input_count=8)
         archetype, confidence = classify_archetype(raw)
         assert archetype == PageArchetype.FORM
         assert confidence > 0.3
 
-    def test_empty_page_is_unknown(self):
+    def test_empty_page_is_unknown(self) -> None:
         raw = _empty_raw()
         archetype, confidence = classify_archetype(raw)
         assert archetype == PageArchetype.UNKNOWN
         assert confidence == 0.0
 
-    def test_confidence_is_normalized(self):
+    def test_confidence_is_normalized(self) -> None:
         raw = _listing_raw()
         _, confidence = classify_archetype(raw)
         assert 0.0 <= confidence <= 1.0
 
-    def test_detail_with_long_text(self):
+    def test_detail_with_long_text(self) -> None:
         raw = _detail_raw()
         raw["content_metrics"]["total_text_length"] = 5000
         archetype, _ = classify_archetype(raw)
         assert archetype == PageArchetype.DETAIL
 
-    def test_search_results_with_search_and_results(self):
+    def test_search_results_with_search_and_results(self) -> None:
         raw = _search_results_raw()
         archetype, _ = classify_archetype(raw)
         assert archetype == PageArchetype.SEARCH_RESULTS
 
-    def test_landing_with_hero(self):
+    def test_landing_with_hero(self) -> None:
         raw = _landing_raw()
         archetype, _ = classify_archetype(raw)
         assert archetype == PageArchetype.LANDING
@@ -307,29 +314,30 @@ class TestClassifyArchetype:
 # TestStructuralSignature
 # ---------------------------------------------------------------------------
 
+
 class TestStructuralSignature:
     """Structural signature computation."""
 
-    def test_same_structure_same_sig(self):
+    def test_same_structure_same_sig(self) -> None:
         skeleton_a = "main(div(h1,img,p),aside(h2,ul))"
         skeleton_b = "main(div(h1,img,p),aside(h2,ul))"
         assert compute_structural_signature(skeleton_a) == compute_structural_signature(
             skeleton_b
         )
 
-    def test_different_structure_different_sig(self):
+    def test_different_structure_different_sig(self) -> None:
         skeleton_a = "main(div(h1,img,p),aside(h2,ul))"
         skeleton_b = "main(section(h1,p),div(div,div))"
         assert compute_structural_signature(skeleton_a) != compute_structural_signature(
             skeleton_b
         )
 
-    def test_signature_is_16_hex_chars(self):
+    def test_signature_is_16_hex_chars(self) -> None:
         sig = compute_structural_signature("main(div(h1,p))")
         assert len(sig) == 16
         assert all(c in "0123456789abcdef" for c in sig)
 
-    def test_empty_skeleton(self):
+    def test_empty_skeleton(self) -> None:
         sig = compute_structural_signature("")
         assert len(sig) == 16
 
@@ -337,6 +345,7 @@ class TestStructuralSignature:
 # ---------------------------------------------------------------------------
 # TestArchetypeRegistry
 # ---------------------------------------------------------------------------
+
 
 class TestArchetypeRegistry:
     """Registry tracking and saturation."""
@@ -348,18 +357,18 @@ class TestArchetypeRegistry:
             structural_signature=compute_structural_signature(skeleton),
         )
 
-    def test_first_instance_is_novel(self):
+    def test_first_instance_is_novel(self) -> None:
         reg = ArchetypeRegistry()
         analysis = self._make_analysis()
         assert reg.register("s1", analysis) is True
 
-    def test_second_instance_is_not_novel(self):
+    def test_second_instance_is_not_novel(self) -> None:
         reg = ArchetypeRegistry()
         analysis = self._make_analysis()
         reg.register("s1", analysis)
         assert reg.register("s2", analysis) is False
 
-    def test_saturation_at_threshold(self):
+    def test_saturation_at_threshold(self) -> None:
         reg = ArchetypeRegistry(saturation_threshold=3)
         analysis = self._make_analysis()
         sig = analysis.structural_signature
@@ -369,7 +378,7 @@ class TestArchetypeRegistry:
         reg.register("s3", analysis)
         assert reg.is_saturated(sig) is True
 
-    def test_instance_count(self):
+    def test_instance_count(self) -> None:
         reg = ArchetypeRegistry()
         analysis = self._make_analysis()
         sig = analysis.structural_signature
@@ -379,7 +388,7 @@ class TestArchetypeRegistry:
         reg.register("s2", analysis)
         assert reg.instance_count(sig) == 2
 
-    def test_different_signatures_independent(self):
+    def test_different_signatures_independent(self) -> None:
         reg = ArchetypeRegistry(saturation_threshold=2)
         a1 = self._make_analysis("main(div)")
         a2 = self._make_analysis("main(section)")
@@ -389,7 +398,7 @@ class TestArchetypeRegistry:
         assert reg.is_saturated(a1.structural_signature) is True
         assert reg.is_saturated(a2.structural_signature) is False
 
-    def test_archetype_distribution(self):
+    def test_archetype_distribution(self) -> None:
         reg = ArchetypeRegistry()
         a1 = self._make_analysis("main(div)")
         reg.register("s1", a1)
@@ -397,7 +406,7 @@ class TestArchetypeRegistry:
         dist = reg.archetype_distribution()
         assert dist["listing"] == 2
 
-    def test_all_signatures(self):
+    def test_all_signatures(self) -> None:
         reg = ArchetypeRegistry()
         a1 = self._make_analysis("main(div)")
         a2 = self._make_analysis("main(section)")
@@ -411,10 +420,11 @@ class TestArchetypeRegistry:
 # TestPageCatalog
 # ---------------------------------------------------------------------------
 
+
 class TestPageCatalog:
     """Catalog entry generation and zone grouping."""
 
-    def test_catalog_from_raw_data(self):
+    def test_catalog_from_raw_data(self) -> None:
         raw = _listing_raw()
         raw["element_catalog"] = [
             {
@@ -466,19 +476,19 @@ class TestPageCatalog:
         search_entries = [e for e in catalog.entries if e.zone_type == ZoneType.SEARCH]
         assert len(search_entries) == 1
 
-    def test_semantic_name_from_label(self):
+    def test_semantic_name_from_label(self) -> None:
         name = _generate_semantic_name("a[href='/about']", "About Us", "a")
         assert name == "about_us"
 
-    def test_semantic_name_from_aria_label(self):
+    def test_semantic_name_from_aria_label(self) -> None:
         name = _generate_semantic_name("[aria-label='Search']", "", "button")
         assert name == "search"
 
-    def test_semantic_name_fallback_to_tag(self):
+    def test_semantic_name_fallback_to_tag(self) -> None:
         name = _generate_semantic_name("div:nth-of-type(3)", "", "div")
         assert name.startswith("div")
 
-    def test_semantic_name_max_length(self):
+    def test_semantic_name_max_length(self) -> None:
         long_label = "A" * 100
         name = _generate_semantic_name("div", long_label, "div")
         assert len(name) <= 40
@@ -488,10 +498,11 @@ class TestPageCatalog:
 # TestBuildPageAnalysis
 # ---------------------------------------------------------------------------
 
+
 class TestBuildPageAnalysis:
     """Integration test for build_page_analysis."""
 
-    def test_listing_analysis(self):
+    def test_listing_analysis(self) -> None:
         raw = _listing_raw()
         analysis = build_page_analysis(raw)
         assert analysis.archetype == PageArchetype.LISTING
@@ -501,26 +512,26 @@ class TestBuildPageAnalysis:
         assert len(analysis.repeated_structures) == 1
         assert analysis.repeated_structures[0].item_count == 12
 
-    def test_detail_analysis(self):
+    def test_detail_analysis(self) -> None:
         raw = _detail_raw()
         analysis = build_page_analysis(raw)
         assert analysis.archetype == PageArchetype.DETAIL
         assert len(analysis.heading_hierarchy) > 0
 
-    def test_content_density(self):
+    def test_content_density(self) -> None:
         raw = _listing_raw()
         analysis = build_page_analysis(raw)
         assert analysis.content_density.total_text_length == 3000
         assert analysis.content_density.interactive_count > 0
         assert analysis.content_density.text_to_interactive_ratio > 0
 
-    def test_extracted_entities(self):
+    def test_extracted_entities(self) -> None:
         raw = _listing_raw()
         analysis = build_page_analysis(raw)
         assert len(analysis.extracted_entities) > 0
         assert "Item 0" in analysis.extracted_entities
 
-    def test_zones_populated(self):
+    def test_zones_populated(self) -> None:
         raw = _listing_raw()
         raw["element_catalog"] = [
             {
@@ -537,7 +548,7 @@ class TestBuildPageAnalysis:
         analysis = build_page_analysis(raw)
         assert len(analysis.zones) > 0
 
-    def test_empty_raw_data(self):
+    def test_empty_raw_data(self) -> None:
         raw = _empty_raw()
         analysis = build_page_analysis(raw)
         assert analysis.archetype == PageArchetype.UNKNOWN

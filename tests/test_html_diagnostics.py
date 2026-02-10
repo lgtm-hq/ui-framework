@@ -109,9 +109,7 @@ def test_build_diagnostics_uses_unspecified_reason_when_missing() -> None:
     )
 
     assert diagnostics["low_confidence_count"] == 1
-    assert diagnostics["reason_breakdown"] == [
-        {"reason": "unspecified", "count": 1}
-    ]
+    assert diagnostics["reason_breakdown"] == [{"reason": "unspecified", "count": 1}]
 
 
 def test_build_execution_rows_includes_dom_id_from_action_metadata() -> None:

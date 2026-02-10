@@ -1,7 +1,8 @@
 # V1 Product Decisions (Deterministic, Local-First)
 
 This document captures agreed V1 defaults and explains how they work.  
-These decisions are intended to keep the framework deterministic, security-first, and useful for QA/SDET/Dev teams without AI dependencies.
+These decisions are intended to keep the framework deterministic,
+security-first, and useful for QA/SDET/Dev teams without AI dependencies.
 
 ## V1 Success Definition
 
@@ -32,7 +33,8 @@ Coverage should include:
 
 ## State Identity Strategy
 
-V1 state identity uses three layers so equivalent screens map together while meaningful UI state changes still split correctly.
+V1 state identity uses three layers so equivalent screens map together
+while meaningful UI state changes still split correctly.
 
 1. `route_key`: normalized path pattern.
 2. `view_key`: `route_key + dom_structure_hash + primary_heading`.

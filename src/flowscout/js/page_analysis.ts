@@ -27,7 +27,7 @@
     }> = [];
 
     const containers = document.querySelectorAll(
-      "main, [role='main'], .content, #content, article, section, .container, .wrapper, body"
+      "main, [role='main'], .content, #content, article, section, .container, .wrapper, body",
     );
 
     const visited = new Set<Element>();
@@ -96,19 +96,13 @@
     const body = document.body;
     const textLen = (body.innerText || "").length;
     const headings = body.querySelectorAll("h1, h2, h3, h4, h5, h6");
-    const h1s = Array.from(body.querySelectorAll("h1")).map(
-      (h) => (h.textContent || "").trim()
-    );
-    const h2s = Array.from(body.querySelectorAll("h2")).map(
-      (h) => (h.textContent || "").trim()
-    );
+    const h1s = Array.from(body.querySelectorAll("h1")).map((h) => (h.textContent || "").trim());
+    const h2s = Array.from(body.querySelectorAll("h2")).map((h) => (h.textContent || "").trim());
     const images = body.querySelectorAll("img, picture, svg[role='img']");
     const links = body.querySelectorAll("a[href]");
-    const inputs = body.querySelectorAll(
-      "input, textarea, select"
-    );
+    const inputs = body.querySelectorAll("input, textarea, select");
     const interactives = body.querySelectorAll(
-      "a, button, input, textarea, select, [role='button'], [role='link'], [role='tab'], [onclick]"
+      "a, button, input, textarea, select, [role='button'], [role='link'], [role='tab'], [onclick]",
     );
 
     return {
@@ -133,29 +127,25 @@
     has_single_heading_focus: boolean;
   } {
     const body = document.body;
-    const hasNav =
-      body.querySelector("nav, [role='navigation']") !== null;
+    const hasNav = body.querySelector("nav, [role='navigation']") !== null;
     const hasSearch =
       body.querySelector(
-        "input[type='search'], [role='search'], input[placeholder*='earch'], input[aria-label*='earch']"
+        "input[type='search'], [role='search'], input[placeholder*='earch'], input[aria-label*='earch']",
       ) !== null;
     const hasPagination =
       body.querySelector(
-        "[aria-label*='agination'], .pagination, .pager, nav[aria-label*='age'], [role='navigation'][aria-label*='age']"
+        "[aria-label*='agination'], .pagination, .pager, nav[aria-label*='age'], [role='navigation'][aria-label*='age']",
       ) !== null;
     const hasFilters =
       body.querySelector(
-        "[aria-label*='ilter'], .filter, .filters, select[name*='filter'], select[name*='sort']"
+        "[aria-label*='ilter'], .filter, .filters, select[name*='filter'], select[name*='sort']",
       ) !== null;
     const hasHero =
-      body.querySelector(
-        ".hero, [class*='hero'], .banner, [class*='banner'], .jumbotron"
-      ) !== null;
+      body.querySelector(".hero, [class*='hero'], .banner, [class*='banner'], .jumbotron") !== null;
 
     const h1s = body.querySelectorAll("h1");
     const h2s = body.querySelectorAll("h2");
-    const hasSingleHeadingFocus =
-      h1s.length === 1 && h2s.length <= 2;
+    const hasSingleHeadingFocus = h1s.length === 1 && h2s.length <= 2;
 
     return {
       has_nav: hasNav,
@@ -169,8 +159,7 @@
 
   // --- Structural Skeleton ---
   function getStructuralSkeleton(): string {
-    const main =
-      document.querySelector("main, [role='main']") || document.body;
+    const main = document.querySelector("main, [role='main']") || document.body;
     return buildSkeleton(main, 4);
   }
 
@@ -186,10 +175,7 @@
   }
 
   // --- Extracted Entities ---
-  function extractEntities(
-    groups: Array<{ item_texts: string[] }>,
-    h2Texts: string[]
-  ): string[] {
+  function extractEntities(groups: Array<{ item_texts: string[] }>, h2Texts: string[]): string[] {
     const entities: string[] = [];
     const seen = new Set<string>();
 
@@ -219,7 +205,11 @@
   function isElementVisible(el: Element): boolean {
     const node = el as HTMLElement;
     const style = window.getComputedStyle(node);
-    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") {
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      style.visibility === "collapse"
+    ) {
       return false;
     }
     if (Number.parseFloat(style.opacity || "1") === 0) {
@@ -264,7 +254,7 @@
 
     const allElements = document.querySelectorAll(
       "a, button, input, textarea, select, [role='button'], [role='link'], [role='tab'], " +
-      "[role='menuitem'], [role='option'], [role='search'], h1, h2, h3, h4, h5, h6, img"
+        "[role='menuitem'], [role='option'], [role='search'], h1, h2, h3, h4, h5, h6, img",
     );
 
     const seen = new Set<string>();
@@ -283,10 +273,9 @@
       const isVisible = isElementVisible(el);
 
       const rect = el.getBoundingClientRect();
-      const bbox =
-        isVisible
-          ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
-          : null;
+      const bbox = isVisible
+        ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+        : null;
 
       catalog.push({
         selector,
@@ -321,18 +310,13 @@
         const clsLower = cls.toLowerCase();
         if (clsLower.includes("search")) return "search";
         if (clsLower.includes("filter")) return "filter";
-        if (
-          clsLower.includes("pagination") ||
-          clsLower.includes("pager")
-        )
-          return "pagination";
+        if (clsLower.includes("pagination") || clsLower.includes("pager")) return "pagination";
         if (clsLower.includes("sidebar")) return "sidebar";
         if (clsLower.includes("nav")) return "navigation";
       }
 
       const ariaLabel = (current.getAttribute("aria-label") || "").toLowerCase();
-      if (ariaLabel.includes("pagination") || ariaLabel.includes("page"))
-        return "pagination";
+      if (ariaLabel.includes("pagination") || ariaLabel.includes("page")) return "pagination";
       if (ariaLabel.includes("filter")) return "filter";
       if (ariaLabel.includes("search")) return "search";
 
@@ -421,7 +405,7 @@
     if (el.parentElement) {
       const parent = buildSelector(el.parentElement);
       const siblings = Array.from(el.parentElement.children).filter(
-        (c) => c.tagName === el.tagName
+        (c) => c.tagName === el.tagName,
       );
       if (siblings.length === 1) {
         return `${parent} > ${tag}`;

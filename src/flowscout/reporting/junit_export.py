@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405 - generating XML, not parsing untrusted input
 from pathlib import Path
-from xml.dom import minidom
+from xml.dom import minidom  # nosec B408 - generating XML, not parsing untrusted input
 
-from flowscout.analysis.graph import ExplorationResult
+from flowscout.analysis.graph import ExplorationResult, Flow
 
 
 def generate_junit_report(result: ExplorationResult, output_path: str) -> None:
@@ -25,7 +25,7 @@ def _build_junit_xml(result: ExplorationResult) -> ET.Element:
     testsuites.set("time", str(round(result.duration_seconds, 2)))
 
     # Group flows by category
-    categories: dict[str, list] = {}
+    categories: dict[str, list[Flow]] = {}
     for flow in result.flows:
         cat = flow.category or "Other"
         categories.setdefault(cat, []).append(flow)
@@ -55,14 +55,18 @@ def _build_junit_xml(result: ExplorationResult) -> ET.Element:
 
             if verdict_val == "fail":
                 failure = ET.SubElement(testcase, "failure")
-                failure.set("message", flow.verdict.summary if flow.verdict else "Test failed")
+                failure.set(
+                    "message", flow.verdict.summary if flow.verdict else "Test failed"
+                )
                 failure.set("type", "AssertionError")
                 if flow.narrative and flow.narrative.summary:
                     failure.text = flow.narrative.summary
                 suite_failures += 1
             elif verdict_val == "warn":
                 error = ET.SubElement(testcase, "error")
-                error.set("message", flow.verdict.summary if flow.verdict else "Warning")
+                error.set(
+                    "message", flow.verdict.summary if flow.verdict else "Warning"
+                )
                 error.set("type", "Warning")
                 suite_errors += 1
             elif not verdict_val or verdict_val == "inconclusive":
@@ -89,5 +93,5 @@ def _build_junit_xml(result: ExplorationResult) -> ET.Element:
 def _prettify(element: ET.Element) -> str:
     """Return a pretty-printed XML string."""
     rough = ET.tostring(element, encoding="unicode", xml_declaration=True)
-    parsed = minidom.parseString(rough)
+    parsed = minidom.parseString(rough)  # nosec B318 - parsing our own generated XML
     return parsed.toprettyxml(indent="  ")

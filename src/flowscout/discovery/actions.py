@@ -6,12 +6,15 @@ from enum import StrEnum, auto
 from hashlib import md5
 
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
 from flowscout.discovery.elements import ElementType, InteractiveElement
-from flowscout.discovery.inputs import generate_input_value, generate_input_value_with_source
+from flowscout.discovery.inputs import (
+    generate_input_value,
+    generate_input_value_with_source,
+)
 from flowscout.discovery.intent import ActionIntent, infer_intent
 
 if TYPE_CHECKING:
@@ -91,7 +94,8 @@ class ActionResult(BaseModel):
 
 def build_action_id(selector: str, action_type: str, value: str = "") -> str:
     """Create a stable hash ID for an action."""
-    return md5(f"{selector}:{action_type}:{value}".encode()).hexdigest()[:12]
+    raw = f"{selector}:{action_type}:{value}".encode()
+    return md5(raw, usedforsecurity=False).hexdigest()[:12]
 
 
 # Element types that represent fillable inputs
@@ -176,7 +180,7 @@ def _actions_for_element(
     actions: list[Action] = []
     etype = elem.element_type
 
-    def _make(action_type: ActionType, **kwargs) -> Action:
+    def _make(action_type: ActionType, **kwargs: Any) -> Action:
         raw_metadata = kwargs.get("metadata")
         merged_metadata = {
             **_element_identity_metadata(elem),
@@ -437,7 +441,9 @@ def generate_form_submit_actions(
             invalid_intent = ActionIntent(
                 intent_class="submit",
                 target_description=f"Submit form (invalid): {form_selector}",
-                expected_effect="Form should display validation errors for invalid/missing input",
+                expected_effect=(
+                    "Form should display validation errors for invalid/missing input"
+                ),
                 context={"form_selector": form_selector, "scenario": "invalid"},
             )
             actions.append(

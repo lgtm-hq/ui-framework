@@ -78,7 +78,7 @@ TYPE_TO_PATTERN: dict[str, str] = {
     "url": "url",
     "date": "date",
     "datetime-local": "date",
-    "password": "password",
+    "password": "password",  # nosec B105 - test data mapping, not a real password
     "search": "search",
 }
 

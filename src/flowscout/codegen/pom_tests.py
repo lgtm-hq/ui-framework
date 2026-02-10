@@ -121,15 +121,17 @@ def _add_listing_tests(
     func_name = _unique_name(f"test_{_to_snake_case(class_name)}_loads", used_names)
     var_name = _to_snake_case(class_name).replace("_page", "")
 
-    lines.extend([
-        f"def {func_name}(page: Page) -> None:",
-        f'    """{class_name}: page loads with content."""',
-        f"    {var_name} = {class_name}(page)",
-        f"    {var_name}.navigate()",
-        "    expect(page).to_have_url(page.url)",
-        "",
-        "",
-    ])
+    lines.extend(
+        [
+            f"def {func_name}(page: Page) -> None:",
+            f'    """{class_name}: page loads with content."""',
+            f"    {var_name} = {class_name}(page)",
+            f"    {var_name}.navigate()",
+            "    expect(page).to_have_url(page.url)",
+            "",
+            "",
+        ]
+    )
 
     # Search test if search zone exists
     has_search = any(e.zone_type == ZoneType.SEARCH for e in catalog.entries)
@@ -137,15 +139,17 @@ def _add_listing_tests(
         func_name = _unique_name(
             f"test_{_to_snake_case(class_name)}_search", used_names
         )
-        lines.extend([
-            f"def {func_name}(page: Page) -> None:",
-            f'    """{class_name}: search returns results."""',
-            f"    {var_name} = {class_name}(page)",
-            f"    {var_name}.navigate()",
-            f'    {var_name}.search("test query")',
-            "",
-            "",
-        ])
+        lines.extend(
+            [
+                f"def {func_name}(page: Page) -> None:",
+                f'    """{class_name}: search returns results."""',
+                f"    {var_name} = {class_name}(page)",
+                f"    {var_name}.navigate()",
+                f'    {var_name}.search("test query")',
+                "",
+                "",
+            ]
+        )
 
 
 def _add_detail_tests(
@@ -158,15 +162,17 @@ def _add_detail_tests(
     func_name = _unique_name(f"test_{_to_snake_case(class_name)}_content", used_names)
     var_name = _to_snake_case(class_name).replace("_page", "")
 
-    lines.extend([
-        f"def {func_name}(page: Page) -> None:",
-        f'    """{class_name}: detail page has expected content."""',
-        f"    {var_name} = {class_name}(page)",
-        f"    {var_name}.navigate()",
-        "    expect(page).to_have_url(page.url)",
-        "",
-        "",
-    ])
+    lines.extend(
+        [
+            f"def {func_name}(page: Page) -> None:",
+            f'    """{class_name}: detail page has expected content."""',
+            f"    {var_name} = {class_name}(page)",
+            f"    {var_name}.navigate()",
+            "    expect(page).to_have_url(page.url)",
+            "",
+            "",
+        ]
+    )
 
 
 def _add_form_tests(
@@ -179,14 +185,16 @@ def _add_form_tests(
     func_name = _unique_name(f"test_{_to_snake_case(class_name)}_visible", used_names)
     var_name = _to_snake_case(class_name).replace("_page", "")
 
-    lines.extend([
-        f"def {func_name}(page: Page) -> None:",
-        f'    """{class_name}: form page loads."""',
-        f"    {var_name} = {class_name}(page)",
-        f"    {var_name}.navigate()",
-        "",
-        "",
-    ])
+    lines.extend(
+        [
+            f"def {func_name}(page: Page) -> None:",
+            f'    """{class_name}: form page loads."""',
+            f"    {var_name} = {class_name}(page)",
+            f"    {var_name}.navigate()",
+            "",
+            "",
+        ]
+    )
 
 
 def _add_search_tests(
@@ -199,14 +207,16 @@ def _add_search_tests(
     func_name = _unique_name(f"test_{_to_snake_case(class_name)}_loads", used_names)
     var_name = _to_snake_case(class_name).replace("_page", "")
 
-    lines.extend([
-        f"def {func_name}(page: Page) -> None:",
-        f'    """{class_name}: search results visible."""',
-        f"    {var_name} = {class_name}(page)",
-        f"    {var_name}.navigate()",
-        "",
-        "",
-    ])
+    lines.extend(
+        [
+            f"def {func_name}(page: Page) -> None:",
+            f'    """{class_name}: search results visible."""',
+            f"    {var_name} = {class_name}(page)",
+            f"    {var_name}.navigate()",
+            "",
+            "",
+        ]
+    )
 
 
 def _add_navigation_test(
@@ -233,17 +243,19 @@ def _add_navigation_test(
         listing_var = _to_snake_case(listing_class).replace("_page", "")
         detail_var = _to_snake_case(detail_class).replace("_page", "")
 
-        lines.extend([
-            f"def {func_name}(page: Page) -> None:",
-            '    """Navigate from listing to detail page."""',
-            f"    {listing_var} = {listing_class}(page)",
-            f"    {listing_var}.navigate()",
-            f"    {listing_var}.select_item(0)",
-            f"    {detail_var} = {detail_class}(page)",
-            "    expect(page).to_have_url(page.url)",
-            "",
-            "",
-        ])
+        lines.extend(
+            [
+                f"def {func_name}(page: Page) -> None:",
+                '    """Navigate from listing to detail page."""',
+                f"    {listing_var} = {listing_class}(page)",
+                f"    {listing_var}.navigate()",
+                f"    {listing_var}.select_item(0)",
+                f"    {detail_var} = {detail_class}(page)",
+                "    expect(page).to_have_url(page.url)",
+                "",
+                "",
+            ]
+        )
 
 
 def _unique_name(base: str, used: set[str]) -> str:
@@ -298,21 +310,25 @@ def _generate_playwright_pom_tests(
         lines.append(f"test.describe('{class_name}', () => {{")
 
         if archetype == PageArchetype.LISTING:
-            lines.extend([
-                "  test('loads content', async ({ page }) => {",
-                f"    const listing = new {class_name}(page);",
-                "    await listing.navigate();",
-                "    await expect(page).toHaveURL(page.url());",
-                "  });",
-            ])
+            lines.extend(
+                [
+                    "  test('loads content', async ({ page }) => {",
+                    f"    const listing = new {class_name}(page);",
+                    "    await listing.navigate();",
+                    "    await expect(page).toHaveURL(page.url());",
+                    "  });",
+                ]
+            )
         elif archetype == PageArchetype.DETAIL:
-            lines.extend([
-                "  test('has expected content', async ({ page }) => {",
-                f"    const detail = new {class_name}(page);",
-                "    await detail.navigate();",
-                "    await expect(page).toHaveURL(page.url());",
-                "  });",
-            ])
+            lines.extend(
+                [
+                    "  test('has expected content', async ({ page }) => {",
+                    f"    const detail = new {class_name}(page);",
+                    "    await detail.navigate();",
+                    "    await expect(page).toHaveURL(page.url());",
+                    "  });",
+                ]
+            )
 
         lines.extend(["});", ""])
 

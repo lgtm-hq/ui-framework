@@ -68,13 +68,16 @@ def _make_config(base_url: str) -> ExplorerConfig:
 
 def _setup_server(httpserver):
     httpserver.expect_request("/").respond_with_data(
-        INDEX_HTML, content_type="text/html",
+        INDEX_HTML,
+        content_type="text/html",
     )
     httpserver.expect_request("/about").respond_with_data(
-        ABOUT_HTML, content_type="text/html",
+        ABOUT_HTML,
+        content_type="text/html",
     )
     httpserver.expect_request("/form").respond_with_data(
-        FORM_HTML, content_type="text/html",
+        FORM_HTML,
+        content_type="text/html",
     )
 
 
@@ -93,14 +96,11 @@ class TestFullExploration:
             navigator = Navigator(browser, graph, config, terminal)
             result = await navigator.explore(base_url)
 
-            assert len(result.states) >= 2, (
-                f"Expected at least 2 states, got {len(result.states)}"
-            )
-            assert len(result.results) >= 1, (
-                f"Expected at least 1 action result, got {len(result.results)}"
-            )
-            assert len(result.flows) >= 1, (
-                f"Expected at least 1 flow, got {len(result.flows)}"
-            )
+            n_states = len(result.states)
+            n_results = len(result.results)
+            n_flows = len(result.flows)
+            assert n_states >= 2, f"Expected >=2 states, got {n_states}"
+            assert n_results >= 1, f"Expected >=1 results, got {n_results}"
+            assert n_flows >= 1, f"Expected >=1 flows, got {n_flows}"
         finally:
             await browser.close()

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from flowscout.analysis.archetype import (
     ContentDensity,
@@ -42,7 +41,7 @@ def _make_analysis(
 class TestDetailExpectations:
     """Detail page expectations."""
 
-    def test_full_detail_page(self):
+    def test_full_detail_page(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.DETAIL,
@@ -54,7 +53,7 @@ class TestDetailExpectations:
         assert result.pass_count == 3
         assert result.total_count == 3
 
-    def test_detail_missing_image(self):
+    def test_detail_missing_image(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.DETAIL,
@@ -66,13 +65,13 @@ class TestDetailExpectations:
         assert result.pass_count == 2
         assert result.total_count == 3
 
-    def test_detail_no_content(self):
+    def test_detail_no_content(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(PageArchetype.DETAIL)
         result = checker.check(analysis)
         assert result.pass_count == 0
 
-    def test_detail_short_text(self):
+    def test_detail_short_text(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.DETAIL,
@@ -88,7 +87,7 @@ class TestDetailExpectations:
 class TestListingExpectations:
     """Listing page expectations."""
 
-    def test_listing_with_items(self):
+    def test_listing_with_items(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.LISTING,
@@ -104,7 +103,7 @@ class TestListingExpectations:
         assert result.pass_count == 2
         assert result.total_count == 2
 
-    def test_listing_no_items(self):
+    def test_listing_no_items(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(PageArchetype.LISTING)
         result = checker.check(analysis)
@@ -114,7 +113,7 @@ class TestListingExpectations:
 class TestSearchResultsExpectations:
     """Search results page expectations."""
 
-    def test_search_with_results(self):
+    def test_search_with_results(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.SEARCH_RESULTS,
@@ -130,7 +129,7 @@ class TestSearchResultsExpectations:
         result = checker.check(analysis)
         assert result.pass_count == 2
 
-    def test_search_no_results(self):
+    def test_search_no_results(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.SEARCH_RESULTS,
@@ -143,7 +142,7 @@ class TestSearchResultsExpectations:
 class TestFormExpectations:
     """Form page expectations."""
 
-    def test_form_with_inputs(self):
+    def test_form_with_inputs(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.FORM,
@@ -153,7 +152,7 @@ class TestFormExpectations:
         result = checker.check(analysis)
         assert result.pass_count == 2
 
-    def test_form_no_heading(self):
+    def test_form_no_heading(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.FORM,
@@ -167,7 +166,7 @@ class TestFormExpectations:
 class TestUnknownArchetype:
     """Unknown archetype has no expectations."""
 
-    def test_unknown_no_expectations(self):
+    def test_unknown_no_expectations(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(PageArchetype.UNKNOWN)
         result = checker.check(analysis)
@@ -178,7 +177,7 @@ class TestUnknownArchetype:
 class TestSummary:
     """Summary string generation."""
 
-    def test_summary_format(self):
+    def test_summary_format(self) -> None:
         checker = ExpectationChecker()
         analysis = _make_analysis(
             PageArchetype.DETAIL,

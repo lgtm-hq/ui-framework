@@ -83,7 +83,11 @@ def _generate_pytest_suite(result: ExplorationResult) -> str:
             continue
         seen_actions.add(action.action_id)
         test_func = _generate_action_test(
-            action, r, result, start_url, used_names=used_names,
+            action,
+            r,
+            result,
+            start_url,
+            used_names=used_names,
         )
         lines.extend(test_func)
         lines.append("")
@@ -101,7 +105,11 @@ def _generate_pytest_suite(result: ExplorationResult) -> str:
             continue
         seen_errors.add(action.action_id)
         test_func = _generate_negative_test(
-            action, r, result, start_url, used_names=used_names,
+            action,
+            r,
+            result,
+            start_url,
+            used_names=used_names,
         )
         lines.extend(test_func)
         lines.append("")
@@ -156,8 +164,11 @@ def _generate_flow_test(
 
         # Verdict comment
         if matching_result and matching_result.verdict:
+            expected = matching_result.expected or "N/A"
+            actual = matching_result.actual or "N/A"
+            verdict = matching_result.verdict.upper()
             lines.append(
-                f"    # Expected: {matching_result.expected or 'N/A'} | Actual: {matching_result.actual or 'N/A'} | Verdict: {matching_result.verdict.upper()}"
+                f"    # Expected: {expected} | Actual: {actual} | Verdict: {verdict}"
             )
         lines.extend(_confidence_comments(matching_result, prefix="    # "))
 
@@ -182,9 +193,8 @@ def _generate_flow_test(
 
         # Generate the assertion
         if expected_outcome == OutcomeType.NAVIGATION and matching_result:
-            lines.append(
-                f'    expect(page).to_have_url(re.compile(r".*{_url_pattern(matching_result.url_after)}"))'
-            )
+            url_pat = _url_pattern(matching_result.url_after)
+            lines.append(f'    expect(page).to_have_url(re.compile(r".*{url_pat}"))')
         elif expected_outcome == OutcomeType.DOM_CHANGE:
             lines.append("    # Verify DOM changed (page content updated)")
             # If we know the target state, assert on its title
@@ -194,8 +204,10 @@ def _generate_flow_test(
             if target_sid and target_sid in result.states:
                 target_state = result.states[target_sid]
                 if target_state.title:
+                    escaped_title = re.escape(target_state.title)
                     lines.append(
-                        f'    expect(page).to_have_title(re.compile(r".*{re.escape(target_state.title)}.*"))'
+                        "    expect(page).to_have_title("
+                        f're.compile(r".*{escaped_title}.*"))'
                     )
 
     lines.append("")
@@ -234,8 +246,11 @@ def _generate_action_test(
     # Verdict comment
     lines.extend(_traceability_comments(action, r, prefix="    # "))
     if r.verdict:
+        r_expected = r.expected or "N/A"
+        r_actual = r.actual or "N/A"
+        r_verdict = r.verdict.upper()
         lines.append(
-            f"    # Expected: {r.expected or 'N/A'} | Actual: {r.actual or 'N/A'} | Verdict: {r.verdict.upper()}"
+            f"    # Expected: {r_expected} | Actual: {r_actual} | Verdict: {r_verdict}"
         )
     lines.extend(_confidence_comments(r, prefix="    # "))
 
@@ -257,12 +272,12 @@ def _generate_action_test(
     # Assert outcome
     if r.outcome == OutcomeType.NAVIGATION and target_state:
         lines.append("")
-        lines.append(
-            f'    expect(page).to_have_url(re.compile(r".*{_url_pattern(target_state.url)}"))'
-        )
+        t_url_pat = _url_pattern(target_state.url)
+        lines.append(f'    expect(page).to_have_url(re.compile(r".*{t_url_pat}"))')
         if target_state.title:
+            t_escaped = re.escape(target_state.title)
             lines.append(
-                f'    expect(page).to_have_title(re.compile(r".*{re.escape(target_state.title)}.*"))'
+                f'    expect(page).to_have_title(re.compile(r".*{t_escaped}.*"))'
             )
 
     lines.append("")
@@ -284,13 +299,14 @@ def _generate_negative_test(
     func_name = _to_test_name("fail", action.label, used_names=used_names)
     source_state = result.states.get(r.source_state_id)
 
+    xfail_reason = f"Element not interactable — {r.outcome.value}"
     lines = [
-        f'@pytest.mark.xfail(reason="Element not interactable — {r.outcome.value}")',
+        f'@pytest.mark.xfail(reason="{xfail_reason}")',
         f"def {func_name}(page: Page) -> None:",
         f'    """Known issue: {action.label}',
         "",
         f"    Outcome: {r.outcome.value}",
-        f"    {r.message[:100] if r.message else 'Element may be hidden or not clickable'}",
+        f"    {r.message[:100] if r.message else 'Element may be hidden'}",
         '    """',
     ]
 
@@ -400,8 +416,11 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
 
             # Verdict comment
             if matching_result and matching_result.verdict:
+                ts_exp = matching_result.expected or "N/A"
+                ts_act = matching_result.actual or "N/A"
+                ts_ver = matching_result.verdict.upper()
                 lines.append(
-                    f"    // Expected: {matching_result.expected or 'N/A'} | Actual: {matching_result.actual or 'N/A'} | Verdict: {matching_result.verdict.upper()}"
+                    f"    // Expected: {ts_exp} | Actual: {ts_act} | Verdict: {ts_ver}"
                 )
             lines.extend(_confidence_comments(matching_result, prefix="    // "))
 
@@ -449,9 +468,10 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
             if expected_outcome == OutcomeType.NAVIGATION:
                 lines.append("    await page.waitForLoadState('networkidle');")
                 if matching_result:
-                    lines.append(
-                        f"    await expect(page).toHaveURL(/{_url_pattern(matching_result.url_after)}/);"
+                    ts_url_pat = _url_pattern(
+                        matching_result.url_after,
                     )
+                    lines.append(f"    await expect(page).toHaveURL(/{ts_url_pat}/);")
 
             # Invalid scenario assertion
             if (
@@ -459,7 +479,10 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
                 and expected_outcome == OutcomeType.VALIDATION_ERROR
             ):
                 lines.append(
-                    "    await expect(page.locator('.error, .validation-error, [aria-invalid=\"true\"]')).toBeVisible();"
+                    "    await expect(page.locator("
+                    "'.error, .validation-error,"
+                    ' [aria-invalid="true"]\''
+                    ")).toBeVisible();"
                 )
 
         lines.append("  });")
@@ -488,7 +511,9 @@ def _confidence_comments(
     ]
     if score < LOW_CONFIDENCE_THRESHOLD:
         comments.append(
-            f"{prefix}Reliability flag: LOW_CONFIDENCE transition - review waits/selectors before relying on this assertion."
+            f"{prefix}Reliability flag: LOW_CONFIDENCE"
+            " transition - review waits/selectors"
+            " before relying on this assertion."
         )
     return comments
 

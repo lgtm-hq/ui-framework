@@ -1,0 +1,19 @@
+---
+enforce:
+  line_length: 88
+  target_python: "py313"
+
+execution:
+  enabled_tools: []
+  tool_order: "priority"
+  fail_fast: false
+
+defaults:
+  bandit:
+    skips: ["B101"]
+  markdownlint:
+    config:
+      MD013:
+        line_length: 120
+        code_blocks: false
+        tables: false

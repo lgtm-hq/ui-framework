@@ -9,7 +9,12 @@ import click
 from rich.table import Table
 
 from flowscout.analysis.graph import ExplorationResult
-from flowscout.cli.app import DEFAULT_DB_PATH, DEFAULT_LOW_CONFIDENCE_THRESHOLD, console, main
+from flowscout.cli.app import (
+    DEFAULT_DB_PATH,
+    DEFAULT_LOW_CONFIDENCE_THRESHOLD,
+    console,
+    main,
+)
 from flowscout.storage.db import FlowscoutDB
 
 
@@ -107,7 +112,7 @@ def _evaluate_benchmark_gates(
     return failures
 
 
-@main.command()
+@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
 @click.argument("json_path", type=click.Path(exists=True))
 @click.option("--db-path", default=DEFAULT_DB_PATH, help="SQLite database path.")
 @click.option(

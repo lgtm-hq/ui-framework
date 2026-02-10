@@ -87,9 +87,7 @@ class TestIsSameOrigin:
         assert is_same_origin("https://example.com/a", "")
 
     def test_different_port(self) -> None:
-        assert not is_same_origin(
-            "http://localhost:3000", "http://localhost:8080"
-        )
+        assert not is_same_origin("http://localhost:3000", "http://localhost:8080")
 
 
 class TestSanitizeForFilesystem:

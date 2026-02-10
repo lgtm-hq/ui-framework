@@ -33,7 +33,10 @@ from flowscout.cli.config import (
 from flowscout.cli.explore import _build_output_dirs
 
 # Re-export benchmark helpers used by tests
-from flowscout.cli.benchmark import _compute_benchmark_metrics, _evaluate_benchmark_gates
+from flowscout.cli.benchmark import (
+    _compute_benchmark_metrics,
+    _evaluate_benchmark_gates,
+)
 
 __all__ = [
     "main",

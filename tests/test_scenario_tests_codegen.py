@@ -11,13 +11,17 @@ from flowscout.analysis.archetype import (
     PageCatalog,
     ZoneType,
 )
-from flowscout.analysis.site_model import NavigationEdge, PageType, SiteModel, SiteModelSummary
+from flowscout.analysis.site_model import (
+    NavigationEdge,
+    PageType,
+    SiteModel,
+    SiteModelSummary,
+)
 from flowscout.cli import _build_output_dirs
 from flowscout.codegen.scenario_tests import generate_scenario_tests
 from flowscout.core.state import ExplorerConfig
 from flowscout.discovery.actions import ActionType, OutcomeType
 from flowscout.smart.scenarios import ScenarioSynthesizer
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -118,60 +122,75 @@ def _build_site_model() -> SiteModel:
 
 
 class TestPytestGeneration:
-    def test_generated_code_is_valid_python(self):
+    def test_generated_code_is_valid_python(self) -> None:
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             # Must parse without syntax errors
             ast.parse(code)
 
-    def test_generated_code_imports_pom_classes(self):
+    def test_generated_code_imports_pom_classes(self) -> None:
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             assert "from pages." in code
             assert "import" in code
 
-    def test_generated_code_has_test_functions(self):
+    def test_generated_code_has_test_functions(self) -> None:
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             assert "def test_" in code
 
-    def test_generated_code_has_docstrings(self):
+    def test_generated_code_has_docstrings(self) -> None:
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             assert "Priority:" in code
 
-    def test_scenario_count_matches(self):
+    def test_scenario_count_matches(self) -> None:
         model = _build_site_model()
         scenario_count = len(model.test_scenarios)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             test_count = code.count("def test_")
@@ -179,39 +198,48 @@ class TestPytestGeneration:
 
 
 class TestTypescriptGeneration:
-    def test_generated_typescript_has_test_blocks(self):
+    def test_generated_typescript_has_test_blocks(self) -> None:
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.spec.ts")
             generate_scenario_tests(
-                model, output, framework="playwright", base_url="https://example.com",
+                model,
+                output,
+                framework="playwright",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             assert "test.describe(" in code
             assert "test(" in code
             assert "import" in code
 
-    def test_typescript_uses_await(self):
+    def test_typescript_uses_await(self) -> None:
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.spec.ts")
             generate_scenario_tests(
-                model, output, framework="playwright", base_url="https://example.com",
+                model,
+                output,
+                framework="playwright",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             assert "await" in code
 
 
 class TestEmptyModel:
-    def test_empty_model_generates_empty_file(self):
+    def test_empty_model_generates_empty_file(self) -> None:
         model = SiteModel()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             # Should have header but no test functions
@@ -224,28 +252,36 @@ class TestEmptyModel:
 
 
 class TestSmartAssertions:
-    def test_listing_load_verify_has_visibility_assertion(self):
-        """LISTING page type with MAIN_CONTENT entries → output contains to_be_visible()."""
+    def test_listing_load_verify_has_visibility_assertion(
+        self,
+    ) -> None:
+        """LISTING page type with MAIN_CONTENT entries."""
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             assert "to_be_visible()" in code
             # Still valid Python
             ast.parse(code)
 
-    def test_detail_browse_has_heading_assertion(self):
-        """LISTING→DETAIL browse_detail test has visibility assertion for detail heading."""
+    def test_detail_browse_has_heading_assertion(self) -> None:
+        """browse_detail test has visibility assertion."""
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             # The browse_detail scenario should have a visibility assertion
@@ -253,33 +289,39 @@ class TestSmartAssertions:
             assert "movie_title" in code
             assert "to_be_visible()" in code
 
-    def test_search_has_content_assertion(self):
+    def test_search_has_content_assertion(self) -> None:
         """has_search feature → search verification has visibility assertion."""
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             # Search scenario should assert content is visible
             assert "to_be_visible()" in code
             assert "movie_card" in code
 
-    def test_title_assertion_present(self):
+    def test_title_assertion_present(self) -> None:
         """load_verify always has to_have_title assertion."""
         model = _build_site_model()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             assert "to_have_title" in code
 
-    def test_empty_catalog_fallback(self):
+    def test_empty_catalog_fallback(self) -> None:
         """Empty catalog → graceful degradation to comments (no regression)."""
         empty_pt = PageType(
             page_type_id="sig_empty",
@@ -298,13 +340,18 @@ class TestSmartAssertions:
             page_types=[empty_pt],
             navigation_edges=[],
             test_scenarios=scenarios,
-            summary=SiteModelSummary(total_page_types=1, total_scenarios=len(scenarios)),
+            summary=SiteModelSummary(
+                total_page_types=1, total_scenarios=len(scenarios)
+            ),
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
             output = str(Path(tmpdir) / "scenario_tests.py")
             generate_scenario_tests(
-                model, output, framework="pytest", base_url="https://example.com",
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
             )
             code = Path(output).read_text()
             # Should still have title assertion from load_verify
@@ -319,7 +366,7 @@ class TestSmartAssertions:
 
 
 class TestBuildOutputDirs:
-    def test_build_output_dirs_smart_workspace(self):
+    def test_build_output_dirs_smart_workspace(self) -> None:
         """Smart workspace path structure is correct."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = ExplorerConfig(
@@ -328,7 +375,9 @@ class TestBuildOutputDirs:
             )
             now = datetime(2026, 2, 7, 14, 30, 0, tzinfo=timezone.utc)
             run_dir, workspace_dir = _build_output_dirs(
-                config, now, smart_workspace=True,
+                config,
+                now,
+                smart_workspace=True,
             )
 
             assert workspace_dir is not None
@@ -337,7 +386,7 @@ class TestBuildOutputDirs:
             assert "2026-02-07_14.30.00" in str(run_dir)
             assert run_dir.exists()
 
-    def test_build_output_dirs_legacy(self):
+    def test_build_output_dirs_legacy(self) -> None:
         """Legacy path structure unchanged."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = ExplorerConfig(
@@ -346,7 +395,9 @@ class TestBuildOutputDirs:
             )
             now = datetime(2026, 2, 7, 14, 30, 0, tzinfo=timezone.utc)
             run_dir, workspace_dir = _build_output_dirs(
-                config, now, smart_workspace=False,
+                config,
+                now,
+                smart_workspace=False,
             )
 
             assert workspace_dir is None

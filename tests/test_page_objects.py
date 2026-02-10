@@ -5,7 +5,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from flowscout.analysis.archetype import (
     CatalogEntry,
@@ -21,10 +20,10 @@ from flowscout.codegen.page_objects import (
     generate_page_objects,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_catalog(
     archetype: PageArchetype = PageArchetype.LISTING,
@@ -70,26 +69,27 @@ def _make_catalog(
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestClassNameGeneration:
     """Class name generation from catalogs."""
 
-    def test_listing_archetype(self):
+    def test_listing_archetype(self) -> None:
         catalog = _make_catalog(PageArchetype.LISTING)
         name = _catalog_to_class_name(catalog)
         assert "Listing" in name
         assert "Page" in name
 
-    def test_detail_archetype(self):
+    def test_detail_archetype(self) -> None:
         catalog = _make_catalog(PageArchetype.DETAIL)
         name = _catalog_to_class_name(catalog)
         assert "Detail" in name
 
-    def test_with_url_pattern(self):
+    def test_with_url_pattern(self) -> None:
         catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
         name = _catalog_to_class_name(catalog)
         assert "Movies" in name
 
-    def test_name_is_pascal_case(self):
+    def test_name_is_pascal_case(self) -> None:
         catalog = _make_catalog(PageArchetype.LISTING)
         name = _catalog_to_class_name(catalog)
         assert name[0].isupper()
@@ -99,31 +99,31 @@ class TestClassNameGeneration:
 class TestPropertyNameGeneration:
     """Property name generation from selectors/labels."""
 
-    def test_from_label(self):
+    def test_from_label(self) -> None:
         name = _selector_to_property_name("a[href='/']", "Home", "a")
         assert name == "home"
 
-    def test_from_aria_label(self):
+    def test_from_aria_label(self) -> None:
         name = _selector_to_property_name("[aria-label='Search']", "", "button")
         assert name == "search"
 
-    def test_from_id_selector(self):
+    def test_from_id_selector(self) -> None:
         name = _selector_to_property_name("#main-nav", "", "nav")
         assert name == "main_nav"
 
-    def test_from_href(self):
+    def test_from_href(self) -> None:
         name = _selector_to_property_name("a[href='/about']", "", "a")
         assert name == "about"
 
-    def test_fallback_to_tag(self):
+    def test_fallback_to_tag(self) -> None:
         name = _selector_to_property_name("div:nth-of-type(3)", "", "div")
         assert name.startswith("div")
 
-    def test_max_length(self):
+    def test_max_length(self) -> None:
         name = _selector_to_property_name("div", "A" * 50, "div")
         assert len(name) <= 40
 
-    def test_special_chars_cleaned(self):
+    def test_special_chars_cleaned(self) -> None:
         name = _selector_to_property_name("div", "Click Here!", "div")
         assert "!" not in name
         assert " " not in name
@@ -132,49 +132,49 @@ class TestPropertyNameGeneration:
 class TestPythonPOMGeneration:
     """Python POM class output."""
 
-    def test_has_class_definition(self):
+    def test_has_class_definition(self) -> None:
         catalog = _make_catalog()
         output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
         assert "class ListingPage:" in output
 
-    def test_has_constructor(self):
+    def test_has_constructor(self) -> None:
         catalog = _make_catalog()
         output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
         assert "def __init__(self, page: Page)" in output
 
-    def test_has_locator_assignments(self):
+    def test_has_locator_assignments(self) -> None:
         catalog = _make_catalog()
         output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
         assert "page.locator(" in output
 
-    def test_has_navigate_method(self):
+    def test_has_navigate_method(self) -> None:
         catalog = _make_catalog()
         output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
         assert "def navigate(self)" in output
 
-    def test_has_search_method(self):
+    def test_has_search_method(self) -> None:
         catalog = _make_catalog()
         output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
         assert "def search(self, query: str)" in output
 
-    def test_has_select_item_method(self):
+    def test_has_select_item_method(self) -> None:
         catalog = _make_catalog(PageArchetype.LISTING)
         output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
         assert "def select_item(self, index: int" in output
 
-    def test_zone_comments(self):
+    def test_zone_comments(self) -> None:
         catalog = _make_catalog()
         output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
         assert "# Navigation" in output
         assert "# Search" in output
         assert "# Content" in output
 
-    def test_no_base_url_no_navigate(self):
+    def test_no_base_url_no_navigate(self) -> None:
         catalog = _make_catalog()
         output = _generate_python_pom(catalog, "ListingPage", "")
         assert "def navigate" not in output
 
-    def test_deduplication(self):
+    def test_deduplication(self) -> None:
         entries = [
             CatalogEntry(
                 selector="a.link",
@@ -202,23 +202,23 @@ class TestPythonPOMGeneration:
 class TestTypeScriptPOMGeneration:
     """TypeScript POM class output."""
 
-    def test_has_class_definition(self):
+    def test_has_class_definition(self) -> None:
         catalog = _make_catalog()
         output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
         assert "export class ListingPage" in output
 
-    def test_has_readonly_properties(self):
+    def test_has_readonly_properties(self) -> None:
         catalog = _make_catalog()
         output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
         assert "readonly" in output
         assert ": Locator;" in output
 
-    def test_has_constructor(self):
+    def test_has_constructor(self) -> None:
         catalog = _make_catalog()
         output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
         assert "constructor(public readonly page: Page)" in output
 
-    def test_has_navigate(self):
+    def test_has_navigate(self) -> None:
         catalog = _make_catalog()
         output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
         assert "async navigate()" in output
@@ -227,7 +227,7 @@ class TestTypeScriptPOMGeneration:
 class TestFileGeneration:
     """End-to-end file generation."""
 
-    def test_generates_python_files(self):
+    def test_generates_python_files(self) -> None:
         catalog = _make_catalog(url_pattern="/movies")
         with tempfile.TemporaryDirectory() as tmpdir:
             paths = generate_page_objects(
@@ -241,7 +241,7 @@ class TestFileGeneration:
             assert "class" in content
             assert paths[0].endswith(".py")
 
-    def test_generates_typescript_files(self):
+    def test_generates_typescript_files(self) -> None:
         catalog = _make_catalog()
         with tempfile.TemporaryDirectory() as tmpdir:
             paths = generate_page_objects(
@@ -253,7 +253,7 @@ class TestFileGeneration:
             assert len(paths) == 1
             assert paths[0].endswith(".ts")
 
-    def test_skips_empty_catalogs(self):
+    def test_skips_empty_catalogs(self) -> None:
         empty = PageCatalog()
         with tempfile.TemporaryDirectory() as tmpdir:
             paths = generate_page_objects(
@@ -262,7 +262,7 @@ class TestFileGeneration:
             )
             assert len(paths) == 0
 
-    def test_multiple_catalogs(self):
+    def test_multiple_catalogs(self) -> None:
         catalog1 = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
         catalog2 = _make_catalog(PageArchetype.DETAIL, url_pattern="/movie/1")
         with tempfile.TemporaryDirectory() as tmpdir:

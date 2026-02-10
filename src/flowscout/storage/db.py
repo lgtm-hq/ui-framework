@@ -7,6 +7,7 @@ import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from flowscout.analysis.graph import ExplorationResult
 
@@ -120,7 +121,11 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
         "screenshot_path",
         "ALTER TABLE results ADD COLUMN screenshot_path TEXT DEFAULT ''",
     ),
-    ("results", "confidence", "ALTER TABLE results ADD COLUMN confidence REAL DEFAULT 0"),
+    (
+        "results",
+        "confidence",
+        "ALTER TABLE results ADD COLUMN confidence REAL DEFAULT 0",
+    ),
     (
         "results",
         "confidence_reason",
@@ -188,19 +193,22 @@ class FlowscoutDB:
 
     def _apply_migrations(self) -> None:
         """Apply schema migrations (add columns if they don't exist)."""
+        assert self._conn is not None  # noqa: S101
         for table, column, sql in _MIGRATIONS:
             if table not in _KNOWN_TABLES:
                 logger.warning("Skipping migration for unknown table: %s", table)
                 continue
             try:
+                # table from _KNOWN_TABLES allowlist, not user input
                 cols = [
                     row[1]
+                    # nosemgrep: formatted-sql-query, sqlalchemy-execute-raw-query
                     for row in self._conn.execute(
                         f"PRAGMA table_info({table})"
-                    ).fetchall()  # type: ignore[union-attr]
+                    ).fetchall()
                 ]
                 if column not in cols:
-                    self._conn.execute(sql)  # type: ignore[union-attr]
+                    self._conn.execute(sql)
             except sqlite3.OperationalError:
                 logger.debug("Migration failed for %s.%s", table, column, exc_info=True)
 
@@ -354,10 +362,12 @@ class FlowscoutDB:
 
     # ── Querying ──
 
-    def list_runs(self, *, start_url: str | None = None, limit: int = 20) -> list[dict]:
+    def list_runs(
+        self, *, start_url: str | None = None, limit: int = 20
+    ) -> list[dict[str, Any]]:
         """List exploration runs, most recent first."""
         query = "SELECT * FROM runs"
-        params: list = []
+        params: list[Any] = []
         if start_url:
             query += " WHERE start_url = ?"
             params.append(start_url)
@@ -367,14 +377,14 @@ class FlowscoutDB:
         rows = self.conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
-    def get_run(self, run_id: str) -> dict | None:
+    def get_run(self, run_id: str) -> dict[str, Any] | None:
         """Get a single run by ID."""
         row = self.conn.execute(
             "SELECT * FROM runs WHERE run_id = ?", (run_id,)
         ).fetchone()
         return dict(row) if row else None
 
-    def get_run_states(self, run_id: str) -> list[dict]:
+    def get_run_states(self, run_id: str) -> list[dict[str, Any]]:
         """Get all states from a run."""
         rows = self.conn.execute(
             "SELECT * FROM states WHERE run_id = ? ORDER BY depth, discovered_at",
@@ -382,7 +392,7 @@ class FlowscoutDB:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    def get_run_results(self, run_id: str) -> list[dict]:
+    def get_run_results(self, run_id: str) -> list[dict[str, Any]]:
         """Get all action results from a run."""
         rows = self.conn.execute(
             "SELECT * FROM results WHERE run_id = ? ORDER BY id",
@@ -390,7 +400,7 @@ class FlowscoutDB:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    def get_run_flows(self, run_id: str) -> list[dict]:
+    def get_run_flows(self, run_id: str) -> list[dict[str, Any]]:
         """Get all flows from a run."""
         rows = self.conn.execute(
             "SELECT * FROM flows WHERE run_id = ? ORDER BY flow_id",
@@ -400,7 +410,7 @@ class FlowscoutDB:
 
     # ── Cross-run analysis ──
 
-    def get_state_history(self, url: str) -> list[dict]:
+    def get_state_history(self, url: str) -> list[dict[str, Any]]:
         """Get all states ever observed at a given URL, across runs."""
         rows = self.conn.execute(
             """SELECT s.*, r.started_at as run_started_at, r.run_id
@@ -412,7 +422,9 @@ class FlowscoutDB:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    def get_action_reliability(self, start_url: str | None = None) -> list[dict]:
+    def get_action_reliability(
+        self, start_url: str | None = None
+    ) -> list[dict[str, Any]]:
         """Get success/failure rates for each action across runs.
 
         Returns action label, total attempts, and outcome breakdown.
@@ -423,23 +435,34 @@ class FlowscoutDB:
                 a.action_type,
                 a.target_selector,
                 COUNT(*) as total_attempts,
-                SUM(CASE WHEN res.outcome = 'navigation' THEN 1 ELSE 0 END) as navigations,
-                SUM(CASE WHEN res.outcome = 'dom_change' THEN 1 ELSE 0 END) as dom_changes,
-                SUM(CASE WHEN res.outcome = 'no_change' THEN 1 ELSE 0 END) as no_changes,
-                SUM(CASE WHEN res.outcome IN ('timeout', 'exception', 'validation_error', 'network_error', 'console_error') THEN 1 ELSE 0 END) as errors
+                SUM(CASE WHEN res.outcome = 'navigation'
+                    THEN 1 ELSE 0 END) as navigations,
+                SUM(CASE WHEN res.outcome = 'dom_change'
+                    THEN 1 ELSE 0 END) as dom_changes,
+                SUM(CASE WHEN res.outcome = 'no_change'
+                    THEN 1 ELSE 0 END) as no_changes,
+                SUM(CASE WHEN res.outcome IN (
+                    'timeout', 'exception',
+                    'validation_error', 'network_error',
+                    'console_error'
+                    ) THEN 1 ELSE 0 END) as errors
             FROM results res
             JOIN actions a ON res.action_id = a.action_id AND res.run_id = a.run_id
         """
-        params: list = []
+        params: list[Any] = []
         if start_url:
             query += " JOIN runs r ON res.run_id = r.run_id WHERE r.start_url = ?"
             params.append(start_url)
-        query += " GROUP BY a.label, a.action_type, a.target_selector ORDER BY total_attempts DESC"
+        query += (
+            " GROUP BY a.label, a.action_type,"
+            " a.target_selector"
+            " ORDER BY total_attempts DESC"
+        )
 
         rows = self.conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
-    def get_new_states_since(self, run_id: str) -> list[dict]:
+    def get_new_states_since(self, run_id: str) -> list[dict[str, Any]]:
         """Find states in this run that weren't seen in any previous run."""
         rows = self.conn.execute(
             """SELECT s.*
@@ -455,8 +478,8 @@ class FlowscoutDB:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    def get_disappeared_states(self, run_id: str) -> list[dict]:
-        """Find states from the previous run of the same URL that are missing in this run."""
+    def get_disappeared_states(self, run_id: str) -> list[dict[str, Any]]:
+        """Find states from the previous run that are missing."""
         run = self.get_run(run_id)
         if not run:
             return []
@@ -477,7 +500,9 @@ class FlowscoutDB:
         ).fetchall()
         return [dict(r) for r in rows]
 
-    def get_flaky_actions(self, start_url: str, min_runs: int = 2) -> list[dict]:
+    def get_flaky_actions(
+        self, start_url: str, min_runs: int = 2
+    ) -> list[dict[str, Any]]:
         """Find actions that produce different outcomes across runs.
 
         These are "flaky" — sometimes they work, sometimes they don't.
@@ -490,11 +515,14 @@ class FlowscoutDB:
                 COUNT(DISTINCT res.run_id) as runs_seen,
                 GROUP_CONCAT(DISTINCT res.outcome) as outcomes_seen
                FROM results res
-               JOIN actions a ON res.action_id = a.action_id AND res.run_id = a.run_id
+               JOIN actions a
+                 ON res.action_id = a.action_id
+                AND res.run_id = a.run_id
                JOIN runs r ON res.run_id = r.run_id
                WHERE r.start_url = ?
                GROUP BY a.label, a.target_selector
-               HAVING COUNT(DISTINCT res.outcome) > 1 AND COUNT(DISTINCT res.run_id) >= ?
+               HAVING COUNT(DISTINCT res.outcome) > 1
+                  AND COUNT(DISTINCT res.run_id) >= ?
                ORDER BY outcome_variety DESC""",
             (start_url, min_runs),
         ).fetchall()

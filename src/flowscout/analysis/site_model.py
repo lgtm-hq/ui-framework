@@ -1,4 +1,5 @@
-"""Site model — groups states into page types, maps navigation, synthesizes scenarios."""
+"""Site model — groups states into page types, maps navigation,
+synthesizes scenarios."""
 
 from __future__ import annotations
 
@@ -220,9 +221,7 @@ class SiteModelBuilder:
             rep_id = state_ids[0]
             rep_state = result.states[rep_id]
             instance_urls = [
-                result.states[sid].url
-                for sid in state_ids
-                if sid in result.states
+                result.states[sid].url for sid in state_ids if sid in result.states
             ]
             titles = [
                 result.states[sid].title
@@ -231,7 +230,10 @@ class SiteModelBuilder:
             ]
 
             name = _infer_page_type_name(
-                PageArchetype.UNKNOWN, instance_urls, [], titles,
+                PageArchetype.UNKNOWN,
+                instance_urls,
+                [],
+                titles,
             )
 
             page_types.append(
@@ -360,8 +362,7 @@ class SiteModelBuilder:
         for pt in page_types:
             if "has_search" in pt.features:
                 has_search_scenario = any(
-                    getattr(s, "template", "") == "search"
-                    for s in scenarios
+                    getattr(s, "template", "") == "search" for s in scenarios
                 )
                 if not has_search_scenario:
                     notes.append(
@@ -433,8 +434,25 @@ def _common_subject_from_titles(titles: list[str]) -> str:
 
     # Tokenize and find common words (excluding stop words)
     stop_words = {
-        "the", "a", "an", "and", "or", "of", "to", "in", "for", "on",
-        "at", "by", "is", "it", "page", "home", "|", "-", "—",
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "of",
+        "to",
+        "in",
+        "for",
+        "on",
+        "at",
+        "by",
+        "is",
+        "it",
+        "page",
+        "home",
+        "|",
+        "-",
+        "—",
     }
 
     word_counts: dict[str, int] = defaultdict(int)
@@ -500,9 +518,7 @@ def _infer_url_pattern(urls: list[str]) -> str:
 
     pattern_parts: list[str] = []
     for i in range(max_len):
-        segments_at_i = {
-            p[i] for p in path_lists if i < len(p)
-        }
+        segments_at_i = {p[i] for p in path_lists if i < len(p)}
         if len(segments_at_i) == 1:
             # All same → literal
             pattern_parts.append(re.escape(segments_at_i.pop()))

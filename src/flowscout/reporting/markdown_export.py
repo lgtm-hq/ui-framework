@@ -72,7 +72,13 @@ def _build_markdown(result: ExplorationResult) -> list[str]:
             verdict_str = ""
             if flow.verdict:
                 v = flow.verdict.verdict.value
-                emoji = {"pass": "PASS", "fail": "FAIL", "warn": "WARN"}.get(v, v.upper())
+                emoji = {
+                    "pass": "PASS",
+                    "fail": "FAIL",
+                    "warn": "WARN",
+                }.get(  # nosec B105 - verdict labels, not passwords
+                    v, v.upper()
+                )
                 verdict_str = f" [{emoji}]"
             lines.append(f"- **{flow.name}**{verdict_str}")
             if flow.description:
@@ -94,8 +100,13 @@ def _build_markdown(result: ExplorationResult) -> list[str]:
 
     lines.append("## Coverage")
     lines.append("")
-    lines.append(f"- Page coverage: {page_coverage}% ({len(tested_urls)}/{len(all_urls)})")
-    lines.append(f"- Action coverage: {action_coverage}% ({len(executed_ids)}/{len(result.actions)})")
+    lines.append(
+        f"- Page coverage: {page_coverage}% ({len(tested_urls)}/{len(all_urls)})"
+    )
+    lines.append(
+        f"- Action coverage: {action_coverage}%"
+        f" ({len(executed_ids)}/{len(result.actions)})"
+    )
     lines.append("")
 
     return lines

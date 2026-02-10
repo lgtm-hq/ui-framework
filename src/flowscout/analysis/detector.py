@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from flowscout.discovery.actions import OutcomeType
 
@@ -97,10 +98,10 @@ class OutcomeDetector:
         # 6. No observable change
         return OutcomeType.NO_CHANGE
 
-    async def find_error_messages(self, page: object) -> list[str]:
+    async def find_error_messages(self, page: Any) -> list[str]:
         """Scan the current page for visible error messages."""
         try:
-            errors = await page.evaluate(FIND_ERRORS_JS, self.error_selectors)  # type: ignore[union-attr]
+            errors = await page.evaluate(FIND_ERRORS_JS, self.error_selectors)
             return [e for e in errors if e]
         except (AttributeError, RuntimeError, OSError):
             logger.debug("Error scanning for error messages", exc_info=True)

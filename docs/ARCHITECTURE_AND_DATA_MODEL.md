@@ -1,6 +1,8 @@
 # Architecture and Data Model
 
-For V1-specific defaults and policy decisions (state identity rules, input profiles, evidence defaults, coverage targets), see `V1_PRODUCT_DECISIONS.md`.
+For V1-specific defaults and policy decisions (state identity rules,
+input profiles, evidence defaults, coverage targets),
+see `V1_PRODUCT_DECISIONS.md`.
 
 ## High-Level Pipeline
 

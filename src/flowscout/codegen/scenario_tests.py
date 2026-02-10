@@ -95,7 +95,7 @@ def _to_var_name(class_name: str) -> str:
     name = class_name.removesuffix("Page")
     words = re.findall(r"[A-Z][a-z]*", name)
     if words:
-        return words[-1].lower()
+        return str(words[-1].lower())
     return _to_snake_case(name).replace("_", "")
 
 
@@ -136,7 +136,9 @@ def _catalog_property_map(
         zone_list: list[tuple[CatalogEntry, str]] = []
         for entry in zone_entries:
             prop_name = _selector_to_property_name(
-                entry.selector, entry.semantic_name or entry.label, entry.tag,
+                entry.selector,
+                entry.semantic_name or entry.label,
+                entry.tag,
             )
             if prop_name in seen_names:
                 i = 2
@@ -155,7 +157,7 @@ def _find_pom_property(
     zone_type: ZoneType,
     element_type_prefix: str | None = None,
 ) -> str | None:
-    """Find the first POM property name for a given zone and optional element type filter."""
+    """Find the first POM property name for a zone and element type."""
     entries = prop_map.get(zone_type, [])
     for entry, prop_name in entries:
         if element_type_prefix is None:
@@ -194,7 +196,8 @@ def _emit_pytest_verification(
                 return
         elif archetype == PageArchetype.DETAIL:
             prop = _find_pom_property(prop_map, ZoneType.HEADER) or _find_pom_property(
-                prop_map, ZoneType.MAIN_CONTENT,
+                prop_map,
+                ZoneType.MAIN_CONTENT,
             )
             if prop and var:
                 lines.append(f"{indent}expect({var}.{prop}).to_be_visible()")
@@ -221,10 +224,9 @@ def _emit_pytest_verification(
         if url_pattern and var:
             pattern = url_pattern.replace("\\", "\\\\")
             lines.append(f'{indent}expect(page).to_have_url(re.compile(r"{pattern}"))')
-        prop = (
-            _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
-            or _find_pom_property(prop_map, ZoneType.HEADER)
-        )
+        prop = _find_pom_property(
+            prop_map, ZoneType.MAIN_CONTENT
+        ) or _find_pom_property(prop_map, ZoneType.HEADER)
         if prop and var:
             lines.append(f"{indent}expect({var}.{prop}).to_be_visible()")
         elif not url_pattern:
@@ -307,11 +309,14 @@ def _emit_ts_verification(
         if archetype == PageArchetype.LISTING:
             prop = _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
             if prop and var:
-                lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
+                lines.append(
+                    f"{indent}await expect({var}.{prop}.first()).toBeVisible();"
+                )
                 return
         elif archetype == PageArchetype.DETAIL:
             prop = _find_pom_property(prop_map, ZoneType.HEADER) or _find_pom_property(
-                prop_map, ZoneType.MAIN_CONTENT,
+                prop_map,
+                ZoneType.MAIN_CONTENT,
             )
             if prop and var:
                 lines.append(f"{indent}await expect({var}.{prop}).toBeVisible();")
@@ -337,10 +342,9 @@ def _emit_ts_verification(
         if url_pattern and var:
             pattern = url_pattern.replace("\\", "\\\\")
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
-        prop = (
-            _find_pom_property(prop_map, ZoneType.MAIN_CONTENT)
-            or _find_pom_property(prop_map, ZoneType.HEADER)
-        )
+        prop = _find_pom_property(
+            prop_map, ZoneType.MAIN_CONTENT
+        ) or _find_pom_property(prop_map, ZoneType.HEADER)
         if prop and var:
             lines.append(f"{indent}await expect({var}.{prop}).toBeVisible();")
         elif not url_pattern:
@@ -441,7 +445,11 @@ def _generate_pytest(
     sorted_scenarios = sorted(
         site_model.test_scenarios,
         key=lambda s: priority_order.get(
-            s.priority if isinstance(s, FlowScenario) else s.get("priority", "important"),
+            (
+                s.priority
+                if isinstance(s, FlowScenario)
+                else s.get("priority", "important")
+            ),
             1,
         ),
     )
@@ -464,7 +472,11 @@ def _generate_pytest(
         lines.append("")
 
         for scenario in scenarios:
-            sc = scenario if isinstance(scenario, FlowScenario) else FlowScenario.model_validate(scenario)
+            sc = (
+                scenario
+                if isinstance(scenario, FlowScenario)
+                else FlowScenario.model_validate(scenario)
+            )
 
             func_name = _sanitize_test_name(sc.name)
             if func_name in used_names:
@@ -515,9 +527,7 @@ def _generate_pytest_steps(
         if step.action_type == "navigate" and pom:
             # Instantiate POM and navigate
             if pom.var_name not in instantiated:
-                lines.append(
-                    f"        {pom.var_name} = {pom.class_name}(page)"
-                )
+                lines.append(f"        {pom.var_name} = {pom.class_name}(page)")
                 instantiated.add(pom.var_name)
             lines.append(f"        {pom.var_name}.navigate()")
 
@@ -525,60 +535,48 @@ def _generate_pytest_steps(
             # Fill input — use POM search method if it's a search step
             if pom and "search" in step.action_description.lower():
                 if pom.var_name not in instantiated:
-                    lines.append(
-                        f"        {pom.var_name} = {pom.class_name}(page)"
-                    )
+                    lines.append(f"        {pom.var_name} = {pom.class_name}(page)")
                     instantiated.add(pom.var_name)
                 value = step.input_value or "test query"
-                lines.append(
-                    f'        {pom.var_name}.search("{value}")'
-                )
+                lines.append(f'        {pom.var_name}.search("{value}")')
             else:
                 sel = step.target_selector.replace('"', '\\"')
                 value = step.input_value or "test input"
-                lines.append(
-                    f'        page.fill("{sel}", "{value}")'
-                )
+                lines.append(f'        page.fill("{sel}", "{value}")')
 
         elif step.action_type == "click" and pom:
             if pom.var_name not in instantiated:
-                lines.append(
-                    f"        {pom.var_name} = {pom.class_name}(page)"
-                )
+                lines.append(f"        {pom.var_name} = {pom.class_name}(page)")
                 instantiated.add(pom.var_name)
 
             if step.target_selector:
                 sel = step.target_selector.replace('"', '\\"')
-                lines.append(
-                    f'        page.click("{sel}")'
-                )
-            elif "item" in step.action_description.lower() or "detail" in step.action_description.lower():
-                lines.append(
-                    f"        {pom.var_name}.select_item(0)"
-                )
+                lines.append(f'        page.click("{sel}")')
+            elif (
+                "item" in step.action_description.lower()
+                or "detail" in step.action_description.lower()
+            ):
+                lines.append(f"        {pom.var_name}.select_item(0)")
             else:
-                lines.append(
-                    f"        # {step.action_description}"
-                )
+                lines.append(f"        # {step.action_description}")
 
         elif step.action_type == "submit_form":
-            lines.append(
-                "        # Submit form (press Enter or click submit button)"
-            )
-            lines.append(
-                '        page.keyboard.press("Enter")'
-            )
+            lines.append("        # Submit form (press Enter or click submit button)")
+            lines.append('        page.keyboard.press("Enter")')
 
         elif step.action_type is None and step.expected_outcome:
             # Verification step — ensure POM is instantiated if needed
             if pom and pom.var_name not in instantiated:
-                lines.append(
-                    f"        {pom.var_name} = {pom.class_name}(page)"
-                )
+                lines.append(f"        {pom.var_name} = {pom.class_name}(page)")
                 instantiated.add(pom.var_name)
             prop_map = prop_maps.get(step.page_type, {})
             _emit_pytest_verification(
-                lines, template, pom, pt, prop_map, indent="        ",
+                lines,
+                template,
+                pom,
+                pt,
+                prop_map,
+                indent="        ",
             )
         else:
             lines.append(f"        # {step.action_description}")
@@ -611,9 +609,7 @@ def _generate_playwright_test(
     for pom in pom_map.values():
         if pom.class_name not in imported:
             kebab = re.sub(r"(?<!^)(?=[A-Z])", "-", pom.class_name).lower()
-            lines.append(
-                f"import {{ {pom.class_name} }} from './pages/{kebab}';"
-            )
+            lines.append(f"import {{ {pom.class_name} }} from './pages/{kebab}';")
             imported.add(pom.class_name)
 
     if imported:
@@ -624,7 +620,11 @@ def _generate_playwright_test(
     sorted_scenarios = sorted(
         site_model.test_scenarios,
         key=lambda s: priority_order.get(
-            s.priority if isinstance(s, FlowScenario) else s.get("priority", "important"),
+            (
+                s.priority
+                if isinstance(s, FlowScenario)
+                else s.get("priority", "important")
+            ),
             1,
         ),
     )
@@ -642,7 +642,11 @@ def _generate_playwright_test(
         lines.append("")
 
         for scenario in scenarios:
-            sc = scenario if isinstance(scenario, FlowScenario) else FlowScenario.model_validate(scenario)
+            sc = (
+                scenario
+                if isinstance(scenario, FlowScenario)
+                else FlowScenario.model_validate(scenario)
+            )
 
             lines.append(f"  test('{sc.name}', async ({{ page }}) => {{")
             _generate_ts_steps(lines, sc, pom_map, pt_map, base_url)
@@ -680,9 +684,7 @@ def _generate_ts_steps(
 
         if step.action_type == "navigate" and pom:
             if pom.var_name not in instantiated:
-                lines.append(
-                    f"    const {pom.var_name} = new {pom.class_name}(page);"
-                )
+                lines.append(f"    const {pom.var_name} = new {pom.class_name}(page);")
                 instantiated.add(pom.var_name)
             lines.append(f"    await {pom.var_name}.navigate();")
 
@@ -702,14 +704,15 @@ def _generate_ts_steps(
 
         elif step.action_type == "click" and pom:
             if pom.var_name not in instantiated:
-                lines.append(
-                    f"    const {pom.var_name} = new {pom.class_name}(page);"
-                )
+                lines.append(f"    const {pom.var_name} = new {pom.class_name}(page);")
                 instantiated.add(pom.var_name)
             if step.target_selector:
                 sel = step.target_selector.replace("'", "\\'")
                 lines.append(f"    await page.click('{sel}');")
-            elif "item" in step.action_description.lower() or "detail" in step.action_description.lower():
+            elif (
+                "item" in step.action_description.lower()
+                or "detail" in step.action_description.lower()
+            ):
                 lines.append(f"    await {pom.var_name}.selectItem(0);")
             else:
                 lines.append(f"    // {step.action_description}")
@@ -720,13 +723,16 @@ def _generate_ts_steps(
         elif step.action_type is None and step.expected_outcome:
             # Verification step — ensure POM is instantiated if needed
             if pom and pom.var_name not in instantiated:
-                lines.append(
-                    f"    const {pom.var_name} = new {pom.class_name}(page);"
-                )
+                lines.append(f"    const {pom.var_name} = new {pom.class_name}(page);")
                 instantiated.add(pom.var_name)
             prop_map = prop_maps.get(step.page_type, {})
             _emit_ts_verification(
-                lines, template, pom, pt, prop_map, indent="    ",
+                lines,
+                template,
+                pom,
+                pt,
+                prop_map,
+                indent="    ",
             )
         else:
             lines.append(f"    // {step.action_description}")

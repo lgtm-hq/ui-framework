@@ -12,7 +12,7 @@ from flowscout.cli.app import console, main
 from flowscout.codegen.playwright_tests import generate_test_suite
 
 
-@main.command()
+@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
 @click.argument("json_path", type=click.Path(exists=True))
 @click.option("--output", "-o", default=None, help="Output test file path.")
 @click.option(
@@ -113,7 +113,9 @@ def generate(
             )
             if pom_paths:
                 console.print(
-                    f"  [green]POM classes generated:[/green] {len(pom_paths)} files in {pom_dir}"
+                    "  [green]POM classes generated:"
+                    f"[/green] {len(pom_paths)}"
+                    f" files in {pom_dir}"
                 )
         return
 

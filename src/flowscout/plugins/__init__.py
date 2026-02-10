@@ -1,4 +1,5 @@
-"""Plugin system for extending flowscout with custom reporters, detectors, and discoverers."""
+"""Plugin system for extending flowscout with custom reporters,
+detectors, and discoverers."""
 
 from flowscout.plugins.registry import PluginRegistry
 

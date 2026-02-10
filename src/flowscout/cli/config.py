@@ -80,7 +80,7 @@ def _coerce_int(*, value: Any, config_key: str) -> int:
         raise click.ClickException(
             f"Config key '{config_key}' must be an integer, got {type(value).__name__}",
         )
-    return value
+    return int(value)
 
 
 def _coerce_bool(*, value: Any, config_key: str) -> bool:
@@ -284,7 +284,8 @@ def _resolve_auth_bootstrap(
     if not profiles:
         if auth_profile_name or auth_required:
             raise click.ClickException(
-                f"No auth profiles found in {auth_config_file}, but auth was requested.",
+                f"No auth profiles found in {auth_config_file},"
+                " but auth was requested.",
             )
         return None, None
 
@@ -297,11 +298,14 @@ def _resolve_auth_bootstrap(
     if selected is None:
         if auth_profile_name:
             raise click.ClickException(
-                f"Requested auth profile '{auth_profile_name}' was not found or did not match target context.",
+                f"Requested auth profile '{auth_profile_name}'"
+                " was not found or did not match"
+                " target context.",
             )
         if auth_required:
             raise click.ClickException(
-                "No matching auth profile found for target URL/environment and auth is required.",
+                "No matching auth profile found for target"
+                " URL/environment and auth is required.",
             )
         return None, None
 

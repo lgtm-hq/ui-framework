@@ -77,14 +77,13 @@ def _make_result(
 
 
 class TestGenerateMarkdownReport:
-
-    def test_generates_file(self, tmp_path: Path):
+    def test_generates_file(self, tmp_path: Path) -> None:
         result = _make_result()
         output = str(tmp_path / "report.md")
         generate_markdown_report(result, output)
         assert Path(output).exists()
 
-    def test_contains_summary_table(self, tmp_path: Path):
+    def test_contains_summary_table(self, tmp_path: Path) -> None:
         result = _make_result()
         output = str(tmp_path / "report.md")
         generate_markdown_report(result, output)
@@ -93,7 +92,7 @@ class TestGenerateMarkdownReport:
         assert "| Start URL | https://example.com |" in content
         assert "| States discovered | 2 |" in content
 
-    def test_contains_outcome_breakdown(self, tmp_path: Path):
+    def test_contains_outcome_breakdown(self, tmp_path: Path) -> None:
         result = _make_result()
         output = str(tmp_path / "report.md")
         generate_markdown_report(result, output)
@@ -101,7 +100,7 @@ class TestGenerateMarkdownReport:
         assert "## Outcome Breakdown" in content
         assert "navigation" in content
 
-    def test_contains_flows(self, tmp_path: Path):
+    def test_contains_flows(self, tmp_path: Path) -> None:
         result = _make_result(num_flows=2)
         output = str(tmp_path / "report.md")
         generate_markdown_report(result, output)
@@ -110,7 +109,7 @@ class TestGenerateMarkdownReport:
         assert "Flow 0" in content
         assert "Flow 1" in content
 
-    def test_contains_coverage(self, tmp_path: Path):
+    def test_contains_coverage(self, tmp_path: Path) -> None:
         result = _make_result()
         output = str(tmp_path / "report.md")
         generate_markdown_report(result, output)

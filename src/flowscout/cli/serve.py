@@ -7,9 +7,11 @@ import click
 from flowscout.cli.app import main
 
 
-@main.command()
+@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
 @click.argument("report_path", type=click.Path(exists=True))
-@click.option("--port", "-p", default=8765, help="Server port (auto-increments if taken).")
+@click.option(
+    "--port", "-p", default=8765, help="Server port (auto-increments if taken)."
+)
 @click.option("--no-open", is_flag=True, help="Don't auto-open browser.")
 def serve(report_path: str, port: int, no_open: bool) -> None:
     """Serve an HTML report via local HTTP server."""

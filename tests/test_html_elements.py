@@ -2,7 +2,10 @@
 
 from flowscout.analysis.graph import ExplorationResult
 from flowscout.core.state import PageState
-from flowscout.reporting.html import _build_element_drilldown_map, _build_url_inventory_rows
+from flowscout.reporting.html import (
+    _build_element_drilldown_map,
+    _build_url_inventory_rows,
+)
 
 
 def _make_state(*, state_id: str, title: str, url: str, depth: int = 0) -> PageState:
@@ -33,7 +36,11 @@ def test_build_element_drilldown_map_includes_locator_rows() -> None:
                     "entries": [
                         {
                             "selector": "a[href='/movie/1']",
-                            "label": "Movie card .react-stars-123:before { position: absolute; }",
+                            "label": (
+                                "Movie card"
+                                " .react-stars-123:before"
+                                " { position: absolute; }"
+                            ),
                             "element_type": "link",
                             "zone_type": "main_content",
                             "tag": "a",

@@ -2,22 +2,20 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from flowscout.analysis.archetype import (
-    ContentDensity,
-    PageAnalysis,
     PageArchetype,
-    RepeatedStructure,
 )
 from flowscout.smart.planner import FlowTemplate, PlannerAdvice, SmartPlanner
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _mock_raw(
     archetype_hint: str = "listing",
@@ -30,7 +28,7 @@ def _mock_raw(
     form_input_count: int = 0,
     has_hero: bool = False,
     has_single_heading_focus: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """Build a mock raw dict that will classify to the desired archetype."""
     repeated = []
     if archetype_hint in ("listing", "search_results"):
@@ -77,7 +75,7 @@ def _mock_state(state_id: str = "s1", url: str = "https://example.com") -> Magic
     return state
 
 
-def _mock_browser(raw: dict) -> MagicMock:
+def _mock_browser(raw: dict[str, Any]) -> MagicMock:
     browser = MagicMock()
     browser.analyze_page_structure = AsyncMock(return_value=raw)
     return browser
@@ -90,6 +88,7 @@ def _mock_graph() -> MagicMock:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestSmartPlannerBasic:
     """Basic planner functionality."""

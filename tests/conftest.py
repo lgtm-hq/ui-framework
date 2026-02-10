@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from typing import Any
 
 import pytest
 
@@ -168,7 +169,7 @@ def make_element(
 
 
 @pytest.fixture
-def sample_element_data() -> dict:
+def sample_element_data() -> dict[str, Any]:
     """Sample raw element data as returned by the discovery JS."""
     return {
         "selector": 'a[href="/themes/"]',
@@ -193,7 +194,7 @@ def sample_element_data() -> dict:
 
 
 @pytest.fixture
-def sample_form_element_data() -> dict:
+def sample_form_element_data() -> dict[str, Any]:
     """Sample form input element data."""
     return {
         "selector": 'input[name="email"]',

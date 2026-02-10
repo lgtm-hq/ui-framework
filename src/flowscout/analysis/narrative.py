@@ -251,8 +251,8 @@ class NarrativeGenerator:
         if _is_css_selector(label) and action.intent:
             target = action.intent.target_description
             if target and not _is_css_selector(target):
-                return target
-        return label
+                return str(target)
+        return str(label)
 
     @staticmethod
     def _page_name(
@@ -261,7 +261,7 @@ class NarrativeGenerator:
     ) -> str:
         """Get a human-readable page name from state title or URL."""
         if state and state.title:
-            return state.title
+            return str(state.title)
         url = (state.url if state else fallback_url) or ""
         if url:
             path = urlparse(url).path.rstrip("/")
@@ -288,7 +288,7 @@ class NarrativeGenerator:
             case ActionType.FILL:
                 return f"Enter '{action.value}' into the '{label}' field"
             case ActionType.SELECT_OPTION:
-                return f"Select '{action.value}' from the '{label}' dropdown"
+                return f"Select '{action.value}' from the '{label}' dropdown"  # nosec B608 - narrative text, not SQL
             case ActionType.CHECK:
                 return self._describe_toggle(
                     label=label,
@@ -338,7 +338,7 @@ class NarrativeGenerator:
         """Generate a context-aware description for a click action."""
         # Dropdown option selection
         if action.meta.is_dropdown_option:
-            return f"Select '{label}' from the dropdown"
+            return f"Select '{label}' from the dropdown"  # nosec B608 - narrative text, not SQL
 
         # Search trigger
         if action.meta.is_search:
@@ -394,7 +394,7 @@ class NarrativeGenerator:
                     if result.message
                     else "An error occurred"
                 )
-        return result.outcome.value
+        return str(result.outcome.value)
 
     def _gherkin_when(self, action: Action) -> str:
         """Generate a Gherkin When clause."""
@@ -405,7 +405,7 @@ class NarrativeGenerator:
             case ActionType.FILL:
                 return f'When I enter "{action.value}" into the "{label}" field'
             case ActionType.SELECT_OPTION:
-                return f'When I select "{action.value}" from the "{label}" dropdown'
+                return f'When I select "{action.value}" from the "{label}" dropdown'  # nosec B608 - narrative text, not SQL
             case ActionType.CHECK:
                 return f'When I check the "{label}" checkbox'
             case ActionType.UNCHECK:
@@ -423,7 +423,7 @@ class NarrativeGenerator:
     def _gherkin_when_click(self, action: Action, label: str) -> str:
         """Generate a Gherkin When clause for click actions with context."""
         if action.meta.is_dropdown_option:
-            return f'When I select "{label}" from the dropdown'
+            return f'When I select "{label}" from the dropdown'  # nosec B608 - narrative text, not SQL
         if action.meta.is_search:
             return 'When I search for "test query"'
 
@@ -480,7 +480,9 @@ class NarrativeGenerator:
                     )
                 case IntentClass.SELECT:
                     if action.action_type == ActionType.CLICK:
-                        return f'Then the application should respond to clicking "{label}"'
+                        return (
+                            f'Then the application should respond to clicking "{label}"'
+                        )
                     return f'Then the selection for "{label}" should be applied'
 
         match result.outcome:

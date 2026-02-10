@@ -111,7 +111,9 @@ def infer_intent(
         return ActionIntent(
             intent_class=IntentClass.REVEAL,
             target_description=target,
-            expected_effect=f"Additional content related to {target} should become visible",
+            expected_effect=(
+                f"Additional content related to {target} should become visible"
+            ),
         )
 
     if at == ActionType.PRESS_KEY:
@@ -135,7 +137,9 @@ def infer_intent(
         return ActionIntent(
             intent_class=IntentClass.SUBMIT,
             target_description=target,
-            expected_effect=f"The {form_name} submission should be processed or validated",
+            expected_effect=(
+                f"The {form_name} submission should be processed or validated"
+            ),
             context={"form_selector": form_selector or ""},
         )
 
@@ -181,7 +185,7 @@ def _infer_click_intent(element: InteractiveElement, target: str) -> ActionInten
         return ActionIntent(
             intent_class=IntentClass.SELECT,
             target_description=target,
-            expected_effect=f"Select the '{target}' option from the dropdown",
+            expected_effect=f"Select the '{target}' option from the dropdown",  # nosec B608 - narrative text, not SQL
         )
 
     if etype == ElementType.TOGGLE:
@@ -227,7 +231,9 @@ def _infer_click_intent(element: InteractiveElement, target: str) -> ActionInten
             return ActionIntent(
                 intent_class=IntentClass.SUBMIT,
                 target_description=target,
-                expected_effect=f"The action triggered by '{target}' should be processed",
+                expected_effect=(
+                    f"The action triggered by '{target}' should be processed"
+                ),
             )
         if any(
             w in label_lower
@@ -250,7 +256,9 @@ def _infer_click_intent(element: InteractiveElement, target: str) -> ActionInten
     return ActionIntent(
         intent_class=IntentClass.SELECT,
         target_description=target,
-        expected_effect=f"A visible application response should occur after clicking '{target}'",
+        expected_effect=(
+            f"A visible application response should occur after clicking '{target}'"
+        ),
     )
 
 

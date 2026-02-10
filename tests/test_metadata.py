@@ -77,9 +77,7 @@ class TestDropdownKeys:
         assert m.requires_open == "button#dropdown-trigger"
 
     def test_is_dropdown_option(self) -> None:
-        m = ActionMetadata(
-            _action_with_metadata({"requires_open": "button#trigger"})
-        )
+        m = ActionMetadata(_action_with_metadata({"requires_open": "button#trigger"}))
         assert m.is_dropdown_option is True
 
     def test_is_not_dropdown_option(self) -> None:

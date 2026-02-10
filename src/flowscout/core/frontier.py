@@ -118,19 +118,19 @@ class FrontierManager:
         """
         label_prefix = action.label.split(":")[0] if ":" in action.label else ""
         if not label_prefix:
-            return action.priority
+            return int(action.priority)
 
         group_outcomes = self._group_outcome_count.get(label_prefix)
         if not group_outcomes:
-            return action.priority
+            return int(action.priority)
 
         dom_changes = group_outcomes.get(OutcomeType.DOM_CHANGE.value, 0)
         navigations = group_outcomes.get(OutcomeType.NAVIGATION.value, 0)
 
         if dom_changes >= 3 and navigations == 0:
-            return max(action.priority, 80)
+            return max(int(action.priority), 80)
 
-        return action.priority
+        return int(action.priority)
 
     def apply_priority_overrides(
         self,

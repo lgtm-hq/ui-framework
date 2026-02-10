@@ -6,11 +6,22 @@ import asyncio
 import logging
 import re
 import time
+from collections.abc import Awaitable, Callable
 from hashlib import sha256
 from pathlib import Path
+from typing import Any
 
-from playwright.async_api import Page, async_playwright, Browser, BrowserContext
-from playwright.async_api import Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import (
+    Page,
+    Playwright,
+    async_playwright,
+    Browser,
+    BrowserContext,
+)
+from playwright.async_api import (
+    Error as PlaywrightError,
+    TimeoutError as PlaywrightTimeoutError,
+)
 
 from flowscout.analysis.detector import OutcomeDetector
 from flowscout.core.auth import AuthBootstrap
@@ -51,7 +62,7 @@ class StabilityWaiter:
 
     async def wait(
         self,
-        get_hash: object,
+        get_hash: Callable[[], Awaitable[str]],
         timeout_ms: int,
     ) -> None:
         """Poll ``get_hash`` until two consecutive calls return the same value.
@@ -59,11 +70,11 @@ class StabilityWaiter:
         ``get_hash`` must be an async callable returning a string hash.
         """
         deadline = time.monotonic() + (timeout_ms / 1000)
-        prev_hash = await get_hash()  # type: ignore[misc]
+        prev_hash = await get_hash()
 
         while time.monotonic() < deadline:
             await asyncio.sleep(self.poll_interval_s)
-            current_hash = await get_hash()  # type: ignore[misc]
+            current_hash = await get_hash()
             if current_hash == prev_hash:
                 return
             prev_hash = current_hash
@@ -83,7 +94,7 @@ class BrowserManager:
         browser_defaults: BrowserDefaults | None = None,
     ) -> None:
         self.config = config
-        self._playwright = None
+        self._playwright: Playwright | None = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
         self._page: Page | None = None
@@ -245,9 +256,10 @@ class BrowserManager:
             signals=signals,
         )
 
-    async def analyze_page_structure(self) -> dict:
+    async def analyze_page_structure(self) -> dict[str, Any]:
         """Run in-page structural analysis for smart mode."""
-        return await self.page.evaluate(PAGE_ANALYSIS_JS)
+        result: dict[str, Any] = await self.page.evaluate(PAGE_ANALYSIS_JS)
+        return result
 
     async def get_dom_hash(self) -> str:
         """Get the current DOM structure hash."""
@@ -263,11 +275,11 @@ class BrowserManager:
         console_errors: list[str] = []
         network_errors: list[dict[str, str]] = []
 
-        def on_console(msg):
+        def on_console(msg: Any) -> None:
             if msg.type == "error":
                 console_errors.append(msg.text)
 
-        def on_response(resp):
+        def on_response(resp: Any) -> None:
             if resp.status >= 400:
                 network_errors.append({"url": resp.url, "status": str(resp.status)})
 
@@ -425,7 +437,8 @@ class BrowserManager:
             box.style.height = `${rect.height + 4}px`;
             box.style.border = '3px solid #ff4757';
             box.style.background = 'rgba(255, 71, 87, 0.16)';
-            box.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.4), 0 0 24px rgba(255, 71, 87, 0.6)';
+            box.style.boxShadow = '0 0 0 2px rgba(255,255,255,.4),'
+              + ' 0 0 24px rgba(255,71,87,.6)';
             box.style.borderRadius = '4px';
 
             const tag = document.createElement('div');

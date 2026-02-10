@@ -1,4 +1,5 @@
-"""Interactive element discovery via accessibility tree, CSS sweep, and pattern detection."""
+"""Interactive element discovery via accessibility tree,
+CSS sweep, and pattern detection."""
 
 from __future__ import annotations
 
@@ -6,6 +7,7 @@ import asyncio
 import logging
 from enum import StrEnum, auto
 from hashlib import md5
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _sanitize_label(raw: str) -> str:
     """Strip CSS pseudo-element declarations and other noise from element labels."""
-    return strip_css_blocks(raw)
+    return str(strip_css_blocks(raw))
 
 
 class ElementType(StrEnum):
@@ -112,7 +114,7 @@ class InteractiveElement(BaseModel):
 
 def build_element_id(selector: str, label: str) -> str:
     """Create a stable hash ID for an element."""
-    return md5(f"{selector}:{label}".encode()).hexdigest()[:12]
+    return md5(f"{selector}:{label}".encode(), usedforsecurity=False).hexdigest()[:12]
 
 
 def classify_element(
@@ -232,7 +234,7 @@ DISCOVERY_JS = load_script("discovery")
 KEYBOARD_HINTS_JS = load_script("keyboard_hints")
 
 
-async def discover_elements(page: object) -> list[InteractiveElement]:
+async def discover_elements(page: Any) -> list[InteractiveElement]:
     """Discover all interactive elements on the current page.
 
     Uses a three-layer approach:
@@ -241,7 +243,7 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
     3. Pattern detection (dropdowns, tabs, toggles)
     """
     # Layer 1: CSS selector sweep
-    raw_elements = await page.evaluate(DISCOVERY_JS)  # type: ignore[union-attr]
+    raw_elements = await page.evaluate(DISCOVERY_JS)
 
     elements: list[InteractiveElement] = []
     for raw in raw_elements:
@@ -279,7 +281,7 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
 
     # Layer 2: Accessibility tree enrichment
     try:
-        a11y_snapshot = await page.accessibility.snapshot()  # type: ignore[union-attr]
+        a11y_snapshot = await page.accessibility.snapshot()
         if a11y_snapshot:
             _enrich_from_a11y(elements, a11y_snapshot)
     except (AttributeError, RuntimeError):
@@ -292,7 +294,7 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
     elements = await _discover_dropdown_options(page, elements)
 
     # Compute priorities
-    base_url = str(await page.evaluate("() => window.location.origin"))  # type: ignore[union-attr]
+    base_url = str(await page.evaluate("() => window.location.origin"))
     for elem in elements:
         elem.priority = compute_priority(elem, base_url)
 
@@ -304,7 +306,7 @@ _OPTION_ROLES = frozenset({"option", "menuitem", "menuitemradio", "menuitemcheck
 
 
 async def _discover_dropdown_options(
-    page: object,
+    page: Any,
     elements: list[InteractiveElement],
 ) -> list[InteractiveElement]:
     """Click dropdown triggers to discover hidden options.
@@ -352,11 +354,11 @@ async def _discover_dropdown_options(
 
         try:
             # Click the trigger to open the dropdown
-            await page.click(trigger.selector, timeout=3000)  # type: ignore[union-attr]
+            await page.click(trigger.selector, timeout=3000)
             await asyncio.sleep(DEFAULT_BROWSER.dropdown_reveal_delay_s)
 
             # Re-run discovery to find newly visible elements
-            raw_elements = await page.evaluate(DISCOVERY_JS)  # type: ignore[union-attr]
+            raw_elements = await page.evaluate(DISCOVERY_JS)
 
             for raw in raw_elements:
                 if not raw.get("visible", False):
@@ -401,18 +403,22 @@ async def _discover_dropdown_options(
 
             # Close the dropdown: Escape, then fallback to re-clicking trigger
             try:
-                await page.keyboard.press("Escape")  # type: ignore[union-attr]
+                await page.keyboard.press("Escape")
             except (AttributeError, RuntimeError, OSError):
                 logger.debug("Failed to close dropdown via Escape", exc_info=True)
                 try:
-                    await page.click(trigger.selector, timeout=2000)  # type: ignore[union-attr]
+                    await page.click(trigger.selector, timeout=2000)
                 except (AttributeError, RuntimeError, OSError):
-                    logger.debug("Failed to close dropdown by re-clicking", exc_info=True)
+                    logger.debug(
+                        "Failed to close dropdown by re-clicking", exc_info=True
+                    )
             await asyncio.sleep(DEFAULT_BROWSER.stability_poll_interval_s)
 
         except (AttributeError, RuntimeError, OSError):
             logger.debug(
-                "Dropdown discovery failed for %s", trigger.selector, exc_info=True,
+                "Dropdown discovery failed for %s",
+                trigger.selector,
+                exc_info=True,
             )
             continue
 
@@ -421,7 +427,7 @@ async def _discover_dropdown_options(
 
 def _enrich_from_a11y(
     elements: list[InteractiveElement],
-    a11y_node: dict,
+    a11y_node: dict[str, Any],
 ) -> None:
     """Enrich element data with accessibility tree info."""
     name = a11y_node.get("name", "")

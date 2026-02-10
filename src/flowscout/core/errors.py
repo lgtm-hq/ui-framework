@@ -13,6 +13,7 @@ class FlowscoutError(Exception):
 
 # ── Browser errors ───────────────────────────────────────────────────
 
+
 class BrowserError(FlowscoutError):
     """A Playwright browser operation failed."""
 
@@ -39,6 +40,7 @@ class BacktrackFailed(BrowserError):
 
 # ── Storage errors ───────────────────────────────────────────────────
 
+
 class StorageError(FlowscoutError):
     """A persistence operation failed."""
 
@@ -49,11 +51,13 @@ class MigrationError(StorageError):
 
 # ── Discovery errors ─────────────────────────────────────────────────
 
+
 class DiscoveryError(FlowscoutError):
     """Element discovery or classification failed."""
 
 
 # ── Configuration errors ─────────────────────────────────────────────
+
 
 class ConfigError(FlowscoutError):
     """Invalid or missing configuration."""

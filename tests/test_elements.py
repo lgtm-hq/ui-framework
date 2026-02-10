@@ -1,5 +1,7 @@
 """Tests for element discovery and classification."""
 
+from typing import Any
+
 import pytest
 
 from flowscout.discovery.elements import (
@@ -49,12 +51,14 @@ class TestClassifyElement:
             "generic_div",
         ],
     )
-    def test_classify(self, tag, kwargs, expected):
+    def test_classify(
+        self, tag: str, kwargs: dict[str, Any], expected: ElementType
+    ) -> None:
         assert classify_element(tag, **kwargs) == expected
 
 
 class TestComputePriority:
-    def _make_elem(self, **kwargs) -> InteractiveElement:
+    def _make_elem(self, **kwargs: Any) -> InteractiveElement:
         defaults = {
             "element_id": "test",
             "element_type": ElementType.BUTTON,
@@ -104,7 +108,9 @@ class TestComputePriority:
             "tab",
         ],
     )
-    def test_priority(self, elem_kwargs, base_url, expected_priority):
+    def test_priority(
+        self, elem_kwargs: dict[str, Any], base_url: str | None, expected_priority: int
+    ) -> None:
         elem = self._make_elem(**elem_kwargs)
         if base_url:
             assert compute_priority(elem, base_url) == expected_priority
@@ -113,16 +119,16 @@ class TestComputePriority:
 
 
 class TestBuildElementId:
-    def test_deterministic(self):
+    def test_deterministic(self) -> None:
         id1 = build_element_id("button#login", "Login")
         id2 = build_element_id("button#login", "Login")
         assert id1 == id2
 
-    def test_different_inputs_different_ids(self):
+    def test_different_inputs_different_ids(self) -> None:
         id1 = build_element_id("button#login", "Login")
         id2 = build_element_id("button#signup", "Sign Up")
         assert id1 != id2
 
-    def test_12_chars(self):
+    def test_12_chars(self) -> None:
         result = build_element_id("selector", "label")
         assert len(result) == 12

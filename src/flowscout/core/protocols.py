@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from flowscout.analysis.graph import ExplorationResult
@@ -29,7 +29,7 @@ class IBrowser(Protocol):
 
     async def take_screenshot(self, path: str) -> None: ...
 
-    async def analyze_page_structure(self) -> dict: ...
+    async def analyze_page_structure(self) -> dict[str, Any]: ...
 
 
 @runtime_checkable
@@ -62,13 +62,13 @@ class IStorage(Protocol):
         *,
         start_url: str | None = None,
         limit: int = 20,
-    ) -> list[dict]: ...
+    ) -> list[dict[str, Any]]: ...
 
     def get_flaky_actions(
         self,
         start_url: str,
         min_runs: int = 2,
-    ) -> list[dict]: ...
+    ) -> list[dict[str, Any]]: ...
 
     def close(self) -> None: ...
 

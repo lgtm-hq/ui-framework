@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -13,12 +13,12 @@ from flowscout.core.browser import BrowserManager, StabilityWaiter
 from flowscout.core.state import ExplorerConfig
 from flowscout.discovery.actions import Action, ActionType, OutcomeType
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _config(**overrides) -> ExplorerConfig:
+
+def _config(**overrides: Any) -> ExplorerConfig:
     defaults = {
         "start_url": "https://example.com",
         "headless": True,
@@ -34,7 +34,7 @@ def _mock_page(
     dom_skeleton: str = "<html></html>",
     visible_text: str = "Hello",
     form_state: str = "{}",
-    signals: dict | None = None,
+    signals: dict[str, Any] | None = None,
 ) -> MagicMock:
     """Build a mock Playwright Page."""
     page = MagicMock()
@@ -113,6 +113,7 @@ def _make_action(
 # StabilityWaiter tests
 # ---------------------------------------------------------------------------
 
+
 class TestStabilityWaiter:
     """Tests for the extracted StabilityWaiter."""
 
@@ -183,25 +184,26 @@ class TestStabilityWaiter:
 # BrowserManager constructor tests
 # ---------------------------------------------------------------------------
 
+
 class TestBrowserManagerInit:
     """Tests for BrowserManager initialization."""
 
-    def test_default_detector_created(self):
+    def test_default_detector_created(self) -> None:
         bm = BrowserManager(_config())
         assert bm._detector is not None
 
-    def test_custom_detector_injected(self):
+    def test_custom_detector_injected(self) -> None:
         detector = MagicMock()
         bm = BrowserManager(_config(), detector=detector)
         assert bm._detector is detector
 
-    def test_custom_stability_waiter_injected(self):
+    def test_custom_stability_waiter_injected(self) -> None:
         waiter = StabilityWaiter(poll_interval_s=0.5)
         bm = BrowserManager(_config(), stability_waiter=waiter)
         assert bm._stability_waiter is waiter
         assert bm._stability_waiter.poll_interval_s == 0.5
 
-    def test_page_raises_before_launch(self):
+    def test_page_raises_before_launch(self) -> None:
         bm = BrowserManager(_config())
         with pytest.raises(RuntimeError, match="Browser not launched"):
             _ = bm.page
@@ -210,6 +212,7 @@ class TestBrowserManagerInit:
 # ---------------------------------------------------------------------------
 # BrowserManager.execute_action tests
 # ---------------------------------------------------------------------------
+
 
 class TestExecuteAction:
     """Tests for action execution paths."""
@@ -229,7 +232,9 @@ class TestExecuteAction:
         action = _make_action(ActionType.CLICK, "button#go")
         result = await bm.execute_action(action)
 
-        page.click.assert_called_once_with("button#go", timeout=bm.config.action_timeout_ms)
+        page.click.assert_called_once_with(
+            "button#go", timeout=bm.config.action_timeout_ms
+        )
         assert result.outcome == OutcomeType.NO_CHANGE
 
     @pytest.mark.asyncio
@@ -246,7 +251,9 @@ class TestExecuteAction:
         result = await bm.execute_action(action)
 
         page.fill.assert_called_once_with(
-            "input#name", "John", timeout=bm.config.action_timeout_ms,
+            "input#name",
+            "John",
+            timeout=bm.config.action_timeout_ms,
         )
         assert result.outcome == OutcomeType.NO_CHANGE
 
@@ -264,7 +271,9 @@ class TestExecuteAction:
         result = await bm.execute_action(action)
 
         page.select_option.assert_called_once_with(
-            "select#country", "US", timeout=bm.config.action_timeout_ms,
+            "select#country",
+            "US",
+            timeout=bm.config.action_timeout_ms,
         )
         assert result.outcome == OutcomeType.NO_CHANGE
 
@@ -282,7 +291,8 @@ class TestExecuteAction:
         result = await bm.execute_action(action)
 
         page.check.assert_called_once_with(
-            "input#agree", timeout=bm.config.action_timeout_ms,
+            "input#agree",
+            timeout=bm.config.action_timeout_ms,
         )
         assert result.outcome == OutcomeType.NO_CHANGE
 
@@ -300,7 +310,8 @@ class TestExecuteAction:
         result = await bm.execute_action(action)
 
         page.uncheck.assert_called_once_with(
-            "input#agree", timeout=bm.config.action_timeout_ms,
+            "input#agree",
+            timeout=bm.config.action_timeout_ms,
         )
         assert result.outcome == OutcomeType.NO_CHANGE
 
@@ -318,7 +329,8 @@ class TestExecuteAction:
         result = await bm.execute_action(action)
 
         page.hover.assert_called_once_with(
-            "div.tooltip-trigger", timeout=bm.config.action_timeout_ms,
+            "div.tooltip-trigger",
+            timeout=bm.config.action_timeout_ms,
         )
         assert result.outcome == OutcomeType.NO_CHANGE
 
@@ -348,11 +360,14 @@ class TestExecuteAction:
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NAVIGATION)
 
-        action = _make_action(ActionType.NAVIGATE, "", value="https://example.com/page2")
-        result = await bm.execute_action(action)
+        action = _make_action(
+            ActionType.NAVIGATE, "", value="https://example.com/page2"
+        )
+        await bm.execute_action(action)
 
         page.goto.assert_called_once_with(
-            "https://example.com/page2", timeout=bm.config.timeout_ms,
+            "https://example.com/page2",
+            timeout=bm.config.timeout_ms,
         )
 
     @pytest.mark.asyncio
@@ -371,19 +386,21 @@ class TestExecuteAction:
             "button#submit",
             metadata={"field_values_json": json.dumps(field_values)},
         )
-        result = await bm.execute_action(action)
+        await bm.execute_action(action)
 
         # Should fill each field
         assert page.fill.call_count == 2
         # Then click submit
         page.click.assert_called_once_with(
-            "button#submit", timeout=bm.config.action_timeout_ms,
+            "button#submit",
+            timeout=bm.config.action_timeout_ms,
         )
 
 
 # ---------------------------------------------------------------------------
 # BrowserManager timeout/exception handling tests
 # ---------------------------------------------------------------------------
+
 
 class TestActionErrorHandling:
     """Tests for timeout and exception handling during action execution."""
@@ -425,6 +442,7 @@ class TestActionErrorHandling:
 # BrowserManager.capture_state tests
 # ---------------------------------------------------------------------------
 
+
 class TestCaptureState:
     """Tests for page state capture."""
 
@@ -435,16 +453,18 @@ class TestCaptureState:
         bm._page = page
 
         # All evaluate calls return strings (except signals which is a list)
-        page.evaluate = AsyncMock(side_effect=[
-            # DOM structure
-            "<html><body></body></html>",
-            # Visible text
-            "Hello World",
-            # Form state
-            "{}",
-            # Signals (list of strings)
-            [],
-        ])
+        page.evaluate = AsyncMock(
+            side_effect=[
+                # DOM structure
+                "<html><body></body></html>",
+                # Visible text
+                "Hello World",
+                # Form state
+                "{}",
+                # Signals (list of strings)
+                [],
+            ]
+        )
 
         state = await bm.capture_state(depth=1)
 
@@ -465,12 +485,14 @@ class TestCaptureState:
         page.wait_for_load_state = AsyncMock(
             side_effect=[PlaywrightError("navigation"), None, None],
         )
-        page.evaluate = AsyncMock(side_effect=[
-            "<html></html>",
-            "text",
-            "{}",
-            [],
-        ])
+        page.evaluate = AsyncMock(
+            side_effect=[
+                "<html></html>",
+                "text",
+                "{}",
+                [],
+            ]
+        )
 
         state = await bm.capture_state(depth=0)
         assert state is not None
@@ -480,6 +502,7 @@ class TestCaptureState:
 # ---------------------------------------------------------------------------
 # BrowserManager screenshot tests
 # ---------------------------------------------------------------------------
+
 
 class TestScreenshots:
     """Tests for screenshot capture."""

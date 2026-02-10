@@ -1,4 +1,5 @@
-"""Page archetype recognition, structural repetition detection, and element cataloging."""
+"""Page archetype recognition, structural repetition detection,
+and element cataloging."""
 
 from __future__ import annotations
 
@@ -135,7 +136,10 @@ class ArchetypeRegistry:
         self._saturation_threshold = saturation_threshold
 
     def register(self, state_id: str, analysis: PageAnalysis, url: str = "") -> bool:
-        """Register a page analysis. Returns True if this is a novel structural signature."""
+        """Register a page analysis.
+
+        Returns True if this is a novel structural signature.
+        """
         sig = analysis.structural_signature
         instance = ArchetypeInstance(
             state_id=state_id,
@@ -176,6 +180,7 @@ class ArchetypeRegistry:
 # Classification
 # ---------------------------------------------------------------------------
 
+
 def classify_archetype(raw: dict[str, Any]) -> tuple[PageArchetype, float]:
     """Score-based archetype classification from raw page analysis data.
 
@@ -208,13 +213,31 @@ def classify_archetype(raw: dict[str, Any]) -> tuple[PageArchetype, float]:
 
     # --- DETAIL ---
     # Only score as detail if it's NOT dominated by form inputs or hero sections
-    if zones.get("has_single_heading_focus") and form_input_count < 3 and not zones.get("has_hero"):
+    if (
+        zones.get("has_single_heading_focus")
+        and form_input_count < 3
+        and not zones.get("has_hero")
+    ):
         scores[PageArchetype.DETAIL] += 30
-    if image_count >= 1 and image_count <= 4 and total_text > 500 and form_input_count < 3:
+    if (
+        image_count >= 1
+        and image_count <= 4
+        and total_text > 500
+        and form_input_count < 3
+    ):
         scores[PageArchetype.DETAIL] += 20
-    if interactive_count > 0 and total_text / max(interactive_count, 1) > 50 and form_input_count < 3:
+    if (
+        interactive_count > 0
+        and total_text / max(interactive_count, 1) > 50
+        and form_input_count < 3
+    ):
         scores[PageArchetype.DETAIL] += 15
-    if heading_count >= 2 and heading_count <= 6 and total_text > 300 and form_input_count < 3:
+    if (
+        heading_count >= 2
+        and heading_count <= 6
+        and total_text > 300
+        and form_input_count < 3
+    ):
         scores[PageArchetype.DETAIL] += 10
 
     # --- SEARCH_RESULTS ---

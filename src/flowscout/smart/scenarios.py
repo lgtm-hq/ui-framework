@@ -10,7 +10,6 @@ from flowscout.analysis.archetype import PageArchetype, ZoneType
 from flowscout.analysis.site_model import NavigationEdge, PageType
 from flowscout.discovery.actions import ActionType
 
-
 # ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
@@ -139,14 +138,18 @@ class ScenarioSynthesizer:
                 page_type=pt.page_type_id,
                 action_description="Verify page content is visible",
                 action_type=None,
-                expected_outcome=f"Content matches {pt.archetype.value} archetype expectations",
+                expected_outcome=(
+                    f"Content matches {pt.archetype.value} archetype expectations"
+                ),
             ),
         ]
 
         return FlowScenario(
             scenario_id=f"scenario-{idx}",
             name=f"Load and verify {pt.name}",
-            description=f"Navigate to {pt.name} and verify the page content loads correctly.",
+            description=(
+                f"Navigate to {pt.name} and verify the page content loads correctly."
+            ),
             page_type_sequence=[pt.page_type_id],
             steps=steps,
             priority="important",
@@ -424,7 +427,7 @@ def _find_content_item_selector(pt: PageType) -> str:
             "button",
             "other",
         ):
-            return entry.selector
+            return str(entry.selector)
     return ""
 
 
@@ -432,11 +435,11 @@ def _find_search_selector(pt: PageType) -> str:
     """Find a search input selector from a page's catalog."""
     for entry in pt.catalog.entries:
         if entry.zone_type == ZoneType.SEARCH and "input" in entry.element_type:
-            return entry.selector
+            return str(entry.selector)
     # Fallback: any input with search-like attributes
     for entry in pt.catalog.entries:
         if entry.input_type == "search" or "search" in entry.semantic_name.lower():
-            return entry.selector
+            return str(entry.selector)
     return ""
 
 
@@ -444,7 +447,7 @@ def _find_pagination_selector(pt: PageType) -> str:
     """Find a pagination control selector."""
     for entry in pt.catalog.entries:
         if entry.zone_type == ZoneType.PAGINATION:
-            return entry.selector
+            return str(entry.selector)
     return ""
 
 
@@ -452,7 +455,7 @@ def _find_filter_selector(pt: PageType) -> str:
     """Find a filter control selector."""
     for entry in pt.catalog.entries:
         if entry.zone_type == ZoneType.FILTER:
-            return entry.selector
+            return str(entry.selector)
     return ""
 
 

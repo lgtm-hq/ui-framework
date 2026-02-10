@@ -2,31 +2,31 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
 from flowscout.plugins.registry import PluginRegistry
 
 
 class _MockReporter:
-    def generate(self, result, output_path):
+    def generate(self, result: Any, output_path: str) -> None:
         pass
 
 
 class _MockDetector:
-    def classify(self, **kwargs):
+    def classify(self, **kwargs: Any) -> None:
         pass
 
-    async def find_error_messages(self, page):
+    async def find_error_messages(self, page: Any) -> list[str]:
         return []
 
 
 class _MockDiscoverer:
-    async def discover(self, page):
+    async def discover(self, page: Any) -> list[Any]:
         return []
 
 
 class TestPluginRegistry:
-
     def test_register_and_get_reporter(self) -> None:
         registry = PluginRegistry()
         registry.register_reporter("mock", _MockReporter)
@@ -74,7 +74,6 @@ class TestPluginRegistry:
 
 
 class TestEntryPointLoading:
-
     def test_load_from_entry_points_no_plugins(self) -> None:
         registry = PluginRegistry()
         registry.load_from_entry_points()
@@ -86,13 +85,14 @@ class TestEntryPointLoading:
         class _FakeEntryPoint:
             name = "test_reporter"
 
-            def load(self):
+            def load(self) -> type:
                 return _MockReporter
 
         with patch(
             "flowscout.plugins.registry.importlib.metadata.entry_points"
         ) as mock_eps:
-            def _fake_eps(group):
+
+            def _fake_eps(group: str) -> list[Any]:
                 if group == "flowscout.reporters":
                     return [_FakeEntryPoint()]
                 return []
@@ -107,13 +107,14 @@ class TestEntryPointLoading:
         class _BrokenEntryPoint:
             name = "broken"
 
-            def load(self):
+            def load(self) -> None:
                 raise ImportError("broken plugin")
 
         with patch(
             "flowscout.plugins.registry.importlib.metadata.entry_points"
         ) as mock_eps:
-            def _fake_eps(group):
+
+            def _fake_eps(group: str) -> list[Any]:
                 if group == "flowscout.reporters":
                     return [_BrokenEntryPoint()]
                 return []

@@ -134,7 +134,11 @@
     }
 
     const style = getComputedStyle(node);
-    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse")
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      style.visibility === "collapse"
+    )
       return false;
     if (Number.parseFloat(style.opacity || "1") === 0) return false;
     if (node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true") return false;
@@ -145,13 +149,24 @@
 
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    if (rect.bottom < 0 || rect.right < 0 || rect.top > viewportHeight || rect.left > viewportWidth) {
+    if (
+      rect.bottom < 0 ||
+      rect.right < 0 ||
+      rect.top > viewportHeight ||
+      rect.left > viewportWidth
+    ) {
       return false;
     }
 
     // Ensure the element is actually hit-test visible in the viewport.
-    const centerX = Math.min(Math.max(rect.left + rect.width / 2, 0), Math.max(viewportWidth - 1, 0));
-    const centerY = Math.min(Math.max(rect.top + rect.height / 2, 0), Math.max(viewportHeight - 1, 0));
+    const centerX = Math.min(
+      Math.max(rect.left + rect.width / 2, 0),
+      Math.max(viewportWidth - 1, 0),
+    );
+    const centerY = Math.min(
+      Math.max(rect.top + rect.height / 2, 0),
+      Math.max(viewportHeight - 1, 0),
+    );
     const topElement = document.elementFromPoint(centerX, centerY);
     if (!topElement) return false;
     return topElement === node || node.contains(topElement) || topElement.contains(node);

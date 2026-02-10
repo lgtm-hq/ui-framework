@@ -6,7 +6,6 @@ import threading
 import time
 import urllib.request
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -14,12 +13,11 @@ from flowscout.serve.server import _find_available_port, run_server
 
 
 class TestFindAvailablePort:
-
-    def test_returns_start_port_when_free(self):
+    def test_returns_start_port_when_free(self) -> None:
         port = _find_available_port(start=18765)
         assert port >= 18765
 
-    def test_skips_occupied_port(self):
+    def test_skips_occupied_port(self) -> None:
         import socket
 
         # Occupy a port
@@ -34,14 +32,13 @@ class TestFindAvailablePort:
 
 
 class TestRunServer:
-
-    def test_serves_report_file(self, tmp_path: Path):
+    def test_serves_report_file(self, tmp_path: Path) -> None:
         report = tmp_path / "report.html"
         report.write_text("<html><body>Test Report</body></html>")
 
         port = _find_available_port(start=19000)
 
-        def _run():
+        def _run() -> None:
             run_server(str(report), port=port, open_browser=False)
 
         thread = threading.Thread(target=_run, daemon=True)
@@ -51,12 +48,14 @@ class TestRunServer:
         time.sleep(0.5)
 
         url = f"http://localhost:{port}/report.html"
-        response = urllib.request.urlopen(url, timeout=5)
+        # Hardcoded localhost URL for our own test server
+        # nosemgrep: dynamic-urllib-use-detected
+        response = urllib.request.urlopen(url, timeout=5)  # nosec B310
         content = response.read().decode()
 
         assert "Test Report" in content
         assert response.status == 200
 
-    def test_raises_for_missing_file(self, tmp_path: Path):
+    def test_raises_for_missing_file(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError, match="Report not found"):
             run_server(str(tmp_path / "nonexistent.html"), open_browser=False)

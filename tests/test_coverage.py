@@ -8,40 +8,40 @@ from flowscout.smart.coverage import CoverageTracker
 class TestCoverageTracker:
     """Coverage state tracking and saturation."""
 
-    def test_record_archetype(self):
+    def test_record_archetype(self) -> None:
         tracker = CoverageTracker()
         tracker.record_archetype("listing", "sig1")
         assert tracker.state.archetypes_seen["listing"] == 1
         assert tracker.state.structural_signatures_seen["sig1"] == 1
 
-    def test_record_archetype_increments(self):
+    def test_record_archetype_increments(self) -> None:
         tracker = CoverageTracker()
         tracker.record_archetype("listing", "sig1")
         tracker.record_archetype("listing", "sig1")
         assert tracker.state.archetypes_seen["listing"] == 2
         assert tracker.state.structural_signatures_seen["sig1"] == 2
 
-    def test_record_feature(self):
+    def test_record_feature(self) -> None:
         tracker = CoverageTracker()
         tracker.record_feature("search")
         assert "search" in tracker.state.features_tested
 
-    def test_feature_deduplication(self):
+    def test_feature_deduplication(self) -> None:
         tracker = CoverageTracker()
         tracker.record_feature("search")
         tracker.record_feature("search")
         assert len(tracker.state.features_tested) == 1
 
-    def test_record_flow_template(self):
+    def test_record_flow_template(self) -> None:
         tracker = CoverageTracker()
         tracker.record_flow_template("browse")
         assert tracker.state.flow_templates_attempted["browse"] == 1
 
-    def test_not_saturated_initially(self):
+    def test_not_saturated_initially(self) -> None:
         tracker = CoverageTracker()
         assert tracker.is_saturated() is False
 
-    def test_not_saturated_one_archetype(self):
+    def test_not_saturated_one_archetype(self) -> None:
         tracker = CoverageTracker()
         tracker.record_archetype("listing", "sig1")
         tracker.record_feature("f1")
@@ -49,14 +49,14 @@ class TestCoverageTracker:
         tracker.record_feature("f3")
         assert tracker.is_saturated() is False  # Only 1 archetype
 
-    def test_not_saturated_few_features(self):
+    def test_not_saturated_few_features(self) -> None:
         tracker = CoverageTracker()
         tracker.record_archetype("listing", "sig1")
         tracker.record_archetype("detail", "sig2")
         tracker.record_feature("f1")
         assert tracker.is_saturated() is False  # Only 1 feature
 
-    def test_saturated_when_enough(self):
+    def test_saturated_when_enough(self) -> None:
         tracker = CoverageTracker()
         tracker.record_archetype("listing", "sig1")
         tracker.record_archetype("detail", "sig2")
@@ -65,7 +65,7 @@ class TestCoverageTracker:
         tracker.record_feature("f3")
         assert tracker.is_saturated() is True
 
-    def test_should_deprioritize(self):
+    def test_should_deprioritize(self) -> None:
         tracker = CoverageTracker()
         tracker.record_archetype("listing", "sig1")
         tracker.record_archetype("listing", "sig1")
@@ -73,11 +73,11 @@ class TestCoverageTracker:
         tracker.record_archetype("listing", "sig1")
         assert tracker.should_deprioritize_archetype("sig1") is True
 
-    def test_should_not_deprioritize_unknown_sig(self):
+    def test_should_not_deprioritize_unknown_sig(self) -> None:
         tracker = CoverageTracker()
         assert tracker.should_deprioritize_archetype("unknown") is False
 
-    def test_summary(self):
+    def test_summary(self) -> None:
         tracker = CoverageTracker()
         tracker.record_archetype("listing", "sig1")
         tracker.record_feature("search")
@@ -87,7 +87,7 @@ class TestCoverageTracker:
         assert "search" in s["features_tested"]
         assert isinstance(s["is_saturated"], bool)
 
-    def test_custom_saturation_thresholds(self):
+    def test_custom_saturation_thresholds(self) -> None:
         tracker = CoverageTracker(
             min_archetypes_before_stop=1,
             min_features_before_stop=2,
@@ -98,7 +98,7 @@ class TestCoverageTracker:
         tracker.record_feature("f2")
         assert tracker.is_saturated() is True
 
-    def test_saturation_can_be_disabled(self):
+    def test_saturation_can_be_disabled(self) -> None:
         tracker = CoverageTracker(
             stop_on_saturation=False,
             min_archetypes_before_stop=1,

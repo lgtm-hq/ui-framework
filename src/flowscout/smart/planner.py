@@ -198,7 +198,7 @@ class SmartPlanner:
         return self._analyses.get(state_id)
 
     def get_all_catalogs(self) -> dict[str, Any]:
-        """Return all page catalogs keyed by structural signature, for POM generation."""
+        """Return all page catalogs keyed by structural signature."""
         catalogs: dict[str, Any] = {}
         for analysis in self._analyses.values():
             sig = analysis.structural_signature

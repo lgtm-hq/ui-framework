@@ -15,7 +15,6 @@ from flowscout.analysis.verdict import JourneyVerdict
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
-
 _MAX_PATHS_PER_LEAF = 25
 _MAX_TOTAL_LINEAR_FLOWS = 500
 _MAX_CYCLE_FLOWS = 200
@@ -43,7 +42,7 @@ class Flow(BaseModel):
 class ExplorationResult(BaseModel):
     """Complete exploration output."""
 
-    config: dict = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
     started_at: str = ""
     finished_at: str = ""
     duration_seconds: float = 0.0
@@ -53,9 +52,9 @@ class ExplorationResult(BaseModel):
     flows: list[Flow] = Field(default_factory=list)
     stats: dict[str, int] = Field(default_factory=dict)
     page_catalogs: dict[str, Any] = Field(default_factory=dict)
-    coverage: dict = Field(default_factory=dict)
-    element_inventory: dict = Field(default_factory=dict)
-    archetypes: dict = Field(default_factory=dict)
+    coverage: dict[str, Any] = Field(default_factory=dict)
+    element_inventory: dict[str, Any] = Field(default_factory=dict)
+    archetypes: dict[str, Any] = Field(default_factory=dict)
     smart_analyses: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -289,7 +288,7 @@ class ExplorationGraph:
             OutcomeType.TIMEOUT: "Timeout",
             OutcomeType.EXCEPTION: "Exception",
         }
-        return labels.get(outcome, outcome.value.replace("_", " ").title())
+        return labels.get(outcome, str(outcome.value).replace("_", " ").title())
 
     @staticmethod
     def _fallback_action_summary(action: Action | None, action_id: str) -> str:
@@ -428,7 +427,7 @@ class ExplorationGraph:
 
         return category, sorted(tags)
 
-    def to_serializable(self) -> dict:
+    def to_serializable(self) -> dict[str, Any]:
         """Export graph as a JSON-serializable dict for reporting."""
         nodes = []
         for sid, state in self.states.items():

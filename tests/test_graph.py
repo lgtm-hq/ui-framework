@@ -44,24 +44,24 @@ def _make_result(
 
 
 class TestExplorationGraph:
-    def test_add_new_state_returns_true(self):
+    def test_add_new_state_returns_true(self) -> None:
         graph = ExplorationGraph()
         state = _make_state("s1")
         assert graph.add_state(state) is True
 
-    def test_add_duplicate_state_returns_false(self):
+    def test_add_duplicate_state_returns_false(self) -> None:
         graph = ExplorationGraph()
         state = _make_state("s1")
         graph.add_state(state)
         assert graph.add_state(state) is False
 
-    def test_first_state_becomes_root(self):
+    def test_first_state_becomes_root(self) -> None:
         graph = ExplorationGraph()
         state = _make_state("s1")
         graph.add_state(state)
         assert graph.root_state_id == "s1"
 
-    def test_add_result_creates_edge(self):
+    def test_add_result_creates_edge(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))
@@ -69,7 +69,7 @@ class TestExplorationGraph:
         graph.add_result(_make_result("a1", "s1", "s2"))
         assert len(graph.results) == 1
 
-    def test_find_path_from_root(self):
+    def test_find_path_from_root(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))
@@ -85,20 +85,20 @@ class TestExplorationGraph:
         assert path[0].action_id == "a1"
         assert path[1].action_id == "a2"
 
-    def test_find_path_from_root_to_root(self):
+    def test_find_path_from_root_to_root(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         path = graph.find_path_from_root("s1")
         assert path == []
 
-    def test_find_path_unreachable(self):
+    def test_find_path_unreachable(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))  # No edge connecting
         path = graph.find_path_from_root("s2")
         assert path is None
 
-    def test_extract_flows_linear(self):
+    def test_extract_flows_linear(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))
@@ -115,7 +115,7 @@ class TestExplorationGraph:
         long_flow = [f for f in linear_flows if len(f.state_ids) == 3]
         assert len(long_flow) == 1
 
-    def test_extract_flows_with_cycle(self):
+    def test_extract_flows_with_cycle(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))
@@ -128,7 +128,7 @@ class TestExplorationGraph:
         cycles = [f for f in flows if f.is_cycle]
         assert len(cycles) >= 1
 
-    def test_to_serializable(self):
+    def test_to_serializable(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))
@@ -141,7 +141,7 @@ class TestExplorationGraph:
         assert len(data["nodes"]) == 2
         assert len(data["edges"]) == 1
 
-    def test_get_stats(self):
+    def test_get_stats(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))
@@ -153,18 +153,18 @@ class TestExplorationGraph:
         assert stats["total_actions_executed"] == 1
         assert stats["outcome_navigation"] == 1
 
-    def test_empty_graph_extract_flows(self):
+    def test_empty_graph_extract_flows(self) -> None:
         graph = ExplorationGraph()
         flows = graph.extract_flows()
         assert flows == []
 
-    def test_single_state_no_flows(self):
+    def test_single_state_no_flows(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         flows = graph.extract_flows()
         assert flows == []
 
-    def test_all_timeout_dead_ends(self):
+    def test_all_timeout_dead_ends(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_state(_make_state("s2"))
@@ -176,7 +176,7 @@ class TestExplorationGraph:
         # Should still produce at least one flow even with timeout outcomes
         assert len(flows) >= 1
 
-    def test_self_loop_only_still_produces_flows(self):
+    def test_self_loop_only_still_produces_flows(self) -> None:
         graph = ExplorationGraph()
         graph.add_state(_make_state("s1"))
         graph.add_action(_make_action("a1", "Click Login"))
@@ -188,7 +188,7 @@ class TestExplorationGraph:
         assert len(flows) >= 1
         assert any(flow.action_ids == ["a1"] for flow in flows)
 
-    def test_fallback_flow_name_includes_action_and_outcome(self):
+    def test_fallback_flow_name_includes_action_and_outcome(self) -> None:
         graph = ExplorationGraph()
         state = _make_state("s1")
         state.title = "Swag Labs"
@@ -216,7 +216,7 @@ class TestExplorationGraph:
         assert flows[0].name == "Swag Labs · Click Login · Validation Feedback"
         assert flows[0].description == "Click Login \u2192 Validation error was shown"
 
-    def test_fallback_flow_name_strips_fill_value_noise(self):
+    def test_fallback_flow_name_strips_fill_value_noise(self) -> None:
         graph = ExplorationGraph()
         state = _make_state("s1")
         state.title = "Swag Labs"
@@ -243,13 +243,13 @@ class TestExplorationGraph:
         assert flows[0].name == "Swag Labs · Enter Username · No Visible Change"
         assert flows[0].description == "Enter Username"
 
-    def test_empty_graph_stats(self):
+    def test_empty_graph_stats(self) -> None:
         graph = ExplorationGraph()
         stats = graph.get_stats()
         assert stats["total_states"] == 0
         assert stats["total_actions_executed"] == 0
 
-    def test_empty_graph_serializable(self):
+    def test_empty_graph_serializable(self) -> None:
         graph = ExplorationGraph()
         data = graph.to_serializable()
         assert data["nodes"] == []

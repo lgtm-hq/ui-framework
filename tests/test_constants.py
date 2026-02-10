@@ -34,7 +34,7 @@ class TestExplorationLimits:
     def test_frozen(self) -> None:
         limits = ExplorationLimits()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            limits.diversity_interval = 10  # type: ignore[misc]
+            limits.diversity_interval = 10
 
     def test_custom_values(self) -> None:
         limits = ExplorationLimits(diversity_interval=10, max_paths_per_leaf=50)
@@ -56,7 +56,7 @@ class TestBrowserDefaults:
     def test_frozen(self) -> None:
         bd = BrowserDefaults()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            bd.viewport_width = 1920  # type: ignore[misc]
+            bd.viewport_width = 1920
 
 
 class TestActionPriorities:
@@ -92,7 +92,7 @@ class TestActionPriorities:
     def test_frozen(self) -> None:
         p = ActionPriorities()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            p.navigation_link = 1  # type: ignore[misc]
+            p.navigation_link = 1
 
 
 class TestDetectionSelectors:
@@ -110,7 +110,7 @@ class TestDetectionSelectors:
     def test_frozen(self) -> None:
         ds = DetectionSelectors()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            ds.error_selectors = ()  # type: ignore[misc]
+            ds.error_selectors = ()
 
 
 class TestModuleLevelDefaults:

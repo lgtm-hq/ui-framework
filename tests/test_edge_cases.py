@@ -2,19 +2,26 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from flowscout.analysis.element_inventory import summarize_element_inventory
-from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
+from flowscout.analysis.graph import ExplorationGraph, ExplorationResult
 from flowscout.core.state import build_fingerprint
 from flowscout.discovery.actions import ActionType, OutcomeType
 from flowscout.discovery.intent import infer_intent
 
-from conftest import make_action, make_action_result, make_element, make_exploration_result, make_state
+from conftest import (
+    make_action,
+    make_action_result,
+    make_element,
+    make_exploration_result,
+    make_state,
+)
 
 
 class TestBuildFingerprint:
-
     def test_empty_url(self) -> None:
         fp = build_fingerprint(
             url="",
@@ -60,7 +67,6 @@ class TestBuildFingerprint:
 
 
 class TestInferIntent:
-
     def test_unknown_action_type_raises(self) -> None:
         elem = make_element(selector="button#go", element_type="button", label="Go")
         with pytest.raises(ValueError):
@@ -88,7 +94,6 @@ class TestInferIntent:
 
 
 class TestSummarizeElementInventory:
-
     def test_empty_analyses(self) -> None:
         result = summarize_element_inventory(analyses={}, states_by_id={})
         assert result["total_elements"] == 0
@@ -103,7 +108,7 @@ class TestSummarizeElementInventory:
         assert result["total_elements"] == 0
 
     def test_analysis_with_empty_entries(self) -> None:
-        analyses = {"s1": {"catalog": {"entries": []}}}
+        analyses: dict[str, dict[str, Any]] = {"s1": {"catalog": {"entries": []}}}
         result = summarize_element_inventory(analyses=analyses, states_by_id={})
         assert result["total_elements"] == 0
 
@@ -120,7 +125,6 @@ class TestSummarizeElementInventory:
 
 
 class TestExplorationGraphEdgeCases:
-
     def test_empty_graph(self) -> None:
         graph = ExplorationGraph()
         flows = graph.extract_flows()
@@ -144,7 +148,6 @@ class TestExplorationGraphEdgeCases:
 
 
 class TestExplorationResultEdgeCases:
-
     def test_empty_result(self) -> None:
         result = ExplorationResult(
             config={"start_url": "https://example.com"},
@@ -167,7 +170,9 @@ class TestMakeHelpers:
         assert s1.state_id != s2.state_id
 
     def test_make_state_custom_params(self) -> None:
-        s = make_state(state_id="custom", url="https://custom.com", title="Custom", depth=3)
+        s = make_state(
+            state_id="custom", url="https://custom.com", title="Custom", depth=3
+        )
         assert s.state_id == "custom"
         assert s.url == "https://custom.com"
         assert s.title == "Custom"

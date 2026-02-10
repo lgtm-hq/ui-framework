@@ -14,32 +14,34 @@ from flowscout.reporting.html import (
 
 
 def test_to_report_asset_href_none() -> None:
-    report_dir = Path("/tmp/reports/run")
+    report_dir = Path("/tmp/reports/run")  # nosec B108 - test fixture path
     assert _to_report_asset_href(None, report_dir=report_dir) is None
 
 
 def test_to_report_asset_href_relative_path() -> None:
-    report_dir = Path("/tmp/reports/run")
+    report_dir = Path("/tmp/reports/run")  # nosec B108 - test fixture path
     href = _to_report_asset_href("evidence/actions/a.png", report_dir=report_dir)
     assert href == "evidence/actions/a.png"
 
 
 def test_to_report_asset_href_inside_report_dir() -> None:
-    report_dir = Path("/tmp/reports/run")
+    report_dir = Path("/tmp/reports/run")  # nosec B108 - test fixture path
     path = report_dir / "evidence" / "actions" / "shot.png"
     href = _to_report_asset_href(str(path), report_dir=report_dir)
     assert href == "evidence/actions/shot.png"
 
 
 def test_to_report_asset_href_outside_report_dir() -> None:
-    report_dir = Path("/tmp/reports/run")
-    path = Path("/tmp/other/location/shot.png")
+    report_dir = Path("/tmp/reports/run")  # nosec B108 - test fixture path
+    path = Path("/tmp/other/location/shot.png")  # nosec B108 - test fixture path
     href = _to_report_asset_href(str(path), report_dir=report_dir)
     assert href == path.as_uri()
 
 
 def test_to_report_asset_href_cwd_relative_run_path(tmp_path: Path) -> None:
-    run_dir = tmp_path / "reports" / "site" / "baseline" / "runs" / "2026-02-09_00.00.00"
+    run_dir = (
+        tmp_path / "reports" / "site" / "baseline" / "runs" / "2026-02-09_00.00.00"
+    )
     evidence = run_dir / "evidence" / "actions" / "shot.png"
     evidence.parent.mkdir(parents=True, exist_ok=True)
     evidence.write_text("fake")

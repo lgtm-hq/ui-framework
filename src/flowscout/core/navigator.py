@@ -19,7 +19,6 @@ from flowscout.core.state import ExplorerConfig, PageState
 from flowscout.discovery.actions import (
     Action,
     ActionResult,
-    ActionType,
     OutcomeType,
     generate_actions,
     generate_form_submit_actions,
@@ -157,7 +156,8 @@ class Navigator:
             elif is_new_state:
                 self.terminal.log_state_discovered(target_state, is_new=True)
                 self.terminal.log_info(
-                    f"  Max depth ({self.config.max_depth}) reached, not exploring further"
+                    f"  Max depth ({self.config.max_depth})"
+                    " reached, not exploring further"
                 )
 
         # 5. Extract flows and compute verdicts + narratives
@@ -166,7 +166,7 @@ class Navigator:
         duration = time.monotonic() - start_time
         stats = self.graph.get_stats()
 
-        result = ExplorationResult(
+        exploration = ExplorationResult(
             config=self.config.model_dump(),
             started_at=started_at,
             finished_at=datetime.now(timezone.utc).isoformat(),
@@ -180,26 +180,28 @@ class Navigator:
 
         # Attach smart mode data
         if self._smart_planner:
-            result.page_catalogs = self._smart_planner.get_all_catalogs()
-            result.coverage = self._smart_planner.coverage.summary()
-            result.archetypes = self._smart_planner.registry.archetype_distribution()
-            result.smart_analyses = self._smart_planner.get_all_analyses()
-            result.element_inventory = summarize_element_inventory(
-                analyses=result.smart_analyses,
-                states_by_id=result.states,
+            exploration.page_catalogs = self._smart_planner.get_all_catalogs()
+            exploration.coverage = self._smart_planner.coverage.summary()
+            exploration.archetypes = (
+                self._smart_planner.registry.archetype_distribution()
             )
-            result.stats["interactive_elements"] = int(
-                result.element_inventory.get("interactive_elements", 0)
+            exploration.smart_analyses = self._smart_planner.get_all_analyses()
+            exploration.element_inventory = summarize_element_inventory(
+                analyses=exploration.smart_analyses,
+                states_by_id=exploration.states,
             )
-            result.stats["non_interactive_elements"] = int(
-                result.element_inventory.get("non_interactive_elements", 0)
+            exploration.stats["interactive_elements"] = int(
+                exploration.element_inventory.get("interactive_elements", 0)
             )
-            result.stats["total_catalog_elements"] = int(
-                result.element_inventory.get("total_elements", 0)
+            exploration.stats["non_interactive_elements"] = int(
+                exploration.element_inventory.get("non_interactive_elements", 0)
+            )
+            exploration.stats["total_catalog_elements"] = int(
+                exploration.element_inventory.get("total_elements", 0)
             )
 
-        self.terminal.print_summary(result)
-        return result
+        self.terminal.print_summary(exploration)
+        return exploration
 
     async def _apply_smart_advice(self, state: PageState) -> None:
         """Run the smart planner and apply its advice to the frontier."""
@@ -294,7 +296,8 @@ class Navigator:
 
         self.terminal.log_info(
             f"  Enqueued {enqueued} actions "
-            f"({len(diverse_actions)} interactive, frontier size: {self._frontier.size})"
+            f"({len(diverse_actions)} interactive,"
+            f" frontier size: {self._frontier.size})"
         )
         if blocked_count:
             self.terminal.log_info(
@@ -347,7 +350,9 @@ class Navigator:
         path = self.graph.find_path_from_root(target_state_id)
         if path is not None and len(path) > 0:
             try:
-                root_state = self.graph.states[self.graph.root_state_id]
+                root_id = self.graph.root_state_id
+                assert root_id is not None  # noqa: S101
+                root_state = self.graph.states[root_id]
                 await self.browser.navigate(root_state.url)
                 for step in path:
                     action = self.graph.actions.get(step.action_id)
@@ -446,9 +451,9 @@ class Navigator:
     def _result_detail(result: ActionResult) -> str:
         """Return the best available human-readable detail for a result."""
         if result.error_messages:
-            return result.error_messages[0]
+            return str(result.error_messages[0])
         if result.console_errors:
-            return result.console_errors[0]
+            return str(result.console_errors[0])
         return (result.message or "").strip()
 
     @staticmethod

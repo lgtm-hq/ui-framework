@@ -10,7 +10,6 @@ from flowscout.analysis.site_model import NavigationEdge, PageType
 from flowscout.discovery.actions import ActionType, OutcomeType
 from flowscout.smart.scenarios import ScenarioSynthesizer
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -72,12 +71,12 @@ def _make_edge(
 
 
 class FlowScenarioSynthesizer:
-    def test_empty_input_returns_empty(self):
+    def test_empty_input_returns_empty(self) -> None:
         synth = ScenarioSynthesizer()
         result = synth.synthesize([], [])
         assert result == []
 
-    def test_every_page_type_gets_load_verify(self):
+    def test_every_page_type_gets_load_verify(self) -> None:
         pt = _make_page_type()
         synth = ScenarioSynthesizer()
         scenarios = synth.synthesize([pt], [])
@@ -86,7 +85,7 @@ class FlowScenarioSynthesizer:
         assert len(load_scenarios) == 1
         assert "Load" in load_scenarios[0].name
 
-    def test_listing_with_detail_edge_generates_browse_scenario(self):
+    def test_listing_with_detail_edge_generates_browse_scenario(self) -> None:
         listing = _make_page_type("pt_listing", "Movies", PageArchetype.LISTING)
         detail = _make_page_type("pt_detail", "Movie Detail", PageArchetype.DETAIL)
         edge = _make_edge("pt_listing", "pt_detail")
@@ -100,7 +99,7 @@ class FlowScenarioSynthesizer:
         assert "pt_listing" in browse[0].page_type_sequence
         assert "pt_detail" in browse[0].page_type_sequence
 
-    def test_search_feature_generates_search_scenario(self):
+    def test_search_feature_generates_search_scenario(self) -> None:
         pt = _make_page_type(
             features={"has_search"},
             catalog_entries=[
@@ -123,7 +122,7 @@ class FlowScenarioSynthesizer:
         assert len(search) == 1
         assert search[0].priority == "critical"
 
-    def test_pagination_generates_pagination_scenario(self):
+    def test_pagination_generates_pagination_scenario(self) -> None:
         pt = _make_page_type(features={"has_pagination"})
 
         synth = ScenarioSynthesizer()
@@ -133,7 +132,7 @@ class FlowScenarioSynthesizer:
         assert len(pagination) == 1
         assert pagination[0].priority == "important"
 
-    def test_filter_generates_filter_scenario(self):
+    def test_filter_generates_filter_scenario(self) -> None:
         pt = _make_page_type(features={"has_filters"})
 
         synth = ScenarioSynthesizer()
@@ -142,7 +141,7 @@ class FlowScenarioSynthesizer:
         filters = [s for s in scenarios if s.template == "filter"]
         assert len(filters) == 1
 
-    def test_form_generates_submit_scenario(self):
+    def test_form_generates_submit_scenario(self) -> None:
         pt = _make_page_type(
             name="Contact Form",
             archetype=PageArchetype.FORM,
@@ -166,7 +165,7 @@ class FlowScenarioSynthesizer:
         assert len(form) == 1
         assert form[0].priority == "critical"
 
-    def test_round_trip_detection(self):
+    def test_round_trip_detection(self) -> None:
         pt_a = _make_page_type("pt_a", "Listing", PageArchetype.LISTING)
         pt_b = _make_page_type("pt_b", "Detail", PageArchetype.DETAIL)
         edge_ab = _make_edge("pt_a", "pt_b", "Click item")
@@ -179,7 +178,7 @@ class FlowScenarioSynthesizer:
         assert len(round_trips) == 1
         assert round_trips[0].priority == "nice-to-have"
 
-    def test_scenario_ids_unique(self):
+    def test_scenario_ids_unique(self) -> None:
         pt = _make_page_type(features={"has_search", "has_pagination", "has_filters"})
 
         synth = ScenarioSynthesizer()
@@ -188,7 +187,7 @@ class FlowScenarioSynthesizer:
         ids = [s.scenario_id for s in scenarios]
         assert len(ids) == len(set(ids))
 
-    def test_tags_applied_correctly(self):
+    def test_tags_applied_correctly(self) -> None:
         pt = _make_page_type(features={"has_search"})
 
         synth = ScenarioSynthesizer()

@@ -78,7 +78,8 @@ class ActionMetadata:
         """Parsed field-values map (selector → value)."""
         raw = self._raw.get("field_values_json", "{}")
         try:
-            return json.loads(raw)
+            result: dict[str, str] = json.loads(raw)
+            return result
         except (json.JSONDecodeError, TypeError):
             return {}
 
@@ -87,7 +88,8 @@ class ActionMetadata:
         """Parsed field-sources map (selector → source label)."""
         raw = self._raw.get("field_sources_json", "{}")
         try:
-            return json.loads(raw)
+            result: dict[str, str] = json.loads(raw)
+            return result
         except (json.JSONDecodeError, TypeError):
             return {}
 

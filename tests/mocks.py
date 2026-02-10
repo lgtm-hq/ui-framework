@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from flowscout.core.state import ExplorerConfig, PageState
+from typing import Any
+
+from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
 
@@ -67,7 +69,7 @@ class MockBrowser:
     async def take_screenshot(self, path: str) -> None:
         self._screenshots.append(path)
 
-    async def analyze_page_structure(self) -> dict:
+    async def analyze_page_structure(self) -> dict[str, Any]:
         return {}
 
 
@@ -75,7 +77,7 @@ class MockStorage:
     """In-memory storage mock implementing IStorage."""
 
     def __init__(self) -> None:
-        self._runs: list[dict] = []
+        self._runs: list[dict[str, Any]] = []
         self._closed = False
 
     def save_run(self, result: object) -> str:
@@ -88,14 +90,14 @@ class MockStorage:
         *,
         start_url: str | None = None,
         limit: int = 20,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         return self._runs[:limit]
 
     def get_flaky_actions(
         self,
         start_url: str,
         min_runs: int = 2,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         return []
 
     def close(self) -> None:
@@ -119,9 +121,9 @@ class MockTerminal:
         self.messages: list[str] = []
         self.warnings: list[str] = []
         self.banner_count = 0
-        self.state_logs: list[dict] = []
-        self.action_starts: list[dict] = []
-        self.action_results: list[dict] = []
+        self.state_logs: list[dict[str, Any]] = []
+        self.action_starts: list[dict[str, Any]] = []
+        self.action_results: list[dict[str, Any]] = []
 
     def print_banner(self, url: str, config: object) -> None:
         self.banner_count += 1
@@ -138,11 +140,13 @@ class MockTerminal:
         result: object,
         is_new_state: bool,
     ) -> None:
-        self.action_results.append({
-            "action": action,
-            "result": result,
-            "is_new_state": is_new_state,
-        })
+        self.action_results.append(
+            {
+                "action": action,
+                "result": result,
+                "is_new_state": is_new_state,
+            }
+        )
 
     def log_info(self, message: str) -> None:
         self.messages.append(message)

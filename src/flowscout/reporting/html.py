@@ -18,6 +18,8 @@ from flowscout.discovery.actions import ActionResult
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
+# CLI tool, not Flask — Jinja2 used directly with autoescape=True
+# nosemgrep: python.flask.security.xss.audit.direct-use-of-jinja2.direct-use-of-jinja2
 _ENV = Environment(
     loader=FileSystemLoader(str(_TEMPLATE_DIR)),
     autoescape=True,
@@ -52,9 +54,11 @@ class ReportDataBuilder:
 
         action_labels = {aid: a.label for aid, a in result.actions.items()}
         action_selectors = {aid: a.target_selector for aid, a in result.actions.items()}
-        action_metadata = {aid: dict(a.metadata or {}) for aid, a in result.actions.items()}
+        action_metadata = {
+            aid: dict(a.metadata or {}) for aid, a in result.actions.items()
+        }
 
-        flow_groups: dict[str, list] = defaultdict(list)
+        flow_groups: dict[str, list[Flow]] = defaultdict(list)
         for flow in result.flows:
             flow_groups[flow.category or "Other"].append(flow)
 
@@ -130,7 +134,9 @@ class ReportDataBuilder:
             element_inventory=element_inventory,
         )
         state_screenshot_links = {
-            state_id: _to_report_asset_href(state.screenshot_path, report_dir=report_dir)
+            state_id: _to_report_asset_href(
+                state.screenshot_path, report_dir=report_dir
+            )
             for state_id, state in result.states.items()
         }
         execution_rows = _build_execution_rows(
@@ -212,7 +218,8 @@ class HTMLReporter:
         context["version"] = __version__
 
         template = _ENV.get_template("report.html.j2")
-        html = template.render(**context)
+        # All context is internal data, not user input
+        html = template.render(**context)  # nosemgrep: direct-use-of-jinja2
 
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -246,7 +253,7 @@ def _to_report_asset_href(path: str | None, *, report_dir: Path) -> str | None:
         return str(raw)
 
 
-def _build_graph_data(result: ExplorationResult) -> dict:
+def _build_graph_data(result: ExplorationResult) -> dict[str, Any]:
     """Build vis.js-compatible graph data."""
     nodes = []
     for sid, state in result.states.items():
@@ -282,7 +289,7 @@ def _clean_catalog_label(value: Any) -> str:
         return ""
 
     # Some pages inline CSS pseudo-element content into extracted labels.
-    text = strip_css_blocks(text)
+    text = str(strip_css_blocks(text))
     if len(text) > 120:
         return f"{text[:117].rstrip()}..."
     return text
@@ -298,7 +305,7 @@ def _extract_dom_id_from_selector(selector: str) -> str:
     return token.strip()
 
 
-def _compute_coverage(result: ExplorationResult) -> dict:
+def _compute_coverage(result: ExplorationResult) -> dict[str, Any]:
     """Compute page, interaction, and pass-rate coverage metrics."""
     all_urls = {s.url for s in result.states.values()}
     tested_urls: set[str] = set()
@@ -337,9 +344,9 @@ def _compute_coverage(result: ExplorationResult) -> dict:
     }
 
 
-def _build_page_coverage_map(result: ExplorationResult) -> list[dict]:
+def _build_page_coverage_map(result: ExplorationResult) -> list[dict[str, Any]]:
     """For each page, list which test cases cover it."""
-    state_to_flows: dict[str, list[dict]] = defaultdict(list)
+    state_to_flows: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for flow in result.flows:
         verdict_val = flow.verdict.verdict.value if flow.verdict else "inconclusive"
         for sid in flow.state_ids:
@@ -394,7 +401,9 @@ def _build_input_provenance(
 
     return {
         "profile": result.config.get("input_profile", "safe"),
-        "fill_actions": sum(1 for a in result.actions.values() if a.action_type.value == "fill"),
+        "fill_actions": sum(
+            1 for a in result.actions.values() if a.action_type.value == "fill"
+        ),
         "source_breakdown": [
             {"source": source, "count": count}
             for source, count in source_counts.most_common()
@@ -470,9 +479,7 @@ def _build_url_inventory_rows(
         return []
 
     per_state_rows = [
-        row
-        for row in element_inventory.get("per_page", [])
-        if isinstance(row, dict)
+        row for row in element_inventory.get("per_page", []) if isinstance(row, dict)
     ]
     if not per_state_rows:
         return []
@@ -583,7 +590,9 @@ def _build_element_drilldown_map(
                 if not isinstance(entry, dict):
                     continue
                 element_type = str(entry.get("element_type") or "other").strip().lower()
-                zone_type = str(entry.get("zone_type") or "main_content").strip().lower()
+                zone_type = (
+                    str(entry.get("zone_type") or "main_content").strip().lower()
+                )
                 if not element_type:
                     element_type = "other"
                 if not zone_type:
@@ -716,10 +725,20 @@ def _build_execution_rows(
                 "target_state_id": action_result.target_state_id,
                 "source_state_short": action_result.source_state_id[:8],
                 "target_state_short": action_result.target_state_id[:8],
-                "source_page": source_state.title if source_state and source_state.title else (source_state.url if source_state else "Unknown page"),
-                "target_page": target_state.title if target_state and target_state.title else (target_state.url if target_state else "Unknown page"),
+                "source_page": (
+                    source_state.title
+                    if source_state and source_state.title
+                    else (source_state.url if source_state else "Unknown page")
+                ),
+                "target_page": (
+                    target_state.title
+                    if target_state and target_state.title
+                    else (target_state.url if target_state else "Unknown page")
+                ),
                 "action_id": action_result.action_id,
-                "action_label": action_labels.get(action_result.action_id, action_result.action_id),
+                "action_label": action_labels.get(
+                    action_result.action_id, action_result.action_id
+                ),
                 "target_selector": action_selectors.get(action_result.action_id, ""),
                 "dom_id": (
                     metadata.get("dom_id", "")
@@ -751,7 +770,9 @@ def _build_flow_execution_map(
     *,
     result: ExplorationResult,
     execution_rows: list[dict[str, Any]],
-) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]], dict[int, dict[str, Any]]]:
+) -> tuple[
+    dict[str, list[dict[str, Any]]], list[dict[str, Any]], dict[int, dict[str, Any]]
+]:
     """Map execution rows to flows and return unmatched rows."""
     rows_by_index = {int(row["index"]): row for row in execution_rows}
     indexes_by_action: dict[str, list[int]] = defaultdict(list)
@@ -764,7 +785,11 @@ def _build_flow_execution_map(
 
     for flow in result.flows:
         for flow_step, action_id in enumerate(flow.action_ids, start=1):
-            source_state_id = flow.state_ids[flow_step - 1] if flow_step - 1 < len(flow.state_ids) else ""
+            source_state_id = (
+                flow.state_ids[flow_step - 1]
+                if flow_step - 1 < len(flow.state_ids)
+                else ""
+            )
             step_index = _select_matching_step_index(
                 action_id=action_id,
                 source_state_id=source_state_id,
@@ -817,7 +842,7 @@ def _select_matching_step_index(
     return None
 
 
-def _build_defects(result: ExplorationResult) -> dict:
+def _build_defects(result: ExplorationResult) -> dict[str, list[Flow]]:
     """Partition flows into failures and warnings."""
     failures = [
         f for f in result.flows if f.verdict and f.verdict.verdict.value == "fail"
@@ -830,7 +855,11 @@ def _build_defects(result: ExplorationResult) -> dict:
 
 def _compute_step_verdicts(result: ExplorationResult) -> dict[str, int]:
     """Aggregate pass/fail/warn across all narrative steps."""
-    counts: dict[str, int] = {"pass": 0, "fail": 0, "warn": 0}
+    counts: dict[str, int] = {
+        "pass": 0,
+        "fail": 0,
+        "warn": 0,
+    }  # nosec B105 - verdict labels, not passwords
     for flow in result.flows:
         if flow.narrative and flow.narrative.steps:
             for step in flow.narrative.steps:
@@ -862,9 +891,9 @@ def _build_diagnostics(
     action_selectors: dict[str, str],
     screenshot_links: list[str | None],
     low_confidence_threshold: float = 0.6,
-) -> dict:
+) -> dict[str, Any]:
     """Build report diagnostics for low-confidence and flaky transitions."""
-    low_confidence_items: list[dict] = []
+    low_confidence_items: list[dict[str, Any]] = []
     reason_counts: Counter[str] = Counter()
     transition_outcomes: dict[tuple[str, str], set[str]] = defaultdict(set)
     transition_occurrences: Counter[tuple[str, str]] = Counter()
@@ -907,7 +936,7 @@ def _build_diagnostics(
                 }
             )
 
-    flaky_items: list[dict] = []
+    flaky_items: list[dict[str, Any]] = []
     for transition_key, outcomes in transition_outcomes.items():
         if len(outcomes) < 2:
             continue
@@ -960,10 +989,10 @@ def _state_display_name(result: ExplorationResult, state_id: str) -> str:
     state = result.states.get(state_id)
     if not state:
         return "Unknown page"
-    if state.title and state.title.strip():
-        return state.title.strip()
-    if state.url and state.url.strip():
-        return state.url.strip()
+    if state.title and str(state.title).strip():
+        return str(state.title).strip()
+    if state.url and str(state.url).strip():
+        return str(state.url).strip()
     return "Unknown page"
 
 

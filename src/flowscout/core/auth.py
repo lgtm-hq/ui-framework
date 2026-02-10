@@ -147,7 +147,8 @@ def build_auth_bootstrap(
     if missing_vars:
         joined = ", ".join(missing_vars)
         raise AuthConfigError(
-            f"Auth profile '{profile.name}' is missing required environment variable(s): {joined}",
+            f"Auth profile '{profile.name}' is missing"
+            f" required environment variable(s): {joined}",
         )
 
     if profile.success_url_pattern:

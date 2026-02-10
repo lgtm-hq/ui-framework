@@ -23,13 +23,13 @@ def _make_result(flows: list[Flow] | None = None) -> ExplorationResult:
 
 
 class TestGenerateFeatureFile:
-    def test_creates_file(self):
+    def test_creates_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = str(Path(tmpdir) / "test.feature")
             result = generate_feature_file(_make_result(), path)
             assert Path(result).exists()
 
-    def test_feature_header(self):
+    def test_feature_header(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = str(Path(tmpdir) / "test.feature")
             generate_feature_file(_make_result(), path)
@@ -37,7 +37,7 @@ class TestGenerateFeatureFile:
             assert "Feature:" in content
             assert "example.com" in content
 
-    def test_flow_without_narrative(self):
+    def test_flow_without_narrative(self) -> None:
         flow = Flow(
             flow_id="f1",
             name="Test Flow",
@@ -53,7 +53,7 @@ class TestGenerateFeatureFile:
             assert "Scenario: Test Flow" in content
             assert "Given" in content
 
-    def test_valid_gherkin_structure(self):
+    def test_valid_gherkin_structure(self) -> None:
         flow = Flow(
             flow_id="f1",
             name="Test Flow",
@@ -67,19 +67,21 @@ class TestGenerateFeatureFile:
             generate_feature_file(_make_result([flow]), path)
             content = Path(path).read_text()
             assert content.startswith("Feature:")
-            scenario_lines = [l for l in content.split("\n") if "Scenario:" in l]
+            scenario_lines = [
+                line for line in content.split("\n") if "Scenario:" in line
+            ]
             assert len(scenario_lines) >= 1
             assert scenario_lines[0].startswith("  Scenario:")
 
 
 class TestGenerateMarkdownReport:
-    def test_creates_file(self):
+    def test_creates_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = str(Path(tmpdir) / "report.md")
             result = generate_markdown_report(_make_result(), path)
             assert Path(result).exists()
 
-    def test_summary_table(self):
+    def test_summary_table(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             path = str(Path(tmpdir) / "report.md")
             generate_markdown_report(_make_result(), path)
@@ -90,7 +92,7 @@ class TestGenerateMarkdownReport:
             assert "Passed" in content
             assert "Failed" in content
 
-    def test_per_journey_sections(self):
+    def test_per_journey_sections(self) -> None:
         flow = Flow(
             flow_id="f1",
             name="Login Flow",

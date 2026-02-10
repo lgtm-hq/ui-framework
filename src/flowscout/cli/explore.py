@@ -12,8 +12,14 @@ from urllib.parse import urlparse
 
 import click
 
-from flowscout.analysis.graph import ExplorationGraph, ExplorationResult
-from flowscout.cli.app import DEFAULT_AUTH_CONFIG_PATH, DEFAULT_CRAWL_CONFIG_PATH, DEFAULT_DB_PATH, console, main
+from flowscout.analysis.graph import ExplorationGraph
+from flowscout.cli.app import (
+    DEFAULT_AUTH_CONFIG_PATH,
+    DEFAULT_CRAWL_CONFIG_PATH,
+    DEFAULT_DB_PATH,
+    console,
+    main,
+)
 from flowscout.cli.config import (
     _came_from_cli,
     _coerce_bool,
@@ -39,7 +45,7 @@ from flowscout.reporting.terminal import TerminalReporter
 from flowscout.storage.db import FlowscoutDB
 
 
-@main.command()
+@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
 @click.argument("url")
 @click.option(
     "--max-depth", "-d", default=3, help="Maximum traversal depth from start URL."
@@ -95,7 +101,10 @@ from flowscout.storage.db import FlowscoutDB
 @click.option(
     "--smart",
     is_flag=True,
-    help="Enable smart mode: archetype recognition, contextual input, coverage-aware exploration.",
+    help=(
+        "Enable smart mode: archetype recognition,"
+        " contextual input, coverage-aware exploration."
+    ),
 )
 @click.option(
     "--input-profile",
@@ -128,7 +137,11 @@ from flowscout.storage.db import FlowscoutDB
 @click.option(
     "--auth-profile",
     default="",
-    help="Explicit auth profile name. If omitted, profile is auto-selected by domain/environment.",
+    help=(
+        "Explicit auth profile name."
+        " If omitted, profile is auto-selected"
+        " by domain/environment."
+    ),
 )
 @click.option(
     "--auth-required/--no-auth-required",
@@ -444,6 +457,8 @@ def explore(
             save_to_db=save_to_db,
             auth_bootstrap=auth_bootstrap,
             auth_profile_summary=auth_profile_summary,
+            plugin_registry=plugin_registry,
+            reporter_name=reporter,
         )
     )
 
@@ -500,6 +515,8 @@ async def _run_exploration(
     save_to_db: bool = True,
     auth_bootstrap: AuthBootstrap | None = None,
     auth_profile_summary: dict[str, Any] | None = None,
+    plugin_registry: PluginRegistry | None = None,
+    reporter_name: str = "html",
 ) -> None:
     """Run the exploration."""
     # Configure logging
@@ -547,7 +564,8 @@ async def _run_exploration(
         if auth_bootstrap is not None:
             console.print(
                 "  [cyan]Applying auth profile:[/cyan] "
-                f"{auth_bootstrap.profile_name} (credentials from environment variables)",
+                f"{auth_bootstrap.profile_name}"
+                " (credentials from environment variables)",
             )
             await browser.apply_auth_bootstrap(auth_bootstrap)
         result = await navigator.explore(config.start_url)
@@ -556,11 +574,18 @@ async def _run_exploration(
 
         # Generate report
         report_path = str(run_dir / "report.html")
-        reporter_cls = plugin_registry.get_reporter(reporter)
+        if plugin_registry is not None:
+            reporter_cls = plugin_registry.get_reporter(reporter_name)
+        else:
+            reporter_cls = HTMLReporter if reporter_name == "html" else None
         if reporter_cls is None:
+            available = (
+                ", ".join(plugin_registry.list_reporters())
+                if plugin_registry
+                else "html"
+            )
             console.print(
-                f"[red]Unknown reporter '{reporter}'. "
-                f"Available: {', '.join(plugin_registry.list_reporters())}[/red]"
+                f"[red]Unknown reporter '{reporter_name}'. Available: {available}[/red]"
             )
         else:
             reporter_instance = reporter_cls()
@@ -602,7 +627,9 @@ async def _run_exploration(
             )
             if pom_paths:
                 console.print(
-                    f"  [green]POM classes generated:[/green] {len(pom_paths)} files in {pom_dir}"
+                    "  [green]POM classes generated:"
+                    f"[/green] {len(pom_paths)}"
+                    f" files in {pom_dir}"
                 )
 
                 pom_ext = ".py" if test_framework == "pytest" else ".spec.ts"
@@ -693,7 +720,8 @@ async def _run_exploration(
         fail_count = sum(1 for r in result.results if r.verdict == "fail")
         if pass_count or fail_count:
             console.print(
-                f"\n  Verdict: [green]{pass_count} passed[/green], [red]{fail_count} failed[/red]"
+                f"\n  Verdict: [green]{pass_count} passed"
+                f"[/green], [red]{fail_count} failed[/red]"
             )
 
     except KeyboardInterrupt:

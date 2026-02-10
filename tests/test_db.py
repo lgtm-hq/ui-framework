@@ -4,17 +4,16 @@ from __future__ import annotations
 
 import sqlite3
 
-import pytest
 
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.storage.db import FlowscoutDB
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _in_memory_db() -> FlowscoutDB:
     """Create a FlowscoutDB backed by an in-memory SQLite connection."""
@@ -59,7 +58,9 @@ def _make_result(
                 action_id=aid,
                 source_state_id="state-0",
                 target_state_id=f"state-{min(i + 1, num_states - 1)}",
-                outcome=OutcomeType.NAVIGATION if num_states > 1 else OutcomeType.NO_CHANGE,
+                outcome=(
+                    OutcomeType.NAVIGATION if num_states > 1 else OutcomeType.NO_CHANGE
+                ),
                 duration_ms=100.0,
                 url_before="https://example.com/page0",
                 url_after=f"https://example.com/page{min(i + 1, num_states - 1)}",
@@ -97,10 +98,11 @@ def _make_result(
 # Tests: from_connection
 # ---------------------------------------------------------------------------
 
+
 class TestFromConnection:
     """Tests for the from_connection classmethod."""
 
-    def test_creates_db_with_schema(self):
+    def test_creates_db_with_schema(self) -> None:
         db = _in_memory_db()
         # Tables should exist
         tables = db.conn.execute(
@@ -113,19 +115,18 @@ class TestFromConnection:
         assert "results" in table_names
         assert "flows" in table_names
 
-    def test_migrations_applied(self):
+    def test_migrations_applied(self) -> None:
         db = _in_memory_db()
         # The verdict column should exist in results (from migrations)
         cols = [
-            row[1]
-            for row in db.conn.execute("PRAGMA table_info(results)").fetchall()
+            row[1] for row in db.conn.execute("PRAGMA table_info(results)").fetchall()
         ]
         assert "verdict" in cols
         assert "verdict_reason" in cols
         assert "expected" in cols
         assert "actual" in cols
 
-    def test_from_connection_path_is_memory(self):
+    def test_from_connection_path_is_memory(self) -> None:
         db = _in_memory_db()
         assert str(db.db_path) == ":memory:"
 
@@ -134,10 +135,11 @@ class TestFromConnection:
 # Tests: save_run round-trip
 # ---------------------------------------------------------------------------
 
+
 class TestSaveRunRoundTrip:
     """Tests for saving and reading back exploration runs."""
 
-    def test_save_and_list_runs(self):
+    def test_save_and_list_runs(self) -> None:
         db = _in_memory_db()
         result = _make_result()
         run_id = db.save_run(result)
@@ -147,7 +149,7 @@ class TestSaveRunRoundTrip:
         assert runs[0]["run_id"] == run_id
         assert runs[0]["start_url"] == "https://example.com"
 
-    def test_save_and_get_run(self):
+    def test_save_and_get_run(self) -> None:
         db = _in_memory_db()
         result = _make_result()
         run_id = db.save_run(result)
@@ -157,11 +159,11 @@ class TestSaveRunRoundTrip:
         assert run["duration_seconds"] == 60.0
         assert run["total_states"] == 2
 
-    def test_get_nonexistent_run_returns_none(self):
+    def test_get_nonexistent_run_returns_none(self) -> None:
         db = _in_memory_db()
         assert db.get_run("nonexistent") is None
 
-    def test_save_and_get_run_states(self):
+    def test_save_and_get_run_states(self) -> None:
         db = _in_memory_db()
         result = _make_result(num_states=3)
         run_id = db.save_run(result)
@@ -170,7 +172,7 @@ class TestSaveRunRoundTrip:
         assert len(states) == 3
         assert states[0]["url"] == "https://example.com/page0"
 
-    def test_save_and_get_run_results(self):
+    def test_save_and_get_run_results(self) -> None:
         db = _in_memory_db()
         result = _make_result(num_actions=2, num_states=3)
         run_id = db.save_run(result)
@@ -178,7 +180,7 @@ class TestSaveRunRoundTrip:
         results = db.get_run_results(run_id)
         assert len(results) == 2
 
-    def test_save_and_get_run_flows(self):
+    def test_save_and_get_run_flows(self) -> None:
         db = _in_memory_db()
         result = _make_result(num_flows=2)
         run_id = db.save_run(result)
@@ -192,10 +194,11 @@ class TestSaveRunRoundTrip:
 # Tests: list_runs with filtering
 # ---------------------------------------------------------------------------
 
+
 class TestListRuns:
     """Tests for list_runs filtering and ordering."""
 
-    def test_filter_by_start_url(self):
+    def test_filter_by_start_url(self) -> None:
         db = _in_memory_db()
         db.save_run(_make_result(start_url="https://a.com"))
         db.save_run(_make_result(start_url="https://b.com"))
@@ -204,7 +207,7 @@ class TestListRuns:
         assert len(runs_a) == 1
         assert runs_a[0]["start_url"] == "https://a.com"
 
-    def test_limit_results(self):
+    def test_limit_results(self) -> None:
         db = _in_memory_db()
         for _ in range(5):
             db.save_run(_make_result())
@@ -217,13 +220,14 @@ class TestListRuns:
 # Tests: cross-run analysis
 # ---------------------------------------------------------------------------
 
+
 class TestCrossRunAnalysis:
     """Tests for cross-run state comparison and flaky action detection."""
 
-    def test_get_new_states_since(self):
+    def test_get_new_states_since(self) -> None:
         db = _in_memory_db()
         result1 = _make_result(num_states=2)
-        run_id1 = db.save_run(result1)
+        db.save_run(result1)
 
         # Second run with an extra state
         result2 = _make_result(num_states=3)
@@ -234,13 +238,13 @@ class TestCrossRunAnalysis:
         new_fps = {s["fingerprint"] for s in new_states}
         assert "fp-2" in new_fps
 
-    def test_get_disappeared_states(self):
+    def test_get_disappeared_states(self) -> None:
         db = _in_memory_db()
         # First run: 3 states, with earlier timestamp
         result1 = _make_result(num_states=3)
         result1.started_at = "2025-01-01T00:00:00Z"
         result1.finished_at = "2025-01-01T00:01:00Z"
-        run_id1 = db.save_run(result1)
+        db.save_run(result1)
 
         # Second run: 2 states (missing state-2), with later timestamp
         result2 = _make_result(num_states=2)
@@ -252,11 +256,11 @@ class TestCrossRunAnalysis:
         disappeared_fps = {s["fingerprint"] for s in disappeared}
         assert "fp-2" in disappeared_fps
 
-    def test_get_disappeared_states_nonexistent_run(self):
+    def test_get_disappeared_states_nonexistent_run(self) -> None:
         db = _in_memory_db()
         assert db.get_disappeared_states("nonexistent") == []
 
-    def test_get_state_history(self):
+    def test_get_state_history(self) -> None:
         db = _in_memory_db()
         db.save_run(_make_result())
         db.save_run(_make_result())
@@ -264,7 +268,7 @@ class TestCrossRunAnalysis:
         history = db.get_state_history("https://example.com/page0")
         assert len(history) == 2
 
-    def test_get_action_reliability(self):
+    def test_get_action_reliability(self) -> None:
         db = _in_memory_db()
         db.save_run(_make_result(num_actions=2, num_states=3))
 
@@ -272,7 +276,7 @@ class TestCrossRunAnalysis:
         assert len(reliability) > 0
         assert reliability[0]["total_attempts"] >= 1
 
-    def test_get_action_reliability_filtered_by_url(self):
+    def test_get_action_reliability_filtered_by_url(self) -> None:
         db = _in_memory_db()
         db.save_run(_make_result(start_url="https://a.com"))
         db.save_run(_make_result(start_url="https://b.com"))
@@ -281,7 +285,7 @@ class TestCrossRunAnalysis:
         # Should only include actions from the a.com run
         assert len(reliability) >= 1
 
-    def test_get_flaky_actions_requires_min_runs(self):
+    def test_get_flaky_actions_requires_min_runs(self) -> None:
         db = _in_memory_db()
         # Only one run — flaky detection requires min_runs=2
         db.save_run(_make_result())
@@ -294,10 +298,11 @@ class TestCrossRunAnalysis:
 # Tests: close
 # ---------------------------------------------------------------------------
 
+
 class TestClose:
     """Tests for connection lifecycle."""
 
-    def test_close_idempotent(self):
+    def test_close_idempotent(self) -> None:
         db = _in_memory_db()
         db.close()
         db.close()  # Should not raise

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from html.parser import HTMLParser
 from pathlib import Path
+from typing import Any
 
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.analysis.narrative import FlowNarrative, NarrativeStep
@@ -105,14 +106,13 @@ class _TagCollector(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__()
-        self.tags: list[dict] = []
+        self.tags: list[dict[str, Any]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         self.tags.append({"tag": tag, "attrs": dict(attrs)})
 
 
 class TestSkipToContent:
-
     def test_skip_link_present(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         assert 'class="skip-to-content"' in html
@@ -124,7 +124,6 @@ class TestSkipToContent:
 
 
 class TestAriaLandmarks:
-
     def test_header_has_role_banner(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         assert 'role="banner"' in html
@@ -149,7 +148,6 @@ class TestAriaLandmarks:
 
 
 class TestAriaExpandedOnCollapsibles:
-
     def test_collapsible_sections_have_aria_expanded(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         parser = _TagCollector()
@@ -185,16 +183,11 @@ class TestAriaExpandedOnCollapsibles:
 
 
 class TestModalAccessibility:
-
     def test_modals_have_dialog_role(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         parser = _TagCollector()
         parser.feed(html)
-        dialogs = [
-            t
-            for t in parser.tags
-            if t["attrs"].get("role") == "dialog"
-        ]
+        dialogs = [t for t in parser.tags if t["attrs"].get("role") == "dialog"]
         assert len(dialogs) >= 2
         for dialog in dialogs:
             assert dialog["attrs"].get("aria-modal") == "true"
@@ -216,7 +209,6 @@ class TestModalAccessibility:
 
 
 class TestTableAccessibility:
-
     def test_all_tables_have_captions(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         parser = _TagCollector()
@@ -228,21 +220,18 @@ class TestTableAccessibility:
 
 
 class TestSearchAccessibility:
-
     def test_search_box_has_aria_label(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         assert 'aria-label="Search test cases"' in html
 
 
 class TestFocusIndicators:
-
     def test_focus_visible_styles_present(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         assert ":focus-visible" in html
 
 
 class TestResponsiveDesign:
-
     def test_viewport_meta_tag_present(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         assert 'name="viewport"' in html
@@ -262,7 +251,6 @@ class TestResponsiveDesign:
 
 
 class TestKeyboardNavigation:
-
     def test_collapsible_headers_respond_to_keyboard(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         assert "event.key==='Enter'" in html or 'event.key==="Enter"' in html

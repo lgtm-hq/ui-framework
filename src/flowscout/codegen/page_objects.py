@@ -157,9 +157,7 @@ _ZONE_LABELS: dict[ZoneType, str] = {
 }
 
 
-def _generate_python_pom(
-    catalog: PageCatalog, class_name: str, base_url: str
-) -> str:
+def _generate_python_pom(catalog: PageCatalog, class_name: str, base_url: str) -> str:
     """Generate a Python POM class."""
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     archetype = catalog.archetype.value if catalog.archetype else "unknown"
@@ -216,20 +214,20 @@ def _generate_python_pom(
             seen_names.add(prop_name)
 
             sel_escaped = entry.selector.replace('"', '\\"')
-            lines.append(
-                f'        self.{prop_name} = page.locator("{sel_escaped}")'
-            )
+            lines.append(f'        self.{prop_name} = page.locator("{sel_escaped}")')
 
     lines.append("")
 
     # Navigate method
     if base_url:
-        lines.extend([
-            "    def navigate(self) -> None:",
-            "        self.page.goto(self.URL)",
-            '        self.page.wait_for_load_state("networkidle")',
-            "",
-        ])
+        lines.extend(
+            [
+                "    def navigate(self) -> None:",
+                "        self.page.goto(self.URL)",
+                '        self.page.wait_for_load_state("networkidle")',
+                "",
+            ]
+        )
 
     # Search method if search zone exists
     if ZoneType.SEARCH in grouped:
@@ -239,29 +237,31 @@ def _generate_python_pom(
         )
         if input_entry:
             sel = input_entry.selector.replace('"', '\\"')
-            lines.extend([
-                "    def search(self, query: str) -> None:",
-                f'        self.page.fill("{sel}", query)',
-                f'        self.page.press("{sel}", "Enter")',
-                "",
-            ])
+            lines.extend(
+                [
+                    "    def search(self, query: str) -> None:",
+                    f'        self.page.fill("{sel}", query)',
+                    f'        self.page.press("{sel}", "Enter")',
+                    "",
+                ]
+            )
 
     # Select item method if listing with content items
-    if (
-        catalog.archetype == PageArchetype.LISTING
-        and ZoneType.MAIN_CONTENT in grouped
-    ):
+    if catalog.archetype == PageArchetype.LISTING and ZoneType.MAIN_CONTENT in grouped:
         content_entries = [
-            e for e in grouped[ZoneType.MAIN_CONTENT]
+            e
+            for e in grouped[ZoneType.MAIN_CONTENT]
             if e.element_type in ("link", "button", "other")
         ]
         if content_entries:
             sel = content_entries[0].selector.replace('"', '\\"')
-            lines.extend([
-                "    def select_item(self, index: int = 0) -> None:",
-                f'        self.page.locator("{sel}").nth(index).click()',
-                "",
-            ])
+            lines.extend(
+                [
+                    "    def select_item(self, index: int = 0) -> None:",
+                    f'        self.page.locator("{sel}").nth(index).click()',
+                    "",
+                ]
+            )
 
     return "\n".join(lines)
 
@@ -337,22 +337,22 @@ def _generate_typescript_pom(
             seen_names_ctor.add(prop_name)
 
             sel_escaped = entry.selector.replace("'", "\\'")
-            lines.append(
-                f"    this.{prop_name} = page.locator('{sel_escaped}');"
-            )
+            lines.append(f"    this.{prop_name} = page.locator('{sel_escaped}');")
 
     lines.append("  }")
     lines.append("")
 
     # Navigate
     if base_url:
-        lines.extend([
-            "  async navigate() {",
-            f"    await this.page.goto({class_name}.URL);",
-            "    await this.page.waitForLoadState('networkidle');",
-            "  }",
-            "",
-        ])
+        lines.extend(
+            [
+                "  async navigate() {",
+                f"    await this.page.goto({class_name}.URL);",
+                "    await this.page.waitForLoadState('networkidle');",
+                "  }",
+                "",
+            ]
+        )
 
     # Search
     if ZoneType.SEARCH in grouped:
@@ -362,31 +362,33 @@ def _generate_typescript_pom(
         )
         if input_entry:
             sel = input_entry.selector.replace("'", "\\'")
-            lines.extend([
-                "  async search(query: string) {",
-                f"    await this.page.fill('{sel}', query);",
-                f"    await this.page.press('{sel}', 'Enter');",
-                "  }",
-                "",
-            ])
+            lines.extend(
+                [
+                    "  async search(query: string) {",
+                    f"    await this.page.fill('{sel}', query);",
+                    f"    await this.page.press('{sel}', 'Enter');",
+                    "  }",
+                    "",
+                ]
+            )
 
     # Select item
-    if (
-        catalog.archetype == PageArchetype.LISTING
-        and ZoneType.MAIN_CONTENT in grouped
-    ):
+    if catalog.archetype == PageArchetype.LISTING and ZoneType.MAIN_CONTENT in grouped:
         content_entries = [
-            e for e in grouped[ZoneType.MAIN_CONTENT]
+            e
+            for e in grouped[ZoneType.MAIN_CONTENT]
             if e.element_type in ("link", "button", "other")
         ]
         if content_entries:
             sel = content_entries[0].selector.replace("'", "\\'")
-            lines.extend([
-                "  async selectItem(index: number = 0) {",
-                f"    await this.page.locator('{sel}').nth(index).click();",
-                "  }",
-                "",
-            ])
+            lines.extend(
+                [
+                    "  async selectItem(index: number = 0) {",
+                    f"    await this.page.locator('{sel}').nth(index).click();",
+                    "  }",
+                    "",
+                ]
+            )
 
     lines.append("}")
     lines.append("")

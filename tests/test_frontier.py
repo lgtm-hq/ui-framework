@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import pytest
 
 from flowscout.core.frontier import FrontierManager, is_diverse_action
 from flowscout.discovery.actions import Action, ActionType, OutcomeType
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _action(
     action_id: str = "a1",
@@ -33,9 +32,9 @@ def _action(
 # Basic push / pop
 # ---------------------------------------------------------------------------
 
-class TestBasicOperations:
 
-    def test_push_and_pop_single(self):
+class TestBasicOperations:
+    def test_push_and_pop_single(self) -> None:
         fm = FrontierManager()
         a = _action("a1")
         fm.push(a, "s1", 10)
@@ -44,7 +43,7 @@ class TestBasicOperations:
         assert item.action.action_id == "a1"
         assert fm.is_empty
 
-    def test_pop_priority_order(self):
+    def test_pop_priority_order(self) -> None:
         fm = FrontierManager()
         fm.push(_action("low"), "s1", 50)
         fm.push(_action("high"), "s1", 10)
@@ -54,7 +53,7 @@ class TestBasicOperations:
         assert fm.pop().action.action_id == "mid"
         assert fm.pop().action.action_id == "low"
 
-    def test_is_empty_initially(self):
+    def test_is_empty_initially(self) -> None:
         fm = FrontierManager()
         assert fm.is_empty
         assert fm.size == 0
@@ -64,20 +63,20 @@ class TestBasicOperations:
 # Visited tracking
 # ---------------------------------------------------------------------------
 
-class TestVisitedTracking:
 
-    def test_mark_and_check_visited(self):
+class TestVisitedTracking:
+    def test_mark_and_check_visited(self) -> None:
         fm = FrontierManager()
         assert not fm.is_visited("s1", "a1")
         fm.mark_visited("s1", "a1")
         assert fm.is_visited("s1", "a1")
 
-    def test_different_state_not_visited(self):
+    def test_different_state_not_visited(self) -> None:
         fm = FrontierManager()
         fm.mark_visited("s1", "a1")
         assert not fm.is_visited("s2", "a1")
 
-    def test_different_action_not_visited(self):
+    def test_different_action_not_visited(self) -> None:
         fm = FrontierManager()
         fm.mark_visited("s1", "a1")
         assert not fm.is_visited("s1", "a2")
@@ -87,9 +86,9 @@ class TestVisitedTracking:
 # Diversity rotation
 # ---------------------------------------------------------------------------
 
-class TestDiversityRotation:
 
-    def test_diversity_kicks_in_after_interval(self):
+class TestDiversityRotation:
+    def test_diversity_kicks_in_after_interval(self) -> None:
         """After N consecutive clicks, a diverse action is preferred."""
         fm = FrontierManager(diversity_interval=3)
 
@@ -111,7 +110,7 @@ class TestDiversityRotation:
         item = fm.pop()
         assert item.action.action_type == ActionType.FILL
 
-    def test_no_diversity_when_only_clicks_available(self):
+    def test_no_diversity_when_only_clicks_available(self) -> None:
         """If no diverse actions exist, clicks still pop normally."""
         fm = FrontierManager(diversity_interval=2)
 
@@ -124,7 +123,7 @@ class TestDiversityRotation:
         item = fm.pop()
         assert item.action.action_type == ActionType.CLICK
 
-    def test_category_rotation(self):
+    def test_category_rotation(self) -> None:
         """Diversity rotates between categories (search, dropdown, input, form)."""
         fm = FrontierManager(diversity_interval=1)
 
@@ -173,14 +172,14 @@ class TestDiversityRotation:
 # Group deprioritization
 # ---------------------------------------------------------------------------
 
-class TestGroupDeprioritization:
 
-    def test_no_deprioritization_initially(self):
+class TestGroupDeprioritization:
+    def test_no_deprioritization_initially(self) -> None:
         fm = FrontierManager()
         a = _action(label="Theme: dark", priority=30)
         assert fm.adjusted_priority(a) == 30
 
-    def test_deprioritizes_after_three_dom_changes(self):
+    def test_deprioritizes_after_three_dom_changes(self) -> None:
         fm = FrontierManager()
         a = _action(label="Theme: dark", priority=30)
 
@@ -193,7 +192,7 @@ class TestGroupDeprioritization:
 
         assert fm.adjusted_priority(a) == 80
 
-    def test_no_deprioritization_if_navigation_exists(self):
+    def test_no_deprioritization_if_navigation_exists(self) -> None:
         fm = FrontierManager()
         a = _action(label="Theme: dark", priority=30)
 
@@ -217,7 +216,7 @@ class TestGroupDeprioritization:
         # Navigation exists, so no deprioritization
         assert fm.adjusted_priority(a) == 30
 
-    def test_no_deprioritization_without_label_prefix(self):
+    def test_no_deprioritization_without_label_prefix(self) -> None:
         fm = FrontierManager()
         a = _action(label="Submit", priority=30)
         # No colon in label → no group → no deprioritization
@@ -228,9 +227,9 @@ class TestGroupDeprioritization:
 # Priority overrides
 # ---------------------------------------------------------------------------
 
-class TestPriorityOverrides:
 
-    def test_search_priority_override(self):
+class TestPriorityOverrides:
+    def test_search_priority_override(self) -> None:
         fm = FrontierManager()
         fm.push(
             _action("search", ActionType.CLICK, metadata={"is_search": "true"}),
@@ -245,7 +244,7 @@ class TestPriorityOverrides:
         item = fm.pop()
         assert item.action.action_id == "search"
 
-    def test_content_priority_override(self):
+    def test_content_priority_override(self) -> None:
         fm = FrontierManager()
         fm.push(_action("content-click", ActionType.CLICK), "s1", 40)
         fm.push(_action("nav-link", ActionType.CLICK), "s1", 10)
@@ -255,7 +254,7 @@ class TestPriorityOverrides:
         item = fm.pop()
         assert item.action.action_id == "content-click"
 
-    def test_saturated_priority_override(self):
+    def test_saturated_priority_override(self) -> None:
         fm = FrontierManager()
         fm.push(_action("a1", ActionType.CLICK), "s1", 10)
 
@@ -264,7 +263,7 @@ class TestPriorityOverrides:
         item = fm.pop()
         assert item.priority == 90
 
-    def test_override_only_affects_target_state(self):
+    def test_override_only_affects_target_state(self) -> None:
         fm = FrontierManager()
         fm.push(_action("a1", ActionType.CLICK), "s1", 10)
         fm.push(_action("a2", ActionType.CLICK), "s2", 10)
@@ -281,9 +280,9 @@ class TestPriorityOverrides:
 # State action count
 # ---------------------------------------------------------------------------
 
-class TestStateActionCount:
 
-    def test_count_increments_on_push(self):
+class TestStateActionCount:
+    def test_count_increments_on_push(self) -> None:
         fm = FrontierManager()
         assert fm.state_action_count("s1") == 0
         fm.push(_action("a1"), "s1", 10)
@@ -291,7 +290,7 @@ class TestStateActionCount:
         fm.push(_action("a2"), "s1", 20)
         assert fm.state_action_count("s1") == 2
 
-    def test_count_per_state(self):
+    def test_count_per_state(self) -> None:
         fm = FrontierManager()
         fm.push(_action("a1"), "s1", 10)
         fm.push(_action("a2"), "s2", 10)
@@ -303,20 +302,20 @@ class TestStateActionCount:
 # is_diverse_action helper
 # ---------------------------------------------------------------------------
 
-class TestIsDiverseAction:
 
-    def test_fill_is_diverse(self):
+class TestIsDiverseAction:
+    def test_fill_is_diverse(self) -> None:
         assert is_diverse_action(_action(action_type=ActionType.FILL))
 
-    def test_click_is_not_diverse(self):
+    def test_click_is_not_diverse(self) -> None:
         assert not is_diverse_action(_action(action_type=ActionType.CLICK))
 
-    def test_search_click_is_diverse(self):
+    def test_search_click_is_diverse(self) -> None:
         assert is_diverse_action(
             _action(action_type=ActionType.CLICK, metadata={"is_search": "true"}),
         )
 
-    def test_dropdown_click_is_diverse(self):
+    def test_dropdown_click_is_diverse(self) -> None:
         assert is_diverse_action(
             _action(action_type=ActionType.CLICK, metadata={"requires_open": "#menu"}),
         )

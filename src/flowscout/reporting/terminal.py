@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.panel import Panel
@@ -53,10 +53,22 @@ class TerminalReporter:
             lines.extend(
                 [
                     "[bold magenta]Smart mode:[/bold magenta] ON",
-                    f"[magenta]  Saturation stop:[/magenta] {'ON' if config.smart_stop_on_saturation else 'OFF'}",
-                    f"[magenta]  Min archetypes:[/magenta] {config.smart_min_archetypes_before_stop}",
-                    f"[magenta]  Min features:[/magenta] {config.smart_min_features_before_stop}",
-                    f"[magenta]  Signature repeat limit:[/magenta] {config.smart_archetype_instance_limit}",
+                    (
+                        "[magenta]  Saturation stop:[/magenta]"
+                        f" {'ON' if config.smart_stop_on_saturation else 'OFF'}"
+                    ),
+                    (
+                        "[magenta]  Min archetypes:[/magenta]"
+                        f" {config.smart_min_archetypes_before_stop}"
+                    ),
+                    (
+                        "[magenta]  Min features:[/magenta]"
+                        f" {config.smart_min_features_before_stop}"
+                    ),
+                    (
+                        "[magenta]  Signature repeat limit:"
+                        f"[/magenta] {config.smart_archetype_instance_limit}"
+                    ),
                 ]
             )
         panel = Panel(
@@ -82,7 +94,8 @@ class TerminalReporter:
         """Log when an action is about to be executed."""
         sid = state_id[:8]
         self.console.print(
-            f"  [cyan]>[/cyan] [dim]({sid})[/dim] {action.action_type.value}: {action.label}",
+            f"  [cyan]>[/cyan] [dim]({sid})[/dim]"
+            f" {action.action_type.value}: {action.label}",
         )
 
     def log_action_result(
@@ -132,10 +145,11 @@ class TerminalReporter:
         pct = f"{confidence * 100:.0f}%"
         novelty = "[green]new archetype[/green]" if is_novel else "[dim]known[/dim]"
         self.console.print(
-            f"  [magenta]@[/magenta] [dim]({sid})[/dim] {archetype} ({pct}) — {novelty}",
+            f"  [magenta]@[/magenta] [dim]({sid})[/dim]"
+            f" {archetype} ({pct}) — {novelty}",
         )
 
-    def log_coverage_status(self, coverage: dict) -> None:
+    def log_coverage_status(self, coverage: dict[str, Any]) -> None:
         """Log current coverage status."""
         archetypes = len(coverage.get("archetypes_seen", {}))
         features = len(coverage.get("features_tested", []))
@@ -155,7 +169,9 @@ class TerminalReporter:
         total = result.total_count
         color = "green" if passed == total else "yellow" if passed > 0 else "red"
         self.console.print(
-            f"  [magenta]Content:[/magenta] [{color}]{passed}/{total}[/{color}] expectations met",
+            f"  [magenta]Content:[/magenta]"
+            f" [{color}]{passed}/{total}[/{color}]"
+            " expectations met",
         )
 
     def print_summary(self, result: ExplorationResult) -> None:

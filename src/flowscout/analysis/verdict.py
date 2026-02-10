@@ -80,7 +80,10 @@ class VerdictComputer:
             if outcome == OutcomeType.NAVIGATION:
                 return StepVerdict(
                     verdict=Verdict.FAIL,
-                    reason="Form accepted invalid input (should have shown validation error)",
+                    reason=(
+                        "Form accepted invalid input"
+                        " (should have shown validation error)"
+                    ),
                     expected="Validation errors for invalid input",
                     actual="Page navigated (form was accepted)",
                 )
@@ -236,7 +239,11 @@ class VerdictComputer:
         # Fallback
         return StepVerdict(
             verdict=Verdict.INCONCLUSIVE,
-            reason=f"Cannot determine verdict for {ic.value} intent with {outcome.value} outcome",
+            reason=(
+                f"Cannot determine verdict for"
+                f" {ic.value} intent with"
+                f" {outcome.value} outcome"
+            ),
             expected=expected,
             actual=actual,
         )
@@ -268,7 +275,7 @@ class VerdictComputer:
                 return f"Exception occurred during action{detail_suffix}"
             case OutcomeType.VISUAL_CHANGE:
                 return "Visual-only change observed"
-        return outcome.value
+        return str(outcome.value)
 
     def compute_journey_verdict(
         self, step_verdicts: list[StepVerdict]

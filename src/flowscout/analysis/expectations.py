@@ -122,9 +122,7 @@ class ExpectationChecker:
             summary=summary,
         )
 
-    def _evaluate(
-        self, check_type: str, analysis: PageAnalysis
-    ) -> tuple[bool, str]:
+    def _evaluate(self, check_type: str, analysis: PageAnalysis) -> tuple[bool, str]:
         """Evaluate a single check against the analysis data."""
         density = analysis.content_density
 

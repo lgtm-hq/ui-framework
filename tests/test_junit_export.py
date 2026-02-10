@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # nosec B405 - parsing our own generated XML in tests
 from pathlib import Path
 
 from flowscout.analysis.graph import ExplorationResult, Flow
@@ -86,56 +86,65 @@ def _make_result(
 
 
 class TestGenerateJunitReport:
-
-    def test_generates_file(self, tmp_path: Path):
+    def test_generates_file(self, tmp_path: Path) -> None:
         result = _make_result()
         output = str(tmp_path / "junit.xml")
         generate_junit_report(result, output)
         assert Path(output).exists()
 
-    def test_valid_xml(self, tmp_path: Path):
+    def test_valid_xml(self, tmp_path: Path) -> None:
         result = _make_result()
         output = str(tmp_path / "junit.xml")
         generate_junit_report(result, output)
-        tree = ET.parse(output)
+        # Parsing our own generated JUnit XML, not untrusted input
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+        tree = ET.parse(output)  # nosec B314
         root = tree.getroot()
         assert root.tag == "testsuites"
 
-    def test_test_count_matches(self, tmp_path: Path):
+    def test_test_count_matches(self, tmp_path: Path) -> None:
         result = _make_result(num_flows=3)
         output = str(tmp_path / "junit.xml")
         generate_junit_report(result, output)
-        tree = ET.parse(output)
+        # Parsing our own generated JUnit XML, not untrusted input
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+        tree = ET.parse(output)  # nosec B314
         root = tree.getroot()
         assert root.get("tests") == "3"
 
-    def test_failures_counted(self, tmp_path: Path):
+    def test_failures_counted(self, tmp_path: Path) -> None:
         result = _make_result(num_flows=3, verdicts=["pass", "fail", "pass"])
         output = str(tmp_path / "junit.xml")
         generate_junit_report(result, output)
-        tree = ET.parse(output)
+        # Parsing our own generated JUnit XML, not untrusted input
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+        tree = ET.parse(output)  # nosec B314
         root = tree.getroot()
         assert root.get("failures") == "1"
 
-    def test_failure_element_present(self, tmp_path: Path):
+    def test_failure_element_present(self, tmp_path: Path) -> None:
         result = _make_result(num_flows=1, verdicts=["fail"])
         output = str(tmp_path / "junit.xml")
         generate_junit_report(result, output)
-        tree = ET.parse(output)
+        # Parsing our own generated JUnit XML, not untrusted input
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+        tree = ET.parse(output)  # nosec B314
         root = tree.getroot()
         failures = root.findall(".//failure")
         assert len(failures) == 1
 
-    def test_pass_has_no_failure_element(self, tmp_path: Path):
+    def test_pass_has_no_failure_element(self, tmp_path: Path) -> None:
         result = _make_result(num_flows=1, verdicts=["pass"])
         output = str(tmp_path / "junit.xml")
         generate_junit_report(result, output)
-        tree = ET.parse(output)
+        # Parsing our own generated JUnit XML, not untrusted input
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+        tree = ET.parse(output)  # nosec B314
         root = tree.getroot()
         failures = root.findall(".//failure")
         assert len(failures) == 0
 
-    def test_xml_declaration_present(self, tmp_path: Path):
+    def test_xml_declaration_present(self, tmp_path: Path) -> None:
         result = _make_result()
         output = str(tmp_path / "junit.xml")
         generate_junit_report(result, output)
