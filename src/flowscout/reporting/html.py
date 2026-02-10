@@ -433,6 +433,7 @@ def _build_element_drilldown_map(
 
         type_counts: Counter[str] = Counter()
         zone_counts: Counter[str] = Counter()
+        entry_rows: list[dict[str, Any]] = []
         interactive_count = int(page_row.get("interactive_elements", 0))
         non_interactive_count = int(page_row.get("non_interactive_elements", 0))
 
@@ -457,6 +458,38 @@ def _build_element_drilldown_map(
                     else:
                         non_interactive_count += 1
 
+                label = str(entry.get("label") or "").strip()
+                semantic_name = str(entry.get("semantic_name") or "").strip()
+                selector = str(entry.get("selector") or "").strip()
+                tag = str(entry.get("tag") or "").strip().lower() or "unknown"
+                aria_role = str(entry.get("aria_role") or "").strip().lower()
+                input_type = str(entry.get("input_type") or "").strip().lower()
+                is_interactive = is_interactive_element_type(element_type)
+                display_label = label or semantic_name or f"{tag} element"
+                entry_rows.append(
+                    {
+                        "label": display_label,
+                        "selector": selector,
+                        "element_type": element_type,
+                        "zone_type": zone_type,
+                        "tag": tag,
+                        "aria_role": aria_role,
+                        "input_type": input_type,
+                        "is_interactive": is_interactive,
+                    }
+                )
+
+        entry_rows.sort(
+            key=lambda row: (
+                not bool(row.get("is_interactive")),
+                str(row.get("element_type", "")),
+                str(row.get("label", "")),
+                str(row.get("selector", "")),
+            )
+        )
+        max_modal_rows = 250
+        entries_for_modal = entry_rows[:max_modal_rows]
+
         total_count = int(
             page_row.get("total_elements", interactive_count + non_interactive_count)
         )
@@ -469,7 +502,9 @@ def _build_element_drilldown_map(
             "interactive": interactive_count,
             "non_interactive": non_interactive_count,
             "total": total_count,
-            "catalog_entry_count": len(entries) if isinstance(entries, list) else 0,
+            "catalog_entry_count": len(entry_rows),
+            "entries_truncated": len(entry_rows) > max_modal_rows,
+            "entries": entries_for_modal,
             "top_types": [
                 {"name": name, "count": count}
                 for name, count in sorted(

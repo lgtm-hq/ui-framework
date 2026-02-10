@@ -1382,6 +1382,31 @@
             color: var(--text-secondary);
         }
 
+        .elements-entry-kind {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.15rem 0.45rem;
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border: 1px solid var(--border-dim);
+            color: var(--text-secondary);
+        }
+
+        .elements-entry-kind.interactive {
+            color: var(--accent-green);
+            border-color: rgba(16, 185, 129, 0.35);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .elements-entry-kind.content {
+            color: var(--accent-amber);
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
         .execution-modal {
             position: fixed;
             inset: 0;
@@ -2963,6 +2988,47 @@
                 ? info.top_zones.map((item) => '<span class="elements-modal-chip">' + esc(pretty(item.name)) + ' (' + esc(item.count) + ')</span>').join('')
                 : '<span class="cell-dim">No zones recorded.</span>';
 
+            const entryRows = (info.entries || []).map((entry, idx) => {
+                const kindClass = entry.is_interactive ? 'interactive' : 'content';
+                const kindLabel = entry.is_interactive ? 'Interactive' : 'Content';
+                const locator = entry.selector || '—';
+                const typeLabel = pretty(entry.element_type || 'other');
+                const zoneLabel = pretty(entry.zone_type || 'main_content');
+                const label = entry.label || 'Unnamed element';
+                return '<tr>' +
+                    '<td class="cell-dim">' + esc(idx + 1) + '</td>' +
+                    '<td class="cell-action">' + esc(label) + '</td>' +
+                    '<td class="cell-dim">' +
+                        '<span class="elements-entry-kind ' + esc(kindClass) + '">' + esc(kindLabel) + '</span>' +
+                    '</td>' +
+                    '<td class="cell-dim">' + esc(typeLabel) + '</td>' +
+                    '<td class="cell-dim">' + esc(zoneLabel) + '</td>' +
+                    '<td class="cell-url">' + esc(locator) + '</td>' +
+                '</tr>';
+            }).join('');
+
+            const entriesBlock = (info.entries || []).length
+                ? '<div class="elements-modal-group">' +
+                    '<div class="execution-detail-label">Catalog Entries (one per line)</div>' +
+                    '<div class="table-scroll" style="max-height: 360px;">' +
+                        '<table class="data-table">' +
+                            '<thead>' +
+                                '<tr>' +
+                                    '<th>#</th>' +
+                                    '<th>Element</th>' +
+                                    '<th>Kind</th>' +
+                                    '<th>Type</th>' +
+                                    '<th>Zone</th>' +
+                                    '<th>Locator</th>' +
+                                '</tr>' +
+                            '</thead>' +
+                            '<tbody>' + entryRows + '</tbody>' +
+                        '</table>' +
+                    '</div>' +
+                    (info.entries_truncated ? '<div class="diag-subtext">Showing first 250 entries for readability.</div>' : '') +
+                '</div>'
+                : '<div class="execution-detail-text">No catalog entries are available for this state.</div>';
+
             body.innerHTML =
                 '<div class="execution-detail-grid">' +
                     '<div class="execution-detail-card execution-detail-card--from"><div class="execution-detail-label">Page</div><div class="execution-detail-value">' + esc(info.title || 'Untitled page') + '</div></div>' +
@@ -2981,6 +3047,7 @@
                     '<div class="execution-detail-label">Top Zones</div>' +
                     '<div class="elements-modal-list">' + zoneChips + '</div>' +
                 '</div>' +
+                entriesBlock +
                 '<div class="execution-detail-text"><strong>URL:</strong><br>' + esc(info.url || '—') + '</div>' +
                 '<div class="execution-detail-text"><strong>Technical Context:</strong><br>state_id: ' + esc(info.state_id || '—') + '</div>';
 
