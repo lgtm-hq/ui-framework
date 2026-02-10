@@ -6,8 +6,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-from flowscout.core.text_utils import strip_css_blocks
-
 from jinja2 import Environment, FileSystemLoader
 
 from flowscout.analysis.element_inventory import (
@@ -15,6 +13,7 @@ from flowscout.analysis.element_inventory import (
     summarize_element_inventory,
 )
 from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.core.text_utils import strip_css_blocks
 from flowscout.discovery.actions import ActionResult
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -25,14 +24,18 @@ _ENV = Environment(
 )
 
 
-class HTMLReporter:
-    """Generates a standalone HTML report."""
+class ReportDataBuilder:
+    """Builds the complete template context dict from an ExplorationResult."""
 
-    def generate(self, result: ExplorationResult, output_path: str) -> None:
-        """Generate the HTML report file."""
-        from flowscout import __version__
+    def __init__(self, result: ExplorationResult, *, report_dir: Path) -> None:
+        self.result = result
+        self.report_dir = report_dir
 
-        report_dir = Path(output_path).parent
+    def build(self) -> dict[str, Any]:
+        """Compute and return the full Jinja2 template context."""
+        result = self.result
+        report_dir = self.report_dir
+
         graph_data = _build_graph_data(result)
         error_results = [
             r
@@ -47,17 +50,14 @@ class HTMLReporter:
             )
         ]
 
-        # Build action label lookup
         action_labels = {aid: a.label for aid, a in result.actions.items()}
         action_selectors = {aid: a.target_selector for aid, a in result.actions.items()}
         action_metadata = {aid: dict(a.metadata or {}) for aid, a in result.actions.items()}
 
-        # Group flows by category (= test suites)
         flow_groups: dict[str, list] = defaultdict(list)
         for flow in result.flows:
             flow_groups[flow.category or "Other"].append(flow)
 
-        # Compute per-group summaries
         group_summaries: dict[str, dict[str, int]] = {}
         for cat, group_flows in flow_groups.items():
             group_summaries[cat] = {
@@ -78,7 +78,6 @@ class HTMLReporter:
                 ),
             }
 
-        # Overall verdict counts
         flow_counts = {
             "pass": sum(
                 1
@@ -97,7 +96,6 @@ class HTMLReporter:
             ),
         }
 
-        # New: coverage, defects, step summaries
         coverage = _compute_coverage(result)
         page_coverage_map = _build_page_coverage_map(result)
         defects = _build_defects(result)
@@ -108,7 +106,6 @@ class HTMLReporter:
         )
         group_pass_rates = _compute_group_pass_rates(flow_groups)
 
-        vis_js = (_VENDOR_DIR / "vis-network.min.js").read_text()
         result_screenshot_links = [
             _to_report_asset_href(r.screenshot_path, report_dir=report_dir)
             for r in result.results
@@ -162,48 +159,69 @@ class HTMLReporter:
             action_metadata=action_metadata,
         )
 
+        return {
+            "start_url": result.config.get("start_url", "unknown"),
+            "started_at": result.started_at,
+            "duration": result.duration_seconds,
+            "config_strategy": result.config.get("strategy", "priority"),
+            "flows": result.flows,
+            "flow_groups": dict(flow_groups),
+            "group_summaries": group_summaries,
+            "flow_counts": flow_counts,
+            "states": list(result.states.values()),
+            "states_by_id": result.states,
+            "results": result.results,
+            "actions": action_labels,
+            "action_metadata": action_metadata,
+            "result_screenshot_links": result_screenshot_links,
+            "error_results": error_results,
+            "graph_json": graph_data,
+            "execution_rows_json": execution_rows,
+            "coverage": coverage,
+            "page_coverage_map": page_coverage_map,
+            "defects": defects,
+            "total_test_steps": total_test_steps,
+            "step_verdicts_summary": step_verdicts_summary,
+            "group_pass_rates": group_pass_rates,
+            "diagnostics": diagnostics,
+            "element_inventory": element_inventory,
+            "discovery_timeline": discovery_timeline,
+            "url_inventory_rows": url_inventory_rows,
+            "element_drilldown_map": element_drilldown_map,
+            "execution_rows": execution_rows,
+            "flow_execution_map": flow_execution_map,
+            "orphan_execution_rows": orphan_execution_rows,
+            "execution_step_map": execution_step_map,
+            "input_provenance": input_provenance,
+        }
+
+
+class HTMLReporter:
+    """Generates a standalone HTML report."""
+
+    def generate(self, result: ExplorationResult, output_path: str) -> None:
+        """Generate the HTML report file."""
+        from flowscout import __version__
+
+        report_dir = Path(output_path).parent
+        builder = ReportDataBuilder(result, report_dir=report_dir)
+        context = builder.build()
+
+        vis_js = (_VENDOR_DIR / "vis-network.min.js").read_text()
+        context["vis_network_js"] = vis_js
+        context["version"] = __version__
+
         template = _ENV.get_template("report.html.j2")
-        html = template.render(
-            start_url=result.config.get("start_url", "unknown"),
-            started_at=result.started_at,
-            duration=result.duration_seconds,
-            config_strategy=result.config.get("strategy", "priority"),
-            flows=result.flows,
-            flow_groups=dict(flow_groups),
-            group_summaries=group_summaries,
-            flow_counts=flow_counts,
-            states=list(result.states.values()),
-            states_by_id=result.states,
-            results=result.results,
-            actions=action_labels,
-            action_metadata=action_metadata,
-            result_screenshot_links=result_screenshot_links,
-            error_results=error_results,
-            graph_json=graph_data,
-            execution_rows_json=execution_rows,
-            vis_network_js=vis_js,
-            version=__version__,
-            coverage=coverage,
-            page_coverage_map=page_coverage_map,
-            defects=defects,
-            total_test_steps=total_test_steps,
-            step_verdicts_summary=step_verdicts_summary,
-            group_pass_rates=group_pass_rates,
-            diagnostics=diagnostics,
-            element_inventory=element_inventory,
-            discovery_timeline=discovery_timeline,
-            url_inventory_rows=url_inventory_rows,
-            element_drilldown_map=element_drilldown_map,
-            execution_rows=execution_rows,
-            flow_execution_map=flow_execution_map,
-            orphan_execution_rows=orphan_execution_rows,
-            execution_step_map=execution_step_map,
-            input_provenance=input_provenance,
-        )
+        html = template.render(**context)
 
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(html)
+
+
+# ---------------------------------------------------------------------------
+# Data preparation helpers
+# ---------------------------------------------------------------------------
 
 
 def _to_report_asset_href(path: str | None, *, report_dir: Path) -> str | None:
@@ -282,7 +300,6 @@ def _extract_dom_id_from_selector(selector: str) -> str:
 
 def _compute_coverage(result: ExplorationResult) -> dict:
     """Compute page, interaction, and pass-rate coverage metrics."""
-    # Page coverage: unique URLs touched in results vs total discovered states
     all_urls = {s.url for s in result.states.values()}
     tested_urls: set[str] = set()
     for r in result.results:
@@ -291,11 +308,9 @@ def _compute_coverage(result: ExplorationResult) -> dict:
         if r.target_state_id in result.states:
             tested_urls.add(result.states[r.target_state_id].url)
 
-    # Interaction coverage: executed actions vs discovered
     executed_ids = {r.action_id for r in result.results}
     total_discovered = len(result.actions)
 
-    # Pass rate
     passed = sum(
         1 for f in result.flows if f.verdict and f.verdict.verdict.value == "pass"
     )
@@ -471,7 +486,6 @@ def _build_url_inventory_rows(
         non_interactive = int(row.get("non_interactive_elements", 0))
         total = int(row.get("total_elements", interactive + non_interactive))
 
-        # Keep unknown URLs distinct so we don't merge unrelated empty-url states.
         group_key = url or f"state:{state_id}"
         bucket = grouped.setdefault(
             group_key,
@@ -578,7 +592,6 @@ def _build_element_drilldown_map(
                 type_counts[element_type] += 1
                 zone_counts[zone_type] += 1
 
-                # Fallback for runs where aggregate inventory is missing.
                 if not page_row:
                     if is_interactive_element_type(element_type):
                         interactive_count += 1
@@ -739,18 +752,7 @@ def _build_flow_execution_map(
     result: ExplorationResult,
     execution_rows: list[dict[str, Any]],
 ) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]], dict[int, dict[str, Any]]]:
-    """Map execution rows to flows and return unmatched rows.
-
-    Args:
-        result: Exploration result containing flow definitions.
-        execution_rows: Global execution rows keyed by step ``index``.
-
-    Returns:
-        Tuple containing:
-        - flow_id -> execution rows belonging to that flow.
-        - rows that could not be matched to any flow step.
-        - step index -> flow context mapping used for UI deep-linking.
-    """
+    """Map execution rows to flows and return unmatched rows."""
     rows_by_index = {int(row["index"]): row for row in execution_rows}
     indexes_by_action: dict[str, list[int]] = defaultdict(list)
     for row in execution_rows:
@@ -797,12 +799,7 @@ def _select_matching_step_index(
     indexes_by_action: dict[str, list[int]],
     used_indexes: set[int],
 ) -> int | None:
-    """Select the next execution step index for a flow step.
-
-    Matching policy:
-    1. Same ``action_id`` + same ``source_state_id`` (preferred).
-    2. Same ``action_id`` regardless of source.
-    """
+    """Select the next execution step index for a flow step."""
     candidate_indexes = indexes_by_action.get(action_id, [])
     if not candidate_indexes:
         return None
