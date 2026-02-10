@@ -2995,6 +2995,15 @@
                 const typeLabel = pretty(entry.element_type || 'other');
                 const zoneLabel = pretty(entry.zone_type || 'main_content');
                 const label = entry.label || 'Unnamed element';
+                const screenshotSource = entry.screenshot_source ? 'source: ' + pretty(entry.screenshot_source) : 'No screenshot';
+                const screenshotCell = entry.screenshot_link
+                    ? '<div class="evidence-cell">' +
+                        '<a class="evidence-thumb-link" href="' + esc(entry.screenshot_link) + '" target="_blank" rel="noopener noreferrer" title="' + esc(screenshotSource) + '">' +
+                            '<img class="evidence-thumb" src="' + esc(entry.screenshot_link) + '" alt="evidence for ' + esc(label) + '" loading="lazy">' +
+                        '</a>' +
+                        '<a class="evidence-open-link" href="' + esc(entry.screenshot_link) + '" target="_blank" rel="noopener noreferrer">open</a>' +
+                    '</div>'
+                    : '<span class="cell-dim">—</span>';
                 return '<tr>' +
                     '<td class="cell-dim">' + esc(idx + 1) + '</td>' +
                     '<td class="cell-action">' + esc(label) + '</td>' +
@@ -3004,6 +3013,7 @@
                     '<td class="cell-dim">' + esc(typeLabel) + '</td>' +
                     '<td class="cell-dim">' + esc(zoneLabel) + '</td>' +
                     '<td class="cell-url">' + esc(locator) + '</td>' +
+                    '<td>' + screenshotCell + '</td>' +
                 '</tr>';
             }).join('');
 
@@ -3020,6 +3030,7 @@
                                     '<th>Type</th>' +
                                     '<th>Zone</th>' +
                                     '<th>Locator</th>' +
+                                    '<th>Screenshot</th>' +
                                 '</tr>' +
                             '</thead>' +
                             '<tbody>' + entryRows + '</tbody>' +

@@ -127,16 +127,22 @@ class HTMLReporter:
             result=result,
             element_inventory=element_inventory,
         )
-        element_drilldown_map = _build_element_drilldown_map(
-            result=result,
-            element_inventory=element_inventory,
-        )
+        state_screenshot_links = {
+            state_id: _to_report_asset_href(state.screenshot_path, report_dir=report_dir)
+            for state_id, state in result.states.items()
+        }
         execution_rows = _build_execution_rows(
             result=result,
             action_labels=action_labels,
             action_selectors=action_selectors,
             action_metadata=action_metadata,
             screenshot_links=result_screenshot_links,
+        )
+        element_drilldown_map = _build_element_drilldown_map(
+            result=result,
+            element_inventory=element_inventory,
+            execution_rows=execution_rows,
+            state_screenshot_links=state_screenshot_links,
         )
         (
             flow_execution_map,
@@ -415,6 +421,8 @@ def _build_element_drilldown_map(
     *,
     result: ExplorationResult,
     element_inventory: dict[str, Any] | None,
+    execution_rows: list[dict[str, Any]] | None = None,
+    state_screenshot_links: dict[str, str | None] | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Build per-state element drilldown data for the Elements modal."""
     per_page_rows = {
@@ -423,6 +431,19 @@ def _build_element_drilldown_map(
         if isinstance(row, dict)
     }
     analyses = result.smart_analyses or {}
+    state_screens = state_screenshot_links or {}
+
+    evidence_by_state: dict[str, str] = {}
+    evidence_by_state_selector: dict[tuple[str, str], str] = {}
+    for row in execution_rows or []:
+        state_id = str(row.get("source_state_id", "")).strip()
+        selector = str(row.get("target_selector", "")).strip()
+        screenshot = row.get("screenshot_link")
+        if not state_id or not isinstance(screenshot, str) or not screenshot:
+            continue
+        evidence_by_state.setdefault(state_id, screenshot)
+        if selector:
+            evidence_by_state_selector.setdefault((state_id, selector), screenshot)
 
     drilldown: dict[str, dict[str, Any]] = {}
     for state_id, state in result.states.items():
@@ -466,6 +487,17 @@ def _build_element_drilldown_map(
                 input_type = str(entry.get("input_type") or "").strip().lower()
                 is_interactive = is_interactive_element_type(element_type)
                 display_label = label or semantic_name or f"{tag} element"
+                screenshot_link = None
+                screenshot_source = ""
+                if selector and (state_id, selector) in evidence_by_state_selector:
+                    screenshot_link = evidence_by_state_selector[(state_id, selector)]
+                    screenshot_source = "action_target"
+                elif state_id in evidence_by_state:
+                    screenshot_link = evidence_by_state[state_id]
+                    screenshot_source = "state_action"
+                elif state_screens.get(state_id):
+                    screenshot_link = state_screens.get(state_id)
+                    screenshot_source = "state_snapshot"
                 entry_rows.append(
                     {
                         "label": display_label,
@@ -476,6 +508,8 @@ def _build_element_drilldown_map(
                         "aria_role": aria_role,
                         "input_type": input_type,
                         "is_interactive": is_interactive,
+                        "screenshot_link": screenshot_link,
+                        "screenshot_source": screenshot_source,
                     }
                 )
 

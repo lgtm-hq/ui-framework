@@ -65,6 +65,14 @@ def test_build_element_drilldown_map_includes_locator_rows() -> None:
     drilldown = _build_element_drilldown_map(
         result=result,
         element_inventory=result.element_inventory,
+        execution_rows=[
+            {
+                "source_state_id": "state-a",
+                "target_selector": "a[href='/movie/1']",
+                "screenshot_link": "evidence/actions/1.png",
+            }
+        ],
+        state_screenshot_links={"state-a": "evidence/states/state-a.png"},
     )
 
     row = drilldown["state-a"]
@@ -72,7 +80,11 @@ def test_build_element_drilldown_map_includes_locator_rows() -> None:
     assert row["entries_truncated"] is False
     assert row["entries"][0]["selector"] == "a[href='/movie/1']"
     assert row["entries"][0]["is_interactive"] is True
+    assert row["entries"][0]["screenshot_link"] == "evidence/actions/1.png"
+    assert row["entries"][0]["screenshot_source"] == "action_target"
     assert row["entries"][1]["is_interactive"] is False
+    assert row["entries"][1]["screenshot_link"] == "evidence/actions/1.png"
+    assert row["entries"][1]["screenshot_source"] == "state_action"
     assert row["top_types"][0] == {"name": "heading", "count": 1}
     assert row["top_types"][1] == {"name": "link", "count": 1}
 
@@ -102,6 +114,7 @@ def test_build_element_drilldown_map_truncates_large_entry_lists() -> None:
     drilldown = _build_element_drilldown_map(
         result=result,
         element_inventory=None,
+        state_screenshot_links={"state-b": "evidence/states/state-b.png"},
     )
 
     row = drilldown["state-b"]
@@ -111,3 +124,5 @@ def test_build_element_drilldown_map_truncates_large_entry_lists() -> None:
     assert row["interactive"] == 0
     assert row["non_interactive"] == 260
     assert row["total"] == 260
+    assert row["entries"][0]["screenshot_link"] == "evidence/states/state-b.png"
+    assert row["entries"][0]["screenshot_source"] == "state_snapshot"
