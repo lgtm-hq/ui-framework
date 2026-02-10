@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from pathlib import Path
+import re
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
@@ -21,6 +22,9 @@ _ENV = Environment(
     loader=FileSystemLoader(str(_TEMPLATE_DIR)),
     autoescape=True,
 )
+_CATALOG_LABEL_STYLE_RE = re.compile(r"\.[\w-]+(?::[\w-]+)?\s*\{[^}]*\}")
+_CATALOG_LABEL_BRACE_RE = re.compile(r"\{[^}]*\}")
+_CATALOG_LABEL_SPACE_RE = re.compile(r"\s+")
 
 
 class HTMLReporter:
@@ -251,6 +255,21 @@ def _build_graph_data(result: ExplorationResult) -> dict:
     return {"nodes": nodes, "edges": edges}
 
 
+def _clean_catalog_label(value: Any) -> str:
+    """Normalize noisy catalog labels to concise, human-readable text."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+
+    # Some pages inline CSS pseudo-element content into extracted labels.
+    text = _CATALOG_LABEL_STYLE_RE.sub(" ", text)
+    text = _CATALOG_LABEL_BRACE_RE.sub(" ", text)
+    text = _CATALOG_LABEL_SPACE_RE.sub(" ", text).strip()
+    if len(text) > 120:
+        return f"{text[:117].rstrip()}..."
+    return text
+
+
 def _compute_coverage(result: ExplorationResult) -> dict:
     """Compute page, interaction, and pass-rate coverage metrics."""
     # Page coverage: unique URLs touched in results vs total discovered states
@@ -479,7 +498,7 @@ def _build_element_drilldown_map(
                     else:
                         non_interactive_count += 1
 
-                label = str(entry.get("label") or "").strip()
+                label = _clean_catalog_label(entry.get("label"))
                 semantic_name = str(entry.get("semantic_name") or "").strip()
                 selector = str(entry.get("selector") or "").strip()
                 tag = str(entry.get("tag") or "").strip().lower() or "unknown"

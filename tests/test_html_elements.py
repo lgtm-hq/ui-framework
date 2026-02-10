@@ -33,7 +33,7 @@ def test_build_element_drilldown_map_includes_locator_rows() -> None:
                     "entries": [
                         {
                             "selector": "a[href='/movie/1']",
-                            "label": "Movie card",
+                            "label": "Movie card .react-stars-123:before { position: absolute; }",
                             "element_type": "link",
                             "zone_type": "main_content",
                             "tag": "a",
@@ -79,6 +79,7 @@ def test_build_element_drilldown_map_includes_locator_rows() -> None:
     assert row["catalog_entry_count"] == 2
     assert row["entries_truncated"] is False
     assert row["entries"][0]["selector"] == "a[href='/movie/1']"
+    assert row["entries"][0]["label"] == "Movie card"
     assert row["entries"][0]["is_interactive"] is True
     assert row["entries"][0]["screenshot_link"] == "evidence/actions/1.png"
     assert row["entries"][0]["screenshot_source"] == "action_target"
