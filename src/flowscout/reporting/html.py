@@ -8,7 +8,10 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from flowscout.analysis.element_inventory import summarize_element_inventory
+from flowscout.analysis.element_inventory import (
+    is_interactive_element_type,
+    summarize_element_inventory,
+)
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.discovery.actions import ActionResult
 
@@ -124,6 +127,10 @@ class HTMLReporter:
             result=result,
             element_inventory=element_inventory,
         )
+        element_drilldown_map = _build_element_drilldown_map(
+            result=result,
+            element_inventory=element_inventory,
+        )
         execution_rows = _build_execution_rows(
             result=result,
             action_labels=action_labels,
@@ -174,6 +181,7 @@ class HTMLReporter:
             diagnostics=diagnostics,
             element_inventory=element_inventory,
             discovery_timeline=discovery_timeline,
+            element_drilldown_map=element_drilldown_map,
             execution_rows=execution_rows,
             flow_execution_map=flow_execution_map,
             orphan_execution_rows=orphan_execution_rows,
@@ -401,6 +409,84 @@ def _build_discovery_timeline(
             }
         )
     return rows
+
+
+def _build_element_drilldown_map(
+    *,
+    result: ExplorationResult,
+    element_inventory: dict[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    """Build per-state element drilldown data for the Elements modal."""
+    per_page_rows = {
+        str(row.get("state_id", "")): row
+        for row in (element_inventory or {}).get("per_page", [])
+        if isinstance(row, dict)
+    }
+    analyses = result.smart_analyses or {}
+
+    drilldown: dict[str, dict[str, Any]] = {}
+    for state_id, state in result.states.items():
+        page_row = per_page_rows.get(state_id, {})
+        analysis = analyses.get(state_id, {})
+        catalog = analysis.get("catalog", {}) if isinstance(analysis, dict) else {}
+        entries = catalog.get("entries", []) if isinstance(catalog, dict) else []
+
+        type_counts: Counter[str] = Counter()
+        zone_counts: Counter[str] = Counter()
+        interactive_count = int(page_row.get("interactive_elements", 0))
+        non_interactive_count = int(page_row.get("non_interactive_elements", 0))
+
+        if isinstance(entries, list):
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                element_type = str(entry.get("element_type") or "other").strip().lower()
+                zone_type = str(entry.get("zone_type") or "main_content").strip().lower()
+                if not element_type:
+                    element_type = "other"
+                if not zone_type:
+                    zone_type = "main_content"
+
+                type_counts[element_type] += 1
+                zone_counts[zone_type] += 1
+
+                # Fallback for runs where aggregate inventory is missing.
+                if not page_row:
+                    if is_interactive_element_type(element_type):
+                        interactive_count += 1
+                    else:
+                        non_interactive_count += 1
+
+        total_count = int(
+            page_row.get("total_elements", interactive_count + non_interactive_count)
+        )
+        drilldown[state_id] = {
+            "state_id": state_id,
+            "state_short": state_id[:8],
+            "title": state.title or state.url,
+            "url": state.url,
+            "depth": state.depth,
+            "interactive": interactive_count,
+            "non_interactive": non_interactive_count,
+            "total": total_count,
+            "catalog_entry_count": len(entries) if isinstance(entries, list) else 0,
+            "top_types": [
+                {"name": name, "count": count}
+                for name, count in sorted(
+                    type_counts.items(),
+                    key=lambda item: (-item[1], item[0]),
+                )[:8]
+            ],
+            "top_zones": [
+                {"name": name, "count": count}
+                for name, count in sorted(
+                    zone_counts.items(),
+                    key=lambda item: (-item[1], item[0]),
+                )[:6]
+            ],
+        }
+
+    return drilldown
 
 
 def _build_execution_rows(

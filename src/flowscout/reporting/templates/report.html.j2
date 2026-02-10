@@ -1336,6 +1336,12 @@
             font-weight: 500;
         }
 
+        .elements-subtitle-hint {
+            margin: -0.15rem 0 0.55rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
         .elements-subtitle-small {
             padding: 0.75rem 1rem 0.25rem;
             font-family: var(--font-mono);
@@ -1343,6 +1349,37 @@
             text-transform: uppercase;
             letter-spacing: 0.08em;
             color: var(--text-muted);
+        }
+
+        .elements-drilldown-row {
+            cursor: pointer;
+        }
+
+        .elements-drilldown-row:hover {
+            background: #102334 !important;
+        }
+
+        .elements-modal-group {
+            background: linear-gradient(180deg, rgba(13, 27, 42, 0.95), rgba(10, 20, 32, 0.95));
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: 0.75rem 0.8rem;
+        }
+
+        .elements-modal-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .elements-modal-chip {
+            border: 1px solid var(--border-dim);
+            border-radius: 999px;
+            background: var(--bg-overlay);
+            padding: 0.25rem 0.55rem;
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            color: var(--text-secondary);
         }
 
         .execution-modal {
@@ -2272,6 +2309,7 @@
 
             {% if discovery_timeline %}
             <h3 class="elements-subtitle">State Discovery Progression</h3>
+            <div class="elements-subtitle-hint">Click a row to inspect this state's element summary.</div>
             <div class="data-table-wrap" style="margin-bottom: 1rem;">
                 <div class="table-scroll">
                     <table class="data-table">
@@ -2288,7 +2326,7 @@
                         </thead>
                         <tbody>
                             {% for row in discovery_timeline %}
-                            <tr>
+                            <tr class="elements-drilldown-row" onclick="openElementsDrilldown('{{ row.state_id }}', 'State Discovery Progression')" title="Open element details for this state">
                                 <td class="cell-dim">{{ row.order }}</td>
                                 <td class="cell-action" title="{{ row.url }}">{{ row.title }}</td>
                                 <td class="cell-right">{{ row.depth }}</td>
@@ -2305,6 +2343,7 @@
             {% endif %}
 
             <h3 class="elements-subtitle">Per-Page Inventory</h3>
+            <div class="elements-subtitle-hint">Click a row to inspect the catalog summary for that page.</div>
             <div class="data-table-wrap" style="margin-bottom: 1rem;">
                 <div class="table-scroll">
                     <table class="data-table">
@@ -2319,7 +2358,7 @@
                         </thead>
                         <tbody>
                             {% for page in element_inventory.per_page %}
-                            <tr>
+                            <tr class="elements-drilldown-row" onclick="openElementsDrilldown('{{ page.state_id }}', 'Per-Page Inventory')" title="Open element details for this page">
                                 <td class="cell-action">{{ page.title or page.url or 'Page' }}</td>
                                 <td class="cell-url">{{ page.url }}</td>
                                 <td class="cell-right" style="color: var(--accent-green);">{{ page.interactive_elements }}</td>
@@ -2571,6 +2610,16 @@
             </div>
         </div>
 
+        <div id="elements-modal" class="execution-modal" onclick="closeElementsModal(event)">
+            <div class="execution-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="elements-modal-title">
+                <div class="execution-modal-header">
+                    <h3 id="elements-modal-title">Element Details</h3>
+                    <button class="execution-modal-close" onclick="closeElementsModal()">Close</button>
+                </div>
+                <div id="elements-modal-body" class="execution-modal-body"></div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Footer -->
@@ -2593,6 +2642,7 @@
         const graphData = {{ graph_json|tojson }};
         const executionRows = {{ execution_rows_json|tojson }};
         const executionStepMap = {{ execution_step_map|tojson }};
+        const elementDrilldownMap = {{ element_drilldown_map|tojson }};
         let graphInitialized = false;
 
         /* --- Lazy graph init on first expand of Exploration Model section --- */
@@ -2865,6 +2915,79 @@
             document.body.style.overflow = '';
         }
 
+        function closeElementsModal(evt = null) {
+            if (evt && evt.target && evt.currentTarget && evt.target !== evt.currentTarget) {
+                return;
+            }
+            const modal = document.getElementById('elements-modal');
+            if (!modal) return;
+            modal.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        function openElementsDrilldown(stateId, sourceLabel = 'Elements') {
+            const modal = document.getElementById('elements-modal');
+            const title = document.getElementById('elements-modal-title');
+            const body = document.getElementById('elements-modal-body');
+            if (!modal || !title || !body) return;
+
+            const info = elementDrilldownMap[String(stateId)] || null;
+            const esc = (value) => String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+            const pretty = (value) => String(value || '')
+                .replaceAll('_', ' ')
+                .split(' ')
+                .filter(Boolean)
+                .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+                .join(' ');
+
+            if (!info) {
+                title.textContent = 'Element Details';
+                body.innerHTML = '<div class="execution-detail-text">No element details found for this row.</div>';
+                modal.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+                return;
+            }
+
+            title.textContent = 'Element Details · ' + (info.title || info.url || info.state_short || 'Page');
+
+            const typeChips = (info.top_types || []).length
+                ? info.top_types.map((item) => '<span class="elements-modal-chip">' + esc(pretty(item.name)) + ' (' + esc(item.count) + ')</span>').join('')
+                : '<span class="cell-dim">No catalog types recorded.</span>';
+
+            const zoneChips = (info.top_zones || []).length
+                ? info.top_zones.map((item) => '<span class="elements-modal-chip">' + esc(pretty(item.name)) + ' (' + esc(item.count) + ')</span>').join('')
+                : '<span class="cell-dim">No zones recorded.</span>';
+
+            body.innerHTML =
+                '<div class="execution-detail-grid">' +
+                    '<div class="execution-detail-card execution-detail-card--from"><div class="execution-detail-label">Page</div><div class="execution-detail-value">' + esc(info.title || 'Untitled page') + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--to"><div class="execution-detail-label">Source View</div><div class="execution-detail-value">' + esc(sourceLabel) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--action"><div class="execution-detail-label">Interactive</div><div class="execution-detail-value">' + esc(info.interactive) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--outcome"><div class="execution-detail-label">Content</div><div class="execution-detail-value">' + esc(info.non_interactive) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--verdict"><div class="execution-detail-label">Total</div><div class="execution-detail-value">' + esc(info.total) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--confidence"><div class="execution-detail-label">Depth</div><div class="execution-detail-value">' + esc(info.depth) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--step"><div class="execution-detail-label">Catalog Entries</div><div class="execution-detail-value">' + esc(info.catalog_entry_count) + '</div></div>' +
+                '</div>' +
+                '<div class="elements-modal-group">' +
+                    '<div class="execution-detail-label">Top Element Types</div>' +
+                    '<div class="elements-modal-list">' + typeChips + '</div>' +
+                '</div>' +
+                '<div class="elements-modal-group">' +
+                    '<div class="execution-detail-label">Top Zones</div>' +
+                    '<div class="elements-modal-list">' + zoneChips + '</div>' +
+                '</div>' +
+                '<div class="execution-detail-text"><strong>URL:</strong><br>' + esc(info.url || '—') + '</div>' +
+                '<div class="execution-detail-text"><strong>Technical Context:</strong><br>state_id: ' + esc(info.state_id || '—') + '</div>';
+
+            modal.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        }
+
         function openExecutionStepModal(stepIndex) {
             const modal = document.getElementById('execution-modal');
             const body = document.getElementById('execution-modal-body');
@@ -2952,6 +3075,7 @@
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeExecutionStepModal();
+                closeElementsModal();
             }
         });
     </script>
