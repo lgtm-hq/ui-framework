@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import heapq
 import logging
 import time
-from collections import defaultdict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
@@ -15,6 +13,7 @@ from flowscout.analysis.narrative import NarrativeGenerator
 from flowscout.analysis.verdict import VerdictComputer
 from flowscout.core.browser import BrowserManager
 from flowscout.core.errors import BrowserError
+from flowscout.core.frontier import FrontierManager, is_diverse_action
 from flowscout.core.policy import get_action_policy_block_reason
 from flowscout.core.state import ExplorerConfig, PageState
 from flowscout.discovery.actions import (
@@ -35,44 +34,6 @@ logger = logging.getLogger(__name__)
 
 SmartPlanner: type[_SmartPlannerType] | None = None
 
-# After this many consecutive click actions, prefer a non-click if available
-_DIVERSITY_INTERVAL = 5
-
-# Action types that count as "interactive" (non-navigation) diversity
-_DIVERSE_TYPES = frozenset(
-    {
-        ActionType.FILL,
-        ActionType.SELECT_OPTION,
-        ActionType.CHECK,
-        ActionType.UNCHECK,
-        ActionType.SUBMIT_FORM,
-    }
-)
-
-# Individual input actions preferred over form submits for diversity picks
-# (filling a search box or selecting an option is more interesting than
-# a composite submit which may timeout on forms without clear submit buttons)
-_INPUT_TYPES = frozenset(
-    {
-        ActionType.FILL,
-        ActionType.SELECT_OPTION,
-        ActionType.CHECK,
-        ActionType.UNCHECK,
-    }
-)
-
-
-class _FrontierItem:
-    """Wrapper for priority queue items (needed for heap comparison)."""
-
-    def __init__(self, priority: int, action: Action, source_state_id: str) -> None:
-        self.priority = priority
-        self.action = action
-        self.source_state_id = source_state_id
-
-    def __lt__(self, other: _FrontierItem) -> bool:
-        return self.priority < other.priority
-
 
 class Navigator:
     """The exploration engine that decides what to do next."""
@@ -83,20 +44,15 @@ class Navigator:
         graph: ExplorationGraph,
         config: ExplorerConfig,
         terminal: TerminalReporter,
+        *,
+        frontier: FrontierManager | None = None,
     ) -> None:
         self.browser = browser
         self.graph = graph
         self.config = config
         self.terminal = terminal
-        self._frontier: list[_FrontierItem] = []
-        self._visited: set[tuple[str, str]] = set()  # (state_id, action_id)
-        self._state_action_count: dict[str, int] = defaultdict(int)
-        self._group_outcome_count: dict[str, dict[str, int]] = defaultdict(
-            lambda: defaultdict(int)
-        )
+        self._frontier = frontier or FrontierManager()
         self._total_actions_executed = 0
-        self._click_streak = 0
-        self._last_diverse_category: str | None = None
         self._verdict_computer = VerdictComputer()
         self._narrative_generator = NarrativeGenerator()
 
@@ -132,20 +88,19 @@ class Navigator:
         await self._apply_smart_advice(initial_state)
 
         # 4. Main exploration loop
-        while self._frontier:
+        while not self._frontier.is_empty:
             if self._should_stop():
                 self.terminal.log_info("Stopping: limits reached")
                 break
 
-            item = self._pop_diverse()
+            item = self._frontier.pop()
             action = item.action
             source_state_id = item.source_state_id
 
             # Skip already-visited (state, action) pairs
-            pair = (source_state_id, action.action_id)
-            if pair in self._visited:
+            if self._frontier.is_visited(source_state_id, action.action_id):
                 continue
-            self._visited.add(pair)
+            self._frontier.mark_visited(source_state_id, action.action_id)
 
             # Navigate back to source state if needed
             navigated_back = await self._navigate_to_state(source_state_id)
@@ -192,7 +147,7 @@ class Navigator:
             self.terminal.log_action_result(action, result, is_new_state)
 
             # Track group outcomes for smart deprioritization
-            self._track_group_outcome(action, result)
+            self._frontier.track_outcome(action, result.outcome)
 
             # If new state at acceptable depth, discover its actions
             if is_new_state and new_depth < self.config.max_depth:
@@ -279,41 +234,11 @@ class Navigator:
 
         # Apply priority overrides to frontier
         if advice.priority_overrides:
-            saturated_priority = advice.priority_overrides.get("__saturated__")
-            search_priority = advice.priority_overrides.get("__search_action__")
-            content_priority = advice.priority_overrides.get("__content_items__")
-
-            modified = False
-            for item in self._frontier:
-                if item.source_state_id != state.state_id:
-                    continue
-
-                # Boost search actions
-                if search_priority is not None:
-                    if item.action.metadata.get("is_search") == "true":
-                        item.priority = search_priority
-                        modified = True
-                    elif item.action.metadata.get("element_type") == "input_search":
-                        item.priority = search_priority
-                        modified = True
-
-                # Boost content item clicks (non-nav, non-search clicks on listings)
-                if content_priority is not None:
-                    if (
-                        item.action.action_type == ActionType.CLICK
-                        and not item.action.metadata.get("is_search")
-                        and item.action.metadata.get("element_type") != "input_search"
-                    ):
-                        item.priority = min(item.priority, content_priority)
-                        modified = True
-
-                # Deprioritize saturated archetypes
-                if saturated_priority is not None and advice.is_archetype_saturated:
-                    item.priority = max(item.priority, saturated_priority)
-                    modified = True
-
-            if modified:
-                heapq.heapify(self._frontier)
+            self._frontier.apply_priority_overrides(
+                state.state_id,
+                advice.priority_overrides,
+                advice.is_archetype_saturated,
+            )
 
     async def _discover_and_enqueue(self, state: PageState) -> None:
         """Discover interactive elements and add their actions to the frontier."""
@@ -340,24 +265,11 @@ class Navigator:
         actions.extend(form_actions)
         actions, blocked_count = self._apply_action_policy(actions)
 
-        # Partition into click vs interactive (fill/select/check/submit/search)
-        # to ensure diverse action types get reserved frontier slots.
-        # Search-trigger clicks (role="search") are treated as diverse so they
-        # don't get drowned out by navigation links.
-        def _is_diverse(a: Action) -> bool:
-            if a.action_type in _DIVERSE_TYPES:
-                return True
-            if a.metadata.get("is_search") == "true":
-                return True
-            if a.metadata.get("requires_open"):
-                return True
-            return False
-
-        click_actions = [a for a in actions if not _is_diverse(a)]
-        diverse_actions = [a for a in actions if _is_diverse(a)]
+        # Partition into click vs interactive for budget allocation
+        click_actions = [a for a in actions if not is_diverse_action(a)]
+        diverse_actions = [a for a in actions if is_diverse_action(a)]
 
         budget = self.config.max_actions_per_state
-        # Reserve up to 30% of slots for diverse actions (minimum 1 if any exist)
         diverse_reserve = min(len(diverse_actions), max(1, budget * 3 // 10))
         click_budget = budget - diverse_reserve if diverse_actions else budget
 
@@ -365,29 +277,24 @@ class Navigator:
 
         def _enqueue(action: Action) -> None:
             nonlocal enqueued
-            priority = self._adjusted_priority(action)
+            priority = self._frontier.adjusted_priority(action)
             self.graph.add_action(action)
-            heapq.heappush(
-                self._frontier, _FrontierItem(priority, action, state.state_id)
-            )
-            self._state_action_count[state.state_id] += 1
+            self._frontier.push(action, state.state_id, priority)
             enqueued += 1
 
-        # Enqueue click actions up to their budget
         for action in click_actions:
             if enqueued >= click_budget:
                 break
             _enqueue(action)
 
-        # Enqueue diverse actions (fill, select, check, submit)
         for action in diverse_actions:
-            if self._state_action_count[state.state_id] >= budget:
+            if self._frontier.state_action_count(state.state_id) >= budget:
                 break
             _enqueue(action)
 
         self.terminal.log_info(
             f"  Enqueued {enqueued} actions "
-            f"({len(diverse_actions)} interactive, frontier size: {len(self._frontier)})"
+            f"({len(diverse_actions)} interactive, frontier size: {self._frontier.size})"
         )
         if blocked_count:
             self.terminal.log_info(
@@ -414,11 +321,7 @@ class Navigator:
         return allowed_actions, blocked_count
 
     async def _navigate_to_state(self, target_state_id: str) -> bool:
-        """Navigate back to a previously visited state.
-
-        Returns True if navigation succeeded.
-        """
-        # Check if already at the target state
+        """Navigate back to a previously visited state."""
         try:
             current_state = await self.browser.capture_state(depth=0)
             if (
@@ -433,7 +336,6 @@ class Navigator:
 
         target = self.graph.states[target_state_id]
 
-        # Try direct URL navigation
         try:
             await self.browser.navigate(target.url)
             current_state = await self.browser.capture_state(depth=0)
@@ -442,20 +344,15 @@ class Navigator:
         except BrowserError:
             logger.debug("Direct navigation to %s failed", target.url, exc_info=True)
 
-        # If direct navigation didn't reproduce the state, try replaying path
         path = self.graph.find_path_from_root(target_state_id)
         if path is not None and len(path) > 0:
             try:
-                # Navigate to root first
                 root_state = self.graph.states[self.graph.root_state_id]
                 await self.browser.navigate(root_state.url)
-
-                # Replay each action
                 for step in path:
                     action = self.graph.actions.get(step.action_id)
                     if action:
                         await self.browser.execute_action(action)
-
                 return True
             except BrowserError:
                 logger.debug(
@@ -464,7 +361,6 @@ class Navigator:
                     exc_info=True,
                 )
 
-        # Last resort: just navigate to the URL and hope for the best
         try:
             await self.browser.navigate(target.url)
             return True
@@ -479,17 +375,14 @@ class Navigator:
         from flowscout.analysis.verdict import StepVerdict, Verdict
 
         for flow in flows:
-            # Gather step verdicts from results for this flow
             step_verdicts: list[StepVerdict] = []
             flow_actions: list[Action] = []
             flow_results: list[ActionResult] = []
-            flow_states: list[PageState | None] = []
             flow_intents = []
 
             for i, action_id in enumerate(flow.action_ids):
                 action = self.graph.actions.get(action_id)
                 source_sid = flow.state_ids[i] if i < len(flow.state_ids) else ""
-                # Find matching result
                 matching_result = None
                 for r in self.graph.results:
                     if r.action_id == action_id and r.source_state_id == source_sid:
@@ -518,14 +411,14 @@ class Navigator:
                     )
                     step_verdicts.append(sv)
 
-            # Journey verdict
             journey_verdict = self._verdict_computer.compute_journey_verdict(
                 step_verdicts
             )
             flow.verdict = journey_verdict
 
-            # Narrative
-            flow_states = [self.graph.states.get(sid) for sid in flow.state_ids]
+            flow_states: list[PageState | None] = [
+                self.graph.states.get(sid) for sid in flow.state_ids
+            ]
             narrative = self._narrative_generator.narrate_flow(
                 flow.name,
                 flow_actions,
@@ -535,92 +428,6 @@ class Navigator:
                 step_verdicts=step_verdicts,
             )
             flow.narrative = narrative
-
-    @staticmethod
-    def _is_diverse_item(item: _FrontierItem) -> bool:
-        """Check if a frontier item is a diverse (non-navigation) action."""
-        if item.action.action_type in _DIVERSE_TYPES:
-            return True
-        if item.action.metadata.get("is_search") == "true":
-            return True
-        if item.action.metadata.get("requires_open"):
-            return True
-        return False
-
-    @staticmethod
-    def _diverse_category(item: _FrontierItem) -> str | None:
-        """Classify a frontier item's diverse category for rotation."""
-        if item.action.metadata.get("is_search") == "true":
-            return "search"
-        if item.action.metadata.get("requires_open"):
-            return "dropdown"
-        if item.action.action_type in _INPUT_TYPES:
-            return "input"
-        if item.action.action_type in _DIVERSE_TYPES:
-            return "form"
-        return None
-
-    def _pop_diverse(self) -> _FrontierItem:
-        """Pop from frontier with diversity awareness.
-
-        After ``_DIVERSITY_INTERVAL`` consecutive click actions, prefer a
-        non-click action if one exists.  Rotates between diverse categories
-        (search, dropdown, input, form) to prevent one type from monopolizing.
-        """
-        if self._click_streak >= _DIVERSITY_INTERVAL:
-            best_idx: int | None = None
-            best_priority = float("inf")
-
-            # First pass: prefer a DIFFERENT category than the last pick
-            for i, candidate in enumerate(self._frontier):
-                cat = self._diverse_category(candidate)
-                if cat is None:
-                    continue
-                if cat == self._last_diverse_category:
-                    continue  # Skip same category as last pick
-                if candidate.priority < best_priority:
-                    best_idx = i
-                    best_priority = candidate.priority
-
-            # Second pass: any diverse candidate (no category restriction)
-            if best_idx is None:
-                for i, candidate in enumerate(self._frontier):
-                    cat = self._diverse_category(candidate)
-                    if cat is None:
-                        continue
-                    if candidate.priority < best_priority:
-                        best_idx = i
-                        best_priority = candidate.priority
-
-            # Third pass: any diverse type (including SUBMIT_FORM)
-            if best_idx is None:
-                for i, candidate in enumerate(self._frontier):
-                    if (
-                        self._is_diverse_item(candidate)
-                        and candidate.priority < best_priority
-                    ):
-                        best_idx = i
-                        best_priority = candidate.priority
-
-            if best_idx is not None:
-                item = self._frontier[best_idx]
-                self._last_diverse_category = self._diverse_category(item)
-                # Remove from heap: swap with last, pop, re-heapify
-                self._frontier[best_idx] = self._frontier[-1]
-                self._frontier.pop()
-                if self._frontier:
-                    heapq.heapify(self._frontier)
-                self._click_streak = 0
-                return item
-
-        item = heapq.heappop(self._frontier)
-        if item.action.action_type == ActionType.CLICK and not self._is_diverse_item(
-            item
-        ):
-            self._click_streak += 1
-        else:
-            self._click_streak = 0
-        return item
 
     def _should_stop(self) -> bool:
         """Check termination conditions."""
@@ -634,40 +441,6 @@ class Navigator:
         if self._smart_planner and self._smart_planner.coverage.is_saturated():
             return True
         return False
-
-    def _track_group_outcome(self, action: Action, result: ActionResult) -> None:
-        """Track outcomes by action group for smart deprioritization.
-
-        Groups are defined by the element's data attributes (e.g., all theme
-        buttons share similar data attributes).
-        """
-        # Group by action label prefix (e.g., "Select option:" actions)
-        label_prefix = action.label.split(":")[0] if ":" in action.label else ""
-        if label_prefix:
-            self._group_outcome_count[label_prefix][result.outcome.value] += 1
-
-    def _adjusted_priority(self, action: Action) -> int:
-        """Adjust priority based on group outcome history.
-
-        If we've seen 3+ actions in a group all produce DOM_CHANGE (not
-        NAVIGATION), deprioritize remaining actions in that group.
-        """
-        label_prefix = action.label.split(":")[0] if ":" in action.label else ""
-        if not label_prefix:
-            return action.priority
-
-        group_outcomes = self._group_outcome_count.get(label_prefix)
-        if not group_outcomes:
-            return action.priority
-
-        dom_changes = group_outcomes.get(OutcomeType.DOM_CHANGE.value, 0)
-        navigations = group_outcomes.get(OutcomeType.NAVIGATION.value, 0)
-
-        # If 3+ DOM_CHANGE and 0 NAVIGATION, deprioritize
-        if dom_changes >= 3 and navigations == 0:
-            return max(action.priority, 80)
-
-        return action.priority
 
     @staticmethod
     def _result_detail(result: ActionResult) -> str:
@@ -693,3 +466,7 @@ class Navigator:
             OutcomeType.EXCEPTION: (0.2, "Action raised an exception"),
         }
         return mapping.get(outcome, (0.5, "Unknown outcome"))
+
+
+# Backward-compatible alias
+ExplorationEngine = Navigator
