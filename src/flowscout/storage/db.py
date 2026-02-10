@@ -160,6 +160,21 @@ class FlowscoutDB:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn: sqlite3.Connection | None = None
 
+    @classmethod
+    def from_connection(cls, conn: sqlite3.Connection) -> FlowscoutDB:
+        """Create a FlowscoutDB backed by an existing connection.
+
+        Useful for testing with in-memory SQLite (``sqlite3.connect(":memory:")``).
+        """
+        instance = object.__new__(cls)
+        instance.db_path = Path(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.executescript(_SCHEMA)
+        instance._conn = conn
+        instance._apply_migrations()
+        return instance
+
     @property
     def conn(self) -> sqlite3.Connection:
         if self._conn is None:

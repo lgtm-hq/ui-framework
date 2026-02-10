@@ -39,16 +39,55 @@ SIGNALS_JS = load_script("signals")
 PAGE_ANALYSIS_JS = load_script("page_analysis")
 
 
+class StabilityWaiter:
+    """Waits for the DOM to stabilize by polling hash changes."""
+
+    def __init__(
+        self,
+        *,
+        poll_interval_s: float = 0.2,
+    ) -> None:
+        self.poll_interval_s = poll_interval_s
+
+    async def wait(
+        self,
+        get_hash: object,
+        timeout_ms: int,
+    ) -> None:
+        """Poll ``get_hash`` until two consecutive calls return the same value.
+
+        ``get_hash`` must be an async callable returning a string hash.
+        """
+        deadline = time.monotonic() + (timeout_ms / 1000)
+        prev_hash = await get_hash()  # type: ignore[misc]
+
+        while time.monotonic() < deadline:
+            await asyncio.sleep(self.poll_interval_s)
+            current_hash = await get_hash()  # type: ignore[misc]
+            if current_hash == prev_hash:
+                return
+            prev_hash = current_hash
+
+        # Timeout — DOM is still changing, proceed anyway
+
+
 class BrowserManager:
     """Manages Playwright browser lifecycle and action execution."""
 
-    def __init__(self, config: ExplorerConfig) -> None:
+    def __init__(
+        self,
+        config: ExplorerConfig,
+        *,
+        detector: OutcomeDetector | None = None,
+        stability_waiter: StabilityWaiter | None = None,
+    ) -> None:
         self.config = config
         self._playwright = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
         self._page: Page | None = None
-        self._detector = OutcomeDetector()
+        self._detector = detector or OutcomeDetector()
+        self._stability_waiter = stability_waiter or StabilityWaiter()
         self._fingerprint_config = FingerprintConfig()
 
     @property
@@ -512,14 +551,4 @@ class BrowserManager:
         """Wait for the DOM to stabilize after an action."""
         if timeout_ms is None:
             timeout_ms = self.config.stability_timeout_ms
-        deadline = time.monotonic() + (timeout_ms / 1000)
-        prev_hash = await self.get_dom_hash()
-
-        while time.monotonic() < deadline:
-            await asyncio.sleep(0.2)
-            current_hash = await self.get_dom_hash()
-            if current_hash == prev_hash:
-                return
-            prev_hash = current_hash
-
-        # Timeout — DOM is still changing, proceed anyway
+        await self._stability_waiter.wait(self.get_dom_hash, timeout_ms)
