@@ -971,35 +971,6 @@
         .step-expected .step-text { color: rgba(167, 139, 250, 0.7); }
         .step-actual .step-text { color: rgba(103, 232, 249, 0.7); }
 
-        /* --- Selector expander --- */
-        .step-selector-toggle {
-            font-family: var(--font-mono);
-            font-size: 0.5625rem;
-            cursor: pointer;
-            color: var(--text-muted);
-            background: none;
-            border: 1px solid var(--border-dim);
-            padding: 0.125rem 0.375rem;
-            border-radius: 3px;
-            margin-top: 0.375rem;
-            opacity: 0.6;
-            transition: opacity 0.15s ease;
-        }
-        .step-selector-toggle:hover { opacity: 1; border-color: var(--border-base); }
-        .step-selector-detail {
-            display: none;
-            margin-top: 0.25rem;
-            font-family: var(--font-mono);
-            font-size: 0.625rem;
-            color: var(--text-muted);
-            background: var(--bg-raised);
-            padding: 0.375rem 0.625rem;
-            border-radius: 4px;
-            word-break: break-all;
-            border: 1px solid var(--border-dim);
-        }
-        .step-selector-detail.visible { display: block; }
-
         /* --- Conclusion --- */
         .conclusion {
             margin-top: 0.75rem;
@@ -2344,10 +2315,6 @@
                                             {% if step.target_description %}<div class="step-target"><span class="step-target-label">Target</span><span>{{ step.target_description }}</span></div>{% endif %}
                                             {% if step.expected %}<div class="step-expected"><span class="step-tag expected">Expected</span><span class="step-text">{{ step.expected }}</span></div>{% endif %}
                                             {% if step.actual %}<div class="step-actual"><span class="step-tag actual">Actual</span><span class="step-text">{{ step.actual }}</span></div>{% endif %}
-                                            {% if step.target_selector %}
-                                            <button class="step-selector-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">show technical selector</button>
-                                            <div class="step-selector-detail">{{ step.target_selector }}</div>
-                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -2373,6 +2340,7 @@
                                                 <th>Step</th>
                                                 <th>From</th>
                                                 <th>Action</th>
+                                                <th>Locator</th>
                                                 <th>Outcome</th>
                                                 <th>Status</th>
                                                 <th>Confidence</th>
@@ -2386,6 +2354,19 @@
                                                 <td class="cell-dim">{{ row.flow_step }}</td>
                                                 <td class="cell-action">{{ row.source_page }}</td>
                                                 <td class="cell-action">{{ row.action_label }}</td>
+                                                <td class="cell-url" title="{{ row.target_selector or (('#' ~ row.dom_id) if row.dom_id else '') }}">
+                                                    {% set dom_locator = ('#' ~ row.dom_id) if row.dom_id else '' %}
+                                                    {% if dom_locator and row.target_selector and dom_locator != row.target_selector %}
+                                                        <span class="cell-id">{{ dom_locator }}</span>
+                                                        <div class="cell-dim">{{ row.target_selector }}</div>
+                                                    {% elif row.target_selector %}
+                                                        {{ row.target_selector }}
+                                                    {% elif dom_locator %}
+                                                        {{ dom_locator }}
+                                                    {% else %}
+                                                        —
+                                                    {% endif %}
+                                                </td>
                                                 <td><span class="outcome {{ row.outcome }}">{{ row.outcome }}</span></td>
                                                 <td>{% if row.verdict %}<span class="verdict {{ row.verdict }}">{{ row.verdict }}</span>{% else %}<span class="verdict inconclusive">n/a</span>{% endif %}</td>
                                                 <td class="confidence-cell">{{ row.confidence_pct }}%</td>
