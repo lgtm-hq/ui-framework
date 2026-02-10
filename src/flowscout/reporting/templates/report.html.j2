@@ -1752,7 +1752,7 @@
             <button class="page-btn" data-page="suites" onclick="setReportPage('suites', this)">Test Suites</button>
             <button class="page-btn" data-page="elements" onclick="setReportPage('elements', this)">Elements</button>
             <button class="page-btn" data-page="model" onclick="setReportPage('model', this)">Model</button>
-            <button class="page-btn" data-page="log" onclick="setReportPage('log', this)">Execution Log</button>
+            <button class="page-btn" data-page="log" onclick="setReportPage('log', this)">All Actions</button>
         </div>
 
         <!-- Target URL -->
@@ -1995,9 +1995,9 @@
                             </thead>
                             <tbody>
                                 {% for item in diagnostics.low_confidence_items %}
-                                <tr class="diagnostic-row" onclick="jumpToExecutionStep({{ item.step_index }})" title="Open step {{ item.step_index }} in execution log">
+                                <tr class="diagnostic-row" onclick="jumpToExecutionStep({{ item.step_index }})" title="Open step {{ item.step_index }} in its flow timeline">
                                     <td class="cell-dim">{{ item.step_index }}</td>
-                                    <td class="cell-action" title="{{ item.source_page }} ({{ item.source_state_short }})">{{ item.source_page }}</td>
+                                    <td class="cell-action" title="{{ item.source_page }}">{{ item.source_page }}</td>
                                     <td class="cell-action">
                                         <div>{{ item.action_label }}</div>
                                         <div class="diag-step-meta">
@@ -2044,7 +2044,7 @@
                             <tbody>
                                 {% for item in diagnostics.flaky_items %}
                                 <tr>
-                                    <td class="cell-action" title="{{ item.source_page }} ({{ item.source_state_short }})">{{ item.source_page }}</td>
+                                    <td class="cell-action" title="{{ item.source_page }}">{{ item.source_page }}</td>
                                     <td class="cell-action">{{ item.action_label }}</td>
                                     <td class="cell-dim">{{ item.outcomes|join(', ') }}</td>
                                     <td class="cell-right">{{ item.occurrences }}</td>
@@ -2097,6 +2097,7 @@
                 <div class="suite-body">
                     {% for flow in group_flows %}
                     {% set v = flow.verdict.verdict.value if flow.verdict else 'inconclusive' %}
+                    {% set flow_rows = flow_execution_map.get(flow.flow_id, []) %}
                     <details class="test-case" data-verdict="{{ v }}" data-flow-id="{{ flow.flow_id }}" data-name="{{ flow.name|lower }}">
                         <summary class="test-case-header">
                             <div class="test-case-left">
@@ -2157,6 +2158,53 @@
                             <div class="conclusion">{{ flow.narrative.conclusion }}</div>
                             {% endif %}
 
+                            {% if flow_rows %}
+                            <div class="data-table-wrap" style="margin-top: 0.75rem;">
+                                <div class="elements-subtitle-small">Flow Timeline</div>
+                                <div class="table-scroll">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Step</th>
+                                                <th>From</th>
+                                                <th>Action</th>
+                                                <th>Outcome</th>
+                                                <th>Status</th>
+                                                <th>Confidence</th>
+                                                <th>Evidence</th>
+                                                <th class="right">Duration</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in flow_rows %}
+                                            <tr id="flow-step-{{ row.index }}" class="execution-log-row flow-step-row" onclick="openExecutionStepModal({{ row.index }})" title="Open detailed step view">
+                                                <td class="cell-dim">{{ row.flow_step }}</td>
+                                                <td class="cell-action">{{ row.source_page }}</td>
+                                                <td class="cell-action">{{ row.action_label }}</td>
+                                                <td><span class="outcome {{ row.outcome }}">{{ row.outcome }}</span></td>
+                                                <td>{% if row.verdict %}<span class="verdict {{ row.verdict }}">{{ row.verdict }}</span>{% else %}<span class="verdict inconclusive">n/a</span>{% endif %}</td>
+                                                <td class="confidence-cell">{{ row.confidence_pct }}%</td>
+                                                <td onclick="event.stopPropagation()">
+                                                    {% if row.screenshot_link %}
+                                                    <div class="evidence-cell">
+                                                        <a class="evidence-thumb-link" href="{{ row.screenshot_link }}" target="_blank" rel="noopener noreferrer">
+                                                            <img class="evidence-thumb" src="{{ row.screenshot_link }}" alt="evidence step {{ row.index }}" loading="lazy">
+                                                        </a>
+                                                        <a class="evidence-open-link" href="{{ row.screenshot_link }}" target="_blank" rel="noopener noreferrer">open</a>
+                                                    </div>
+                                                    {% else %}
+                                                    <span class="cell-dim">—</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="cell-right">{{ row.duration_ms }}ms</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endif %}
+
                             {# --- Action buttons row --- #}
                             <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
                                 {% if flow.narrative and flow.narrative.gherkin %}
@@ -2169,7 +2217,7 @@
                             {# --- State chain (debug) --- #}
                             <div class="state-chain">
                                 {% for sid in flow.state_ids %}
-                                <span class="state-node" title="{{ sid }}">{{ states_by_id[sid].title if sid in states_by_id and states_by_id[sid].title else sid[:8] }}</span>
+                                <span class="state-node" title="{{ states_by_id[sid].url if sid in states_by_id else '' }}">{{ states_by_id[sid].title if sid in states_by_id and states_by_id[sid].title else (states_by_id[sid].url if sid in states_by_id else 'Page') }}</span>
                                 {% if not loop.last %}
                                 <span class="state-arrow">&rarr;</span>
                                 {% endif %}
@@ -2263,7 +2311,7 @@
                         <tbody>
                             {% for page in element_inventory.per_page %}
                             <tr>
-                                <td class="cell-action">{{ page.title or page.state_id[:8] }}</td>
+                                <td class="cell-action">{{ page.title or page.url or 'Page' }}</td>
                                 <td class="cell-url">{{ page.url }}</td>
                                 <td class="cell-right" style="color: var(--accent-green);">{{ page.interactive_elements }}</td>
                                 <td class="cell-right" style="color: var(--accent-amber);">{{ page.non_interactive_elements }}</td>
@@ -2404,8 +2452,7 @@
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Title</th>
+                                    <th>Page</th>
                                     <th>URL</th>
                                     <th class="right">Depth</th>
                                     <th>Signals</th>
@@ -2414,8 +2461,7 @@
                             <tbody>
                                 {% for state in states %}
                                 <tr>
-                                    <td class="cell-id">{{ state.state_id[:8] }}</td>
-                                    <td>{{ state.title or '—' }}</td>
+                                    <td>{{ state.title or state.url }}</td>
                                     <td class="cell-url">{{ state.url }}</td>
                                     <td class="cell-right">{{ state.depth }}</td>
                                     <td class="cell-signals">{{ state.signals|join(', ') }}</td>
@@ -2429,16 +2475,22 @@
         </section>
 
         <!-- ============================================================
-             SECTION F: EXECUTION LOG
+             SECTION F: ALL ACTIONS (ADVANCED)
              ============================================================ -->
         <section id="execution-log" class="section section-collapsible collapsed animate-in delay-4" data-report-page="log">
             <div class="section-header" onclick="toggleSection(this.parentElement)">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                <h2>Step Execution Log</h2>
-                <div class="section-count">{{ execution_rows|length }}</div>
+                <h2>All Actions (Advanced)</h2>
+                <div class="section-count">{{ execution_rows|length }} total &middot; {{ orphan_execution_rows|length }} unmatched</div>
                 <div class="section-line"></div>
             </div>
             <div class="section-body">
+                {% if orphan_execution_rows %}
+                <div class="untested-callout" style="margin-bottom: 0.75rem;">
+                    <span class="callout-icon">&#9432;</span>
+                    <span>{{ orphan_execution_rows|length }} action{{ 's' if orphan_execution_rows|length != 1 }} could not be mapped to a specific flow timeline.</span>
+                </div>
+                {% endif %}
                 <div class="data-table-wrap">
                     <div class="table-scroll">
                         <table class="data-table">
@@ -2450,7 +2502,7 @@
                                     <th>Expected</th>
                                     <th>Outcome</th>
                                     <th>Status</th>
-                                    <th>Target</th>
+                                    <th>To</th>
                                     <th>Confidence</th>
                                     <th>Reason</th>
                                     <th>Evidence</th>
@@ -2461,12 +2513,12 @@
                                 {% for row in execution_rows %}
                                 <tr id="execution-step-{{ row.index }}" class="execution-log-row" onclick="openExecutionStepModal({{ row.index }})" title="Open detailed step view">
                                     <td class="cell-dim">{{ row.index }}</td>
-                                    <td class="cell-id">{{ row.source_state_short }}</td>
+                                    <td class="cell-action">{{ row.source_page }}</td>
                                     <td class="cell-action">{{ row.action_label }}</td>
                                     <td class="cell-dim" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.expected or '' }}</td>
                                     <td><span class="outcome {{ row.outcome }}">{{ row.outcome }}</span></td>
                                     <td>{% if row.verdict %}<span class="verdict {{ row.verdict }}">{{ row.verdict }}</span>{% endif %}</td>
-                                    <td class="cell-action" title="{{ row.target_state_id }}">{{ row.target_page }}</td>
+                                    <td class="cell-action">{{ row.target_page }}</td>
                                     <td class="confidence-cell">{{ row.confidence_pct }}%</td>
                                     <td class="cell-dim confidence-reason">{{ row.confidence_reason or '—' }}</td>
                                     <td onclick="event.stopPropagation()">
@@ -2522,6 +2574,7 @@
         /* --- Graph data (used by lazy init) --- */
         const graphData = {{ graph_json|tojson }};
         const executionRows = {{ execution_rows_json|tojson }};
+        const executionStepMap = {{ execution_step_map_json|tojson }};
         let graphInitialized = false;
 
         /* --- Lazy graph init on first expand of Exploration Model section --- */
@@ -2544,9 +2597,8 @@
 
             const nodes = new vis.DataSet(graphData.nodes.map(n => ({
                 id: n.id,
-                label: (n.label || n.url || n.id).substring(0, 35),
+                label: (n.label || n.url || 'Page').substring(0, 35),
                 title: '<div style="font-family:monospace;font-size:11px;padding:6px 10px;line-height:1.6;max-width:320px;">' +
-                       '<strong style="color:' + depthPalette[Math.min(n.depth, depthPalette.length-1)] + '">' + n.id.substring(0,8) + '</strong><br>' +
                        'URL: ' + n.url + '<br>Depth: ' + n.depth + '<br>' +
                        'Signals: ' + (n.signals||[]).join(', ') + '</div>',
                 color: {
@@ -2754,12 +2806,28 @@
         }
 
         function jumpToExecutionStep(stepIndex) {
-            setReportPage('log');
-            const section = document.getElementById('execution-log');
-            if (section && section.classList.contains('collapsed')) {
-                section.classList.remove('collapsed');
+            const mapped = executionStepMap[String(stepIndex)] || null;
+            const rowId = mapped ? 'flow-step-' + stepIndex : 'execution-step-' + stepIndex;
+
+            if (mapped && mapped.flow_id) {
+                setReportPage('suites');
+                const flowCase = document.querySelector('.test-case[data-flow-id="' + mapped.flow_id + '"]');
+                if (flowCase) {
+                    const suite = flowCase.closest('.test-suite');
+                    if (suite && suite.classList.contains('collapsed')) {
+                        suite.classList.remove('collapsed');
+                    }
+                    flowCase.open = true;
+                }
+            } else {
+                setReportPage('log');
+                const section = document.getElementById('execution-log');
+                if (section && section.classList.contains('collapsed')) {
+                    section.classList.remove('collapsed');
+                }
             }
-            const row = document.getElementById('execution-step-' + stepIndex);
+
+            const row = document.getElementById(rowId);
             if (!row) return;
             document.querySelectorAll('.execution-row-highlight').forEach((el) => {
                 el.classList.remove('execution-row-highlight');
@@ -2785,6 +2853,7 @@
 
             const row = executionRows.find((item) => item.index === stepIndex);
             if (!row) return;
+            const flowContext = executionStepMap[String(row.index)] || null;
 
             const esc = (value) => String(value || '')
                 .replaceAll('&', '&amp;')
@@ -2816,10 +2885,14 @@
             const inputSource = row.input_source
                 ? esc(row.input_source) + (row.input_profile ? ' (' + esc(row.input_profile) + ')' : '')
                 : 'n/a';
+            const flowContextHtml = flowContext
+                ? '<div class="execution-detail-card execution-detail-card--flow"><div class="execution-detail-label">Flow</div><div class="execution-detail-value">' + esc(flowContext.flow_name || flowContext.flow_id) + ' · step ' + esc(flowContext.flow_step) + '</div></div>'
+                : '';
 
             body.innerHTML =
                 '<div class="execution-detail-grid">' +
                     '<div class="execution-detail-card execution-detail-card--step"><div class="execution-detail-label">Step</div><div class="execution-detail-value">#' + row.index + '</div></div>' +
+                    flowContextHtml +
                     '<div class="execution-detail-card execution-detail-card--action"><div class="execution-detail-label">Action</div><div class="execution-detail-value">' + esc(row.action_label) + '</div></div>' +
                     '<div class="execution-detail-card execution-detail-card--outcome"><div class="execution-detail-label">Outcome</div><div class="execution-detail-value">' + outcomeBadge + '</div></div>' +
                     '<div class="execution-detail-card execution-detail-card--verdict"><div class="execution-detail-label">Verdict</div><div class="execution-detail-value">' + verdictBadge + '</div></div>' +
@@ -2843,6 +2916,7 @@
                     '</div>' +
                 '</div>' +
                 '<div class="execution-detail-text"><strong>URL:</strong><br>before: ' + esc(row.url_before || '—') + '<br>after: ' + esc(row.url_after || '—') + '</div>' +
+                '<div class="execution-detail-text"><strong>Technical Details:</strong><br>action_id: ' + esc(row.action_id || '—') + '<br>source_state_id: ' + esc(row.source_state_id || '—') + '<br>target_state_id: ' + esc(row.target_state_id || '—') + '</div>' +
                 (errors ? '<div class="execution-detail-text"><strong>Validation / Errors:</strong><br>' + errors + '</div>' : '') +
                 (consoleErrors ? '<div class="execution-detail-text"><strong>Console Errors:</strong><br>' + consoleErrors + '</div>' : '') +
                 (row.message ? '<div class="execution-detail-text"><strong>Message:</strong><br>' + esc(row.message) + '</div>' : '') +

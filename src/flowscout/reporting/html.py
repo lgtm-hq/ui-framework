@@ -131,6 +131,14 @@ class HTMLReporter:
             action_metadata=action_metadata,
             screenshot_links=result_screenshot_links,
         )
+        (
+            flow_execution_map,
+            orphan_execution_rows,
+            execution_step_map,
+        ) = _build_flow_execution_map(
+            result=result,
+            execution_rows=execution_rows,
+        )
         input_provenance = _build_input_provenance(
             result=result,
             action_metadata=action_metadata,
@@ -167,6 +175,9 @@ class HTMLReporter:
             element_inventory=element_inventory,
             discovery_timeline=discovery_timeline,
             execution_rows=execution_rows,
+            flow_execution_map=flow_execution_map,
+            orphan_execution_rows=orphan_execution_rows,
+            execution_step_map_json=execution_step_map,
             input_provenance=input_provenance,
         )
 
@@ -414,8 +425,8 @@ def _build_execution_rows(
                 "target_state_id": action_result.target_state_id,
                 "source_state_short": action_result.source_state_id[:8],
                 "target_state_short": action_result.target_state_id[:8],
-                "source_page": source_state.title if source_state and source_state.title else (source_state.url if source_state else action_result.source_state_id[:8]),
-                "target_page": target_state.title if target_state and target_state.title else (target_state.url if target_state else action_result.target_state_id[:8]),
+                "source_page": source_state.title if source_state and source_state.title else (source_state.url if source_state else "Unknown page"),
+                "target_page": target_state.title if target_state and target_state.title else (target_state.url if target_state else "Unknown page"),
                 "action_id": action_result.action_id,
                 "action_label": action_labels.get(action_result.action_id, action_result.action_id),
                 "target_selector": action_selectors.get(action_result.action_id, ""),
@@ -437,6 +448,92 @@ def _build_execution_rows(
             }
         )
     return rows
+
+
+def _build_flow_execution_map(
+    *,
+    result: ExplorationResult,
+    execution_rows: list[dict[str, Any]],
+) -> tuple[dict[str, list[dict[str, Any]]], list[dict[str, Any]], dict[int, dict[str, Any]]]:
+    """Map execution rows to flows and return unmatched rows.
+
+    Args:
+        result: Exploration result containing flow definitions.
+        execution_rows: Global execution rows keyed by step ``index``.
+
+    Returns:
+        Tuple containing:
+        - flow_id -> execution rows belonging to that flow.
+        - rows that could not be matched to any flow step.
+        - step index -> flow context mapping used for UI deep-linking.
+    """
+    rows_by_index = {int(row["index"]): row for row in execution_rows}
+    indexes_by_action: dict[str, list[int]] = defaultdict(list)
+    for row in execution_rows:
+        indexes_by_action[str(row.get("action_id", ""))].append(int(row["index"]))
+
+    used_indexes: set[int] = set()
+    flow_rows: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    step_map: dict[int, dict[str, Any]] = {}
+
+    for flow in result.flows:
+        for flow_step, action_id in enumerate(flow.action_ids, start=1):
+            source_state_id = flow.state_ids[flow_step - 1] if flow_step - 1 < len(flow.state_ids) else ""
+            step_index = _select_matching_step_index(
+                action_id=action_id,
+                source_state_id=source_state_id,
+                rows_by_index=rows_by_index,
+                indexes_by_action=indexes_by_action,
+                used_indexes=used_indexes,
+            )
+            if step_index is None:
+                continue
+
+            matched = dict(rows_by_index[step_index])
+            matched["flow_step"] = flow_step
+            matched["flow_id"] = flow.flow_id
+            matched["flow_name"] = flow.name
+            flow_rows[flow.flow_id].append(matched)
+            step_map[step_index] = {
+                "flow_id": flow.flow_id,
+                "flow_name": flow.name,
+                "flow_step": flow_step,
+            }
+            used_indexes.add(step_index)
+
+    orphans = [row for row in execution_rows if int(row["index"]) not in used_indexes]
+    return dict(flow_rows), orphans, step_map
+
+
+def _select_matching_step_index(
+    *,
+    action_id: str,
+    source_state_id: str,
+    rows_by_index: dict[int, dict[str, Any]],
+    indexes_by_action: dict[str, list[int]],
+    used_indexes: set[int],
+) -> int | None:
+    """Select the next execution step index for a flow step.
+
+    Matching policy:
+    1. Same ``action_id`` + same ``source_state_id`` (preferred).
+    2. Same ``action_id`` regardless of source.
+    """
+    candidate_indexes = indexes_by_action.get(action_id, [])
+    if not candidate_indexes:
+        return None
+
+    for index in candidate_indexes:
+        if index in used_indexes:
+            continue
+        row_source = str(rows_by_index.get(index, {}).get("source_state_id", ""))
+        if row_source == source_state_id:
+            return index
+
+    for index in candidate_indexes:
+        if index not in used_indexes:
+            return index
+    return None
 
 
 def _build_defects(result: ExplorationResult) -> dict:
@@ -581,12 +678,12 @@ def _state_display_name(result: ExplorationResult, state_id: str) -> str:
     """Return human-readable page label for a state id."""
     state = result.states.get(state_id)
     if not state:
-        return state_id[:8]
+        return "Unknown page"
     if state.title and state.title.strip():
         return state.title.strip()
     if state.url and state.url.strip():
         return state.url.strip()
-    return state_id[:8]
+    return "Unknown page"
 
 
 def _summarize_action_detail(action_result: ActionResult) -> str:
