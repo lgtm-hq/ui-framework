@@ -33,6 +33,7 @@ from flowscout.core.browser import BrowserManager
 from flowscout.core.navigator import Navigator
 from flowscout.core.policy import ActionPolicyConfig
 from flowscout.core.state import ExplorerConfig, ExplorationStrategy, InputProfile
+from flowscout.plugins import PluginRegistry
 from flowscout.reporting.html import HTMLReporter
 from flowscout.reporting.terminal import TerminalReporter
 from flowscout.storage.db import FlowscoutDB
@@ -134,6 +135,11 @@ from flowscout.storage.db import FlowscoutDB
     default=False,
     help="Fail fast if auth profile or credentials are missing.",
 )
+@click.option(
+    "--reporter",
+    default="html",
+    help="Reporter plugin name (default: html). Use 'list' to see available reporters.",
+)
 def explore(
     url: str,
     max_depth: int,
@@ -160,8 +166,19 @@ def explore(
     auth_config_file: str,
     auth_profile: str,
     auth_required: bool,
+    reporter: str,
 ) -> None:
     """Explore a web application starting from URL."""
+    # Load plugin registry and register built-in reporter
+    plugin_registry = PluginRegistry()
+    plugin_registry.register_reporter("html", HTMLReporter)
+    plugin_registry.load_from_entry_points()
+
+    if reporter == "list":
+        console.print("[bold]Available reporters:[/bold]")
+        for name in plugin_registry.list_reporters():
+            console.print(f"  - {name}")
+        return
     ctx = click.get_current_context()
     raw_crawl_config = _load_crawl_config(config_file=config_file)
     crawl_config = _resolve_domain_scoped_config(
@@ -537,11 +554,18 @@ async def _run_exploration(
         if auth_profile_summary is not None:
             result.config["auth"] = auth_profile_summary
 
-        # Generate HTML report
+        # Generate report
         report_path = str(run_dir / "report.html")
-        reporter = HTMLReporter()
-        reporter.generate(result, report_path)
-        console.print(f"\n  [green]Report saved:[/green] {report_path}")
+        reporter_cls = plugin_registry.get_reporter(reporter)
+        if reporter_cls is None:
+            console.print(
+                f"[red]Unknown reporter '{reporter}'. "
+                f"Available: {', '.join(plugin_registry.list_reporters())}[/red]"
+            )
+        else:
+            reporter_instance = reporter_cls()
+            reporter_instance.generate(result, report_path)
+            console.print(f"\n  [green]Report saved:[/green] {report_path}")
 
         # Save JSON
         json_path = str(run_dir / "result.json")
