@@ -411,9 +411,9 @@ class ExplorationGraph:
             action = self.actions.get(aid)
             if not action:
                 continue
-            if action.metadata.get("is_search") == "true":
+            if action.meta.is_search:
                 tags.add("search")
-            elif action.metadata.get("requires_open"):
+            elif action.meta.is_dropdown_option:
                 tags.add("dropdown")
             elif action.action_type == ActionType.CLICK:
                 tags.add("navigation")

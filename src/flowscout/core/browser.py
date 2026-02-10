@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import re
 import time
@@ -15,6 +14,7 @@ from playwright.async_api import Error as PlaywrightError, TimeoutError as Playw
 
 from flowscout.analysis.detector import OutcomeDetector
 from flowscout.core.auth import AuthBootstrap
+from flowscout.core.constants import DEFAULT_BROWSER, BrowserDefaults
 from flowscout.core.state import (
     ExplorerConfig,
     FingerprintConfig,
@@ -80,6 +80,7 @@ class BrowserManager:
         *,
         detector: OutcomeDetector | None = None,
         stability_waiter: StabilityWaiter | None = None,
+        browser_defaults: BrowserDefaults | None = None,
     ) -> None:
         self.config = config
         self._playwright = None
@@ -87,7 +88,10 @@ class BrowserManager:
         self._context: BrowserContext | None = None
         self._page: Page | None = None
         self._detector = detector or OutcomeDetector()
-        self._stability_waiter = stability_waiter or StabilityWaiter()
+        self._browser_defaults = browser_defaults or DEFAULT_BROWSER
+        self._stability_waiter = stability_waiter or StabilityWaiter(
+            poll_interval_s=self._browser_defaults.stability_poll_interval_s,
+        )
         self._fingerprint_config = FingerprintConfig()
 
     @property
@@ -180,7 +184,7 @@ class BrowserManager:
                 break
             except PlaywrightError:
                 logger.debug("DOM load wait failed, retrying", exc_info=True)
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(self._browser_defaults.post_click_delay_s)
 
         url = self.page.url
         title = await self.page.title()
@@ -477,14 +481,15 @@ class BrowserManager:
         match action.action_type:
             case ActionType.CLICK:
                 # If this option requires opening a dropdown first
-                if "requires_open" in action.metadata:
-                    await page.click(action.metadata["requires_open"], timeout=timeout)
-                    await asyncio.sleep(0.3)
+                meta = action.meta
+                if meta.requires_open:
+                    await page.click(meta.requires_open, timeout=timeout)
+                    await asyncio.sleep(self._browser_defaults.post_click_delay_s)
                 await page.click(action.target_selector, timeout=timeout)
 
                 # Search triggers: click reveals hidden inputs — find, fill, submit
-                if action.metadata.get("is_search") == "true":
-                    await asyncio.sleep(0.3)
+                if meta.is_search:
+                    await asyncio.sleep(self._browser_defaults.post_click_delay_s)
                     selectors = [
                         "input[type='search']:visible",
                         "input[placeholder*='earch']:visible",
@@ -508,7 +513,7 @@ class BrowserManager:
                     action.target_selector, action.value or "", timeout=timeout
                 )
                 # Search inputs need Enter to trigger the search
-                if action.metadata.get("element_type") == "input_search":
+                if action.meta.element_type == "input_search":
                     await page.press(action.target_selector, "Enter")
 
             case ActionType.SELECT_OPTION:
@@ -527,9 +532,7 @@ class BrowserManager:
 
             case ActionType.SUBMIT_FORM:
                 # Fill all fields first, then click submit
-                field_values = json.loads(
-                    action.metadata.get("field_values_json", "{}")
-                )
+                field_values = action.meta.field_values
                 for selector, value in field_values.items():
                     try:
                         await page.fill(

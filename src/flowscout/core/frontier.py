@@ -149,18 +149,18 @@ class FrontierManager:
                 continue
 
             if search_priority is not None:
-                if item.action.metadata.get("is_search") == "true":
+                if item.action.meta.is_search:
                     item.priority = search_priority
                     modified = True
-                elif item.action.metadata.get("element_type") == "input_search":
+                elif item.action.meta.element_type == "input_search":
                     item.priority = search_priority
                     modified = True
 
             if content_priority is not None:
                 if (
                     item.action.action_type == ActionType.CLICK
-                    and not item.action.metadata.get("is_search")
-                    and item.action.metadata.get("element_type") != "input_search"
+                    and not item.action.meta.is_search
+                    and item.action.meta.element_type != "input_search"
                 ):
                     item.priority = min(item.priority, content_priority)
                     modified = True
@@ -225,18 +225,18 @@ def _is_diverse_item(item: _FrontierItem) -> bool:
     """Check if a frontier item is a diverse (non-navigation) action."""
     if item.action.action_type in _DIVERSE_TYPES:
         return True
-    if item.action.metadata.get("is_search") == "true":
+    if item.action.meta.is_search:
         return True
-    if item.action.metadata.get("requires_open"):
+    if item.action.meta.is_dropdown_option:
         return True
     return False
 
 
 def _diverse_category(item: _FrontierItem) -> str | None:
     """Classify a frontier item's diverse category for rotation."""
-    if item.action.metadata.get("is_search") == "true":
+    if item.action.meta.is_search:
         return "search"
-    if item.action.metadata.get("requires_open"):
+    if item.action.meta.is_dropdown_option:
         return "dropdown"
     if item.action.action_type in _INPUT_TYPES:
         return "input"
@@ -249,8 +249,8 @@ def is_diverse_action(action: Action) -> bool:
     """Check whether an action should count as diverse for budgeting."""
     if action.action_type in _DIVERSE_TYPES:
         return True
-    if action.metadata.get("is_search") == "true":
+    if action.meta.is_search:
         return True
-    if action.metadata.get("requires_open"):
+    if action.meta.is_dropdown_option:
         return True
     return False

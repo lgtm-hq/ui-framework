@@ -5,11 +5,17 @@ from __future__ import annotations
 from enum import StrEnum, auto
 from hashlib import md5
 
+from functools import cached_property
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, Field
 
 from flowscout.discovery.elements import ElementType, InteractiveElement
 from flowscout.discovery.inputs import generate_input_value, generate_input_value_with_source
 from flowscout.discovery.intent import ActionIntent, infer_intent
+
+if TYPE_CHECKING:
+    from flowscout.core.metadata import ActionMetadata
 
 
 class ActionType(StrEnum):
@@ -39,6 +45,8 @@ class OutcomeType(StrEnum):
 class Action(BaseModel):
     """A concrete action to perform on an element."""
 
+    model_config = {"ignored_types": (cached_property,)}
+
     action_id: str
     action_type: ActionType
     target_selector: str
@@ -48,6 +56,13 @@ class Action(BaseModel):
     priority: int = Field(default=50)
     source_element_id: str | None = None
     intent: ActionIntent | None = None
+
+    @cached_property
+    def meta(self) -> ActionMetadata:
+        """Typed accessor for the raw metadata dict."""
+        from flowscout.core.metadata import ActionMetadata
+
+        return ActionMetadata(self)
 
 
 class ActionResult(BaseModel):

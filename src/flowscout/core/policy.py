@@ -69,13 +69,14 @@ def get_action_policy_block_reason(
 
 def _collect_action_surfaces(action: Action) -> list[str]:
     """Collect normalized text surfaces used for policy matching."""
+    meta = action.meta
     values: list[str | None] = [
         action.label,
         action.target_selector,
-        action.metadata.get("href"),
-        action.metadata.get("form_selector"),
-        action.metadata.get("url"),
-        action.metadata.get("requires_open"),
+        meta.href or None,
+        meta.form_selector or None,
+        meta.url or None,
+        meta.requires_open or None,
     ]
 
     if action.intent:

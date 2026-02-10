@@ -128,7 +128,7 @@ class Navigator:
             self.graph.add_result(result)
 
             # Compute step verdict
-            is_invalid = action.metadata.get("scenario") == "invalid"
+            is_invalid = action.meta.is_invalid_scenario
             observed_detail = self._result_detail(result)
             step_verdict = self._verdict_computer.compute_step_verdict(
                 result.outcome,

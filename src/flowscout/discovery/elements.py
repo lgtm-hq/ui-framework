@@ -9,6 +9,7 @@ from hashlib import md5
 
 from pydantic import BaseModel, Field
 
+from flowscout.core.constants import DEFAULT_BROWSER
 from flowscout.core.text_utils import strip_css_blocks
 from flowscout.js import load_script
 
@@ -352,7 +353,7 @@ async def _discover_dropdown_options(
         try:
             # Click the trigger to open the dropdown
             await page.click(trigger.selector, timeout=3000)  # type: ignore[union-attr]
-            await asyncio.sleep(0.35)
+            await asyncio.sleep(DEFAULT_BROWSER.dropdown_reveal_delay_s)
 
             # Re-run discovery to find newly visible elements
             raw_elements = await page.evaluate(DISCOVERY_JS)  # type: ignore[union-attr]
@@ -407,7 +408,7 @@ async def _discover_dropdown_options(
                     await page.click(trigger.selector, timeout=2000)  # type: ignore[union-attr]
                 except (AttributeError, RuntimeError, OSError):
                     logger.debug("Failed to close dropdown by re-clicking", exc_info=True)
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(DEFAULT_BROWSER.stability_poll_interval_s)
 
         except (AttributeError, RuntimeError, OSError):
             logger.debug(

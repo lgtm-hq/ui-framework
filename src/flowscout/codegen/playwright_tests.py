@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.core.constants import LOW_CONFIDENCE_THRESHOLD
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
-
-LOW_CONFIDENCE_THRESHOLD = 0.6
 
 
 def generate_test_suite(
@@ -42,6 +40,7 @@ def generate_test_suite(
 
 def _generate_pytest_suite(result: ExplorationResult) -> str:
     """Generate a pytest + playwright test suite."""
+    used_names: set[str] = set()
     start_url = result.config.get("start_url", "https://example.com")
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -71,7 +70,7 @@ def _generate_pytest_suite(result: ExplorationResult) -> str:
 
     # Generate a test for each flow
     for flow in result.flows:
-        test_func = _generate_flow_test(flow, result, start_url)
+        test_func = _generate_flow_test(flow, result, start_url, used_names=used_names)
         lines.extend(test_func)
         lines.append("")
 
@@ -83,7 +82,9 @@ def _generate_pytest_suite(result: ExplorationResult) -> str:
         if not action or action.action_id in seen_actions:
             continue
         seen_actions.add(action.action_id)
-        test_func = _generate_action_test(action, r, result, start_url)
+        test_func = _generate_action_test(
+            action, r, result, start_url, used_names=used_names,
+        )
         lines.extend(test_func)
         lines.append("")
 
@@ -99,7 +100,9 @@ def _generate_pytest_suite(result: ExplorationResult) -> str:
         if not action or action.action_id in seen_errors:
             continue
         seen_errors.add(action.action_id)
-        test_func = _generate_negative_test(action, r, result, start_url)
+        test_func = _generate_negative_test(
+            action, r, result, start_url, used_names=used_names,
+        )
         lines.extend(test_func)
         lines.append("")
 
@@ -110,9 +113,11 @@ def _generate_flow_test(
     flow: Flow,
     result: ExplorationResult,
     start_url: str,
+    *,
+    used_names: set[str] | None = None,
 ) -> list[str]:
     """Generate a test function for a single flow."""
-    func_name = _to_test_name(flow.name, flow.description)
+    func_name = _to_test_name(flow.name, flow.description, used_names=used_names)
     lines: list[str] = []
 
     # Docstring
@@ -202,9 +207,11 @@ def _generate_action_test(
     r: ActionResult,
     result: ExplorationResult,
     start_url: str,
+    *,
+    used_names: set[str] | None = None,
 ) -> list[str]:
     """Generate a test for a single successful navigation action."""
-    func_name = _to_test_name("nav", action.label)
+    func_name = _to_test_name("nav", action.label, used_names=used_names)
     source_state = result.states.get(r.source_state_id)
     target_state = result.states.get(r.target_state_id)
 
@@ -267,12 +274,14 @@ def _generate_negative_test(
     r: ActionResult,
     result: ExplorationResult,
     start_url: str,
+    *,
+    used_names: set[str] | None = None,
 ) -> list[str]:
     """Generate a test documenting an action that failed/timed out.
 
     These are marked as xfail — they document known issues.
     """
-    func_name = _to_test_name("fail", action.label)
+    func_name = _to_test_name("fail", action.label, used_names=used_names)
     source_state = result.states.get(r.source_state_id)
 
     lines = [
@@ -304,8 +313,8 @@ def _action_to_playwright(action: Action, *, timeout: int = 5000) -> list[str]:
 
     match action.action_type:
         case ActionType.CLICK:
-            if "requires_open" in action.metadata:
-                trigger = action.metadata["requires_open"].replace('"', '\\"')
+            if action.meta.requires_open:
+                trigger = action.meta.requires_open.replace('"', '\\"')
                 lines.append(f'page.click("{trigger}", timeout={timeout})')
                 lines.append("page.wait_for_timeout(300)")
             lines.append(f'page.click("{sel}", timeout={timeout})')
@@ -329,7 +338,7 @@ def _action_to_playwright(action: Action, *, timeout: int = 5000) -> list[str]:
             lines.append(f'page.keyboard.press("{key}")')
 
         case ActionType.SUBMIT_FORM:
-            field_values = json.loads(action.metadata.get("field_values_json", "{}"))
+            field_values = action.meta.field_values
             for field_sel, value in field_values.items():
                 escaped_sel = field_sel.replace('"', '\\"')
                 escaped_val = value.replace('"', '\\"')
@@ -350,7 +359,6 @@ def _action_to_playwright(action: Action, *, timeout: int = 5000) -> list[str]:
 
 def _generate_playwright_suite(result: ExplorationResult) -> str:
     """Generate a Playwright Test (JS/TS style) suite."""
-    _used_names.clear()
     start_url = result.config.get("start_url", "https://example.com")
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -422,9 +430,7 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
                 case ActionType.UNCHECK:
                     lines.append(f"    await page.uncheck('{sel}');")
                 case ActionType.SUBMIT_FORM:
-                    field_values = json.loads(
-                        action.metadata.get("field_values_json", "{}")
-                    )
+                    field_values = action.meta.field_values
                     for field_sel, value in field_values.items():
                         fs = field_sel.replace("'", "\\'")
                         fv = value.replace("'", "\\'")
@@ -449,7 +455,7 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
 
             # Invalid scenario assertion
             if (
-                action.metadata.get("scenario") == "invalid"
+                action.meta.is_invalid_scenario
                 and expected_outcome == OutcomeType.VALIDATION_ERROR
             ):
                 lines.append(
@@ -521,17 +527,12 @@ def _find_result_for_step(
     return None
 
 
-_used_names: set[str] = set()
-
-
 def _to_test_name(prefix: str, text: str, *, used_names: set[str] | None = None) -> str:
     """Convert a label to a valid Python test function name.
 
-    When *used_names* is provided, that set is used for deduplication instead
-    of the module-level ``_used_names``.  Callers that create a fresh set per
-    suite generation avoid shared mutable state between runs.
+    When *used_names* is provided, that set is used for deduplication.
     """
-    names = used_names if used_names is not None else _used_names
+    names = used_names if used_names is not None else set()
     # Combine prefix and text, sanitize together
     raw = f"{prefix}_{text}".lower()
     # Remove special chars, convert spaces/arrows to underscores

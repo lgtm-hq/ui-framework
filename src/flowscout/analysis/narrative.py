@@ -114,7 +114,7 @@ class NarrativeGenerator:
         )
 
         # Determine element type from metadata or action type
-        elem_type = action.metadata.get("element_type", "")
+        elem_type = action.meta.element_type
         if not elem_type and action.intent:
             elem_type = action.intent.intent_class.value
 
@@ -327,7 +327,7 @@ class NarrativeGenerator:
 
     def _describe_submit(self, action: Action, label: str) -> str:
         """Generate a context-aware description for form submission."""
-        scenario = action.metadata.get("scenario", "")
+        scenario = action.meta.scenario
         if scenario == "invalid":
             return "Submit the form with invalid data"
         if label and label != "the element":
@@ -337,11 +337,11 @@ class NarrativeGenerator:
     def _describe_click(self, action: Action, label: str) -> str:
         """Generate a context-aware description for a click action."""
         # Dropdown option selection
-        if action.metadata.get("requires_open"):
+        if action.meta.is_dropdown_option:
             return f"Select '{label}' from the dropdown"
 
         # Search trigger
-        if action.metadata.get("is_search") == "true":
+        if action.meta.is_search:
             return "Search for 'test query'"
 
         # Use intent for semantic context
@@ -422,9 +422,9 @@ class NarrativeGenerator:
 
     def _gherkin_when_click(self, action: Action, label: str) -> str:
         """Generate a Gherkin When clause for click actions with context."""
-        if action.metadata.get("requires_open"):
+        if action.meta.is_dropdown_option:
             return f'When I select "{label}" from the dropdown'
-        if action.metadata.get("is_search") == "true":
+        if action.meta.is_search:
             return 'When I search for "test query"'
 
         intent = action.intent
