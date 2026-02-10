@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from flowscout.smart.coverage import CoverageTracker
 
 
@@ -88,3 +86,24 @@ class TestCoverageTracker:
         assert s["signatures_seen"] == 1
         assert "search" in s["features_tested"]
         assert isinstance(s["is_saturated"], bool)
+
+    def test_custom_saturation_thresholds(self):
+        tracker = CoverageTracker(
+            min_archetypes_before_stop=1,
+            min_features_before_stop=2,
+        )
+        tracker.record_archetype("listing", "sig1")
+        tracker.record_feature("f1")
+        assert tracker.is_saturated() is False
+        tracker.record_feature("f2")
+        assert tracker.is_saturated() is True
+
+    def test_saturation_can_be_disabled(self):
+        tracker = CoverageTracker(
+            stop_on_saturation=False,
+            min_archetypes_before_stop=1,
+            min_features_before_stop=1,
+        )
+        tracker.record_archetype("listing", "sig1")
+        tracker.record_feature("f1")
+        assert tracker.is_saturated() is False

@@ -52,9 +52,21 @@ class SmartPlanner:
     Created once per exploration run when smart mode is enabled.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        archetype_instance_limit: int = 3,
+        min_features_before_stop: int = 3,
+        min_archetypes_before_stop: int = 2,
+        stop_on_saturation: bool = True,
+    ) -> None:
         self.registry = ArchetypeRegistry()
-        self.coverage = CoverageTracker()
+        self.coverage = CoverageTracker(
+            archetype_instance_limit=archetype_instance_limit,
+            min_features_before_stop=min_features_before_stop,
+            min_archetypes_before_stop=min_archetypes_before_stop,
+            stop_on_saturation=stop_on_saturation,
+        )
         self.context_store = ContextStore()
         self._expectation_checker = ExpectationChecker()
         self._analyses: dict[str, PageAnalysis] = {}

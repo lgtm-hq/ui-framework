@@ -194,6 +194,20 @@ def _resolve_int_config(
     return _coerce_int(value=value, config_key=key)
 
 
+def _resolve_bool_config(
+    *,
+    config: dict[str, Any],
+    config_keys: tuple[str, ...],
+    default: bool,
+) -> bool:
+    """Resolve bool value from config with fallback to default."""
+    maybe_value = _find_config_value(config=config, keys=config_keys)
+    if maybe_value is None:
+        return default
+    key, value = maybe_value
+    return _coerce_bool(value=value, config_key=key)
+
+
 def _resolve_domain_scoped_config(
     *,
     ctx: click.Context,
@@ -626,6 +640,18 @@ def explore(
     default_load_wait_timeout_ms = int(
         ExplorerConfig.model_fields["load_wait_timeout_ms"].default,
     )
+    default_smart_stop_on_saturation = bool(
+        ExplorerConfig.model_fields["smart_stop_on_saturation"].default,
+    )
+    default_smart_min_features_before_stop = int(
+        ExplorerConfig.model_fields["smart_min_features_before_stop"].default,
+    )
+    default_smart_min_archetypes_before_stop = int(
+        ExplorerConfig.model_fields["smart_min_archetypes_before_stop"].default,
+    )
+    default_smart_archetype_instance_limit = int(
+        ExplorerConfig.model_fields["smart_archetype_instance_limit"].default,
+    )
     resolved_action_timeout_ms = _resolve_int_config(
         config=crawl_config,
         config_keys=("action_timeout_ms",),
@@ -640,6 +666,26 @@ def explore(
         config=crawl_config,
         config_keys=("load_wait_timeout_ms",),
         default=default_load_wait_timeout_ms,
+    )
+    resolved_smart_stop_on_saturation = _resolve_bool_config(
+        config=crawl_config,
+        config_keys=("smart_stop_on_saturation",),
+        default=default_smart_stop_on_saturation,
+    )
+    resolved_smart_min_features_before_stop = _resolve_int_config(
+        config=crawl_config,
+        config_keys=("smart_min_features_before_stop", "smart_min_features"),
+        default=default_smart_min_features_before_stop,
+    )
+    resolved_smart_min_archetypes_before_stop = _resolve_int_config(
+        config=crawl_config,
+        config_keys=("smart_min_archetypes_before_stop", "smart_min_archetypes"),
+        default=default_smart_min_archetypes_before_stop,
+    )
+    resolved_smart_archetype_instance_limit = _resolve_int_config(
+        config=crawl_config,
+        config_keys=("smart_archetype_instance_limit",),
+        default=default_smart_archetype_instance_limit,
     )
 
     config = ExplorerConfig(
@@ -658,6 +704,10 @@ def explore(
         strategy=ExplorationStrategy(resolved_strategy),
         verbose=resolved_verbose,
         smart_mode=resolved_smart,
+        smart_stop_on_saturation=resolved_smart_stop_on_saturation,
+        smart_min_features_before_stop=resolved_smart_min_features_before_stop,
+        smart_min_archetypes_before_stop=resolved_smart_min_archetypes_before_stop,
+        smart_archetype_instance_limit=resolved_smart_archetype_instance_limit,
         input_profile=InputProfile(resolved_input_profile),
         auth_profile=resolved_auth_profile_name or None,
         auth_required=resolved_auth_required,

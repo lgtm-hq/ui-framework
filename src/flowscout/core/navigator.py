@@ -101,7 +101,12 @@ class Navigator:
         if config.smart_mode:
             from flowscout.smart.planner import SmartPlanner as _SmartPlanner
 
-            self._smart_planner = _SmartPlanner()
+            self._smart_planner = _SmartPlanner(
+                archetype_instance_limit=config.smart_archetype_instance_limit,
+                min_features_before_stop=config.smart_min_features_before_stop,
+                min_archetypes_before_stop=config.smart_min_archetypes_before_stop,
+                stop_on_saturation=config.smart_stop_on_saturation,
+            )
 
     async def explore(self, start_url: str) -> ExplorationResult:
         """Main exploration loop."""
@@ -165,10 +170,12 @@ class Navigator:
 
             # Compute step verdict
             is_invalid = action.metadata.get("scenario") == "invalid"
+            observed_detail = self._result_detail(result)
             step_verdict = self._verdict_computer.compute_step_verdict(
                 result.outcome,
                 action.intent,
                 is_invalid_scenario=is_invalid,
+                observed_detail=observed_detail,
             )
             result.verdict = step_verdict.verdict.value
             result.verdict_reason = step_verdict.reason
@@ -657,6 +664,15 @@ class Navigator:
             return max(action.priority, 80)
 
         return action.priority
+
+    @staticmethod
+    def _result_detail(result: ActionResult) -> str:
+        """Return the best available human-readable detail for a result."""
+        if result.error_messages:
+            return result.error_messages[0]
+        if result.console_errors:
+            return result.console_errors[0]
+        return (result.message or "").strip()
 
     @staticmethod
     def _compute_transition_confidence(outcome: OutcomeType) -> tuple[float, str]:

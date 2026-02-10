@@ -9,6 +9,11 @@ max_actions_per_state = 15
 # Runtime behavior
 headless = true
 smart = true
+# Smart mode saturation controls
+smart_stop_on_saturation = true
+smart_min_archetypes_before_stop = 2
+smart_min_features_before_stop = 3
+smart_archetype_instance_limit = 3
 input_profile = "safe" # safe | contextual | negative
 enforce_non_destructive = true
 allow_form_submits = false

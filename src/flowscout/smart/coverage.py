@@ -17,12 +17,19 @@ class CoverageState(BaseModel):
 class CoverageTracker:
     """Tracks exploration coverage and determines saturation."""
 
-    ARCHETYPE_INSTANCE_LIMIT = 3
-    MIN_FEATURES_BEFORE_STOP = 3
-    MIN_ARCHETYPES_BEFORE_STOP = 2
-
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        archetype_instance_limit: int = 3,
+        min_features_before_stop: int = 3,
+        min_archetypes_before_stop: int = 2,
+        stop_on_saturation: bool = True,
+    ) -> None:
         self._state = CoverageState()
+        self._archetype_instance_limit = max(1, int(archetype_instance_limit))
+        self._min_features_before_stop = max(0, int(min_features_before_stop))
+        self._min_archetypes_before_stop = max(0, int(min_archetypes_before_stop))
+        self._stop_on_saturation = bool(stop_on_saturation)
 
     @property
     def state(self) -> CoverageState:
@@ -52,18 +59,21 @@ class CoverageTracker:
 
         Saturated when: enough distinct archetypes explored AND enough features tested.
         """
+        if not self._stop_on_saturation:
+            return False
+
         distinct_archetypes = len(self._state.archetypes_seen)
         features_count = len(self._state.features_tested)
         return (
-            distinct_archetypes >= self.MIN_ARCHETYPES_BEFORE_STOP
-            and features_count >= self.MIN_FEATURES_BEFORE_STOP
+            distinct_archetypes >= self._min_archetypes_before_stop
+            and features_count >= self._min_features_before_stop
         )
 
     def should_deprioritize_archetype(self, signature: str) -> bool:
         """Check if a structural signature has been explored enough."""
         return (
             self._state.structural_signatures_seen.get(signature, 0)
-            >= self.ARCHETYPE_INSTANCE_LIMIT
+            >= self._archetype_instance_limit
         )
 
     def summary(self) -> dict:
@@ -74,4 +84,7 @@ class CoverageTracker:
             "features_tested": sorted(self._state.features_tested),
             "flow_templates": dict(self._state.flow_templates_attempted),
             "is_saturated": self.is_saturated(),
+            "stop_on_saturation": self._stop_on_saturation,
+            "min_features_before_stop": self._min_features_before_stop,
+            "min_archetypes_before_stop": self._min_archetypes_before_stop,
         }

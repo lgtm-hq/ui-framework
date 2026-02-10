@@ -10,6 +10,7 @@ from flowscout.cli import (
     _domain_match_score,
     _load_crawl_config,
     _resolve_auth_bootstrap,
+    _resolve_bool_config,
     _resolve_bool_option,
     _resolve_domain_scoped_config,
     _resolve_int_config,
@@ -110,6 +111,24 @@ def test_resolve_int_config_uses_default_when_key_missing() -> None:
         default=5000,
     )
     assert value == 5000
+
+
+def test_resolve_bool_config_uses_default_when_key_missing() -> None:
+    value = _resolve_bool_config(
+        config={},
+        config_keys=("smart_stop_on_saturation",),
+        default=True,
+    )
+    assert value is True
+
+
+def test_resolve_bool_config_reads_config_value() -> None:
+    value = _resolve_bool_config(
+        config={"smart_stop_on_saturation": False},
+        config_keys=("smart_stop_on_saturation",),
+        default=True,
+    )
+    assert value is False
 
 
 def test_resolve_auth_bootstrap_returns_none_when_not_required(tmp_path: Path) -> None:

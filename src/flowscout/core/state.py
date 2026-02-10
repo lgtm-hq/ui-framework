@@ -45,6 +45,10 @@ class ExplorerConfig(BaseModel):
     strategy: ExplorationStrategy = ExplorationStrategy.PRIORITY
     verbose: bool = False
     smart_mode: bool = False
+    smart_stop_on_saturation: bool = True
+    smart_min_features_before_stop: int = Field(default=3, ge=0)
+    smart_min_archetypes_before_stop: int = Field(default=2, ge=0)
+    smart_archetype_instance_limit: int = Field(default=3, ge=1)
     input_profile: InputProfile = InputProfile.SAFE
     auth_profile: str | None = None
     auth_required: bool = False
