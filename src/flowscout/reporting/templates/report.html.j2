@@ -7,32 +7,47 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/turbo-core.css">
+    <link rel="stylesheet" href="https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/turbo-base.css">
+    <link id="turbo-theme-stylesheet" rel="stylesheet" href="https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/themes/catppuccin-mocha.css">
+    <script>
+        (function() {
+            const storageKey = 'flowscout-report-theme';
+            const fallbackTheme = 'catppuccin-mocha';
+            try {
+                const saved = window.localStorage.getItem(storageKey);
+                document.documentElement.setAttribute('data-theme', saved || fallbackTheme);
+            } catch (_err) {
+                document.documentElement.setAttribute('data-theme', fallbackTheme);
+            }
+        })();
+    </script>
     <style>
         :root {
-            --bg-deep: #06080c;
-            --bg-base: #0a0f18;
-            --bg-surface: #0f1620;
-            --bg-raised: #141e2b;
-            --bg-overlay: #1a2636;
-            --border-dim: #1c2940;
-            --border-base: #243352;
-            --border-bright: #2d4a73;
-            --text-primary: #c8d6e5;
-            --text-secondary: #7a8fa6;
-            --text-muted: #4a5f78;
-            --accent-green: #00e59b;
-            --accent-green-dim: #00e59b33;
-            --accent-green-glow: #00e59b18;
-            --accent-amber: #ffbe0b;
-            --accent-amber-dim: #ffbe0b33;
-            --accent-red: #ff4757;
-            --accent-red-dim: #ff475733;
-            --accent-blue: #4facfe;
-            --accent-blue-dim: #4facfe33;
-            --accent-cyan: #00f5d4;
-            --accent-cyan-dim: #00f5d420;
-            --accent-purple: #a78bfa;
-            --accent-purple-dim: rgba(167, 139, 250, 0.15);
+            --bg-deep: var(--turbo-bg-base, #06080c);
+            --bg-base: var(--turbo-bg-base, #0a0f18);
+            --bg-surface: var(--turbo-bg-surface, #0f1620);
+            --bg-raised: var(--turbo-bg-overlay, #141e2b);
+            --bg-overlay: color-mix(in srgb, var(--turbo-bg-overlay, #1a2636) 78%, var(--turbo-bg-base, #0a0f18));
+            --border-dim: color-mix(in srgb, var(--turbo-border-default, #1c2940) 58%, transparent);
+            --border-base: var(--turbo-border-default, #243352);
+            --border-bright: color-mix(in srgb, var(--turbo-border-default, #2d4a73) 78%, white);
+            --text-primary: var(--turbo-text-primary, #c8d6e5);
+            --text-secondary: var(--turbo-text-secondary, #7a8fa6);
+            --text-muted: color-mix(in srgb, var(--turbo-text-secondary, #4a5f78) 68%, transparent);
+            --accent-green: var(--turbo-state-success, #00e59b);
+            --accent-green-dim: color-mix(in srgb, var(--turbo-state-success, #00e59b) 28%, transparent);
+            --accent-green-glow: color-mix(in srgb, var(--turbo-state-success, #00e59b) 16%, transparent);
+            --accent-amber: var(--turbo-state-warning, #ffbe0b);
+            --accent-amber-dim: color-mix(in srgb, var(--turbo-state-warning, #ffbe0b) 24%, transparent);
+            --accent-red: var(--turbo-state-danger, #ff4757);
+            --accent-red-dim: color-mix(in srgb, var(--turbo-state-danger, #ff4757) 24%, transparent);
+            --accent-blue: var(--turbo-brand-primary, #4facfe);
+            --accent-blue-dim: color-mix(in srgb, var(--turbo-brand-primary, #4facfe) 24%, transparent);
+            --accent-cyan: var(--turbo-state-info, #00f5d4);
+            --accent-cyan-dim: color-mix(in srgb, var(--turbo-state-info, #00f5d4) 24%, transparent);
+            --accent-purple: color-mix(in srgb, var(--turbo-brand-primary, #a78bfa) 52%, var(--turbo-state-danger, #a78bfa));
+            --accent-purple-dim: color-mix(in srgb, var(--accent-purple) 18%, transparent);
             --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
             --font-body: 'DM Sans', 'SF Pro Display', -apple-system, sans-serif;
         }
@@ -54,9 +69,9 @@
             position: fixed;
             inset: 0;
             background:
-                radial-gradient(ellipse 80% 50% at 20% 0%, #00e59b06 0%, transparent 60%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, #4facfe05 0%, transparent 60%),
-                radial-gradient(ellipse 100% 100% at 50% 50%, #0a0f18 0%, #06080c 100%);
+                radial-gradient(ellipse 80% 50% at 20% 0%, color-mix(in srgb, var(--accent-green) 8%, transparent) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, color-mix(in srgb, var(--accent-blue) 7%, transparent) 0%, transparent 60%),
+                radial-gradient(ellipse 100% 100% at 50% 50%, var(--bg-base) 0%, var(--bg-deep) 100%);
             pointer-events: none;
             z-index: -1;
         }
@@ -159,6 +174,56 @@
             display: flex;
             align-items: center;
             gap: 0.375rem;
+        }
+
+        .theme-picker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.28rem 0.42rem;
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+        }
+
+        .theme-picker-label {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .theme-picker-select {
+            appearance: none;
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            line-height: 1.2;
+            padding: 0.25rem 1.45rem 0.25rem 0.45rem;
+            min-width: 164px;
+            outline: none;
+            background-image:
+                linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+                linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+            background-position:
+                calc(100% - 0.82rem) calc(50% - 0.08rem),
+                calc(100% - 0.56rem) calc(50% - 0.08rem);
+            background-size: 0.32rem 0.32rem, 0.32rem 0.32rem;
+            background-repeat: no-repeat;
+        }
+
+        .theme-picker-select:hover {
+            border-color: var(--border-bright);
+        }
+
+        .theme-picker-select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-blue) 28%, transparent);
         }
 
         .header-meta-dot {
@@ -1760,7 +1825,20 @@
 
         /* === Responsive === */
         @media (max-width: 768px) {
-            .header-meta { display: none; }
+            .header-meta {
+                display: flex;
+                gap: 0.4rem;
+                margin-left: auto;
+            }
+            .header-meta .meta-runtime { display: none; }
+            .theme-picker {
+                padding: 0.2rem 0.28rem;
+            }
+            .theme-picker-label { display: none; }
+            .theme-picker-select {
+                min-width: 132px;
+                font-size: 0.625rem;
+            }
             .dashboard { grid-template-columns: 1fr; }
             .pass-rate-ring { width: 140px; height: 140px; }
             .pass-rate-ring-inner { width: 90px; height: 90px; }
@@ -1792,15 +1870,46 @@
                     <div class="brand-subtitle">Test Report</div>
                 </div>
                 <div class="header-meta">
-                    <div class="header-meta-item">
+                    <div class="header-meta-item meta-runtime">
                         <div class="header-meta-dot"></div>
                         <span>{{ started_at[:19] }} UTC</span>
                     </div>
-                    <div class="header-meta-item">
+                    <div class="header-meta-item meta-runtime">
                         <span>{{ "%.1f"|format(duration) }}s</span>
                     </div>
-                    <div class="header-meta-item">
+                    <div class="header-meta-item meta-runtime">
                         <span>{{ config_strategy }}</span>
+                    </div>
+                    <div class="header-meta-item">
+                        <label class="theme-picker" for="theme-picker-select">
+                            <span class="theme-picker-label">Theme</span>
+                            <select id="theme-picker-select" class="theme-picker-select" aria-label="Select report theme">
+                                <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                                <option value="catppuccin-macchiato">Catppuccin Macchiato</option>
+                                <option value="catppuccin-frappe">Catppuccin Frappe</option>
+                                <option value="catppuccin-latte">Catppuccin Latte</option>
+                                <option value="dracula">Dracula</option>
+                                <option value="github-dark">GitHub Dark</option>
+                                <option value="github-light">GitHub Light</option>
+                                <option value="nord">Nord</option>
+                                <option value="solarized-dark">Solarized Dark</option>
+                                <option value="solarized-light">Solarized Light</option>
+                                <option value="rose-pine">Rosé Pine</option>
+                                <option value="rose-pine-moon">Rosé Pine Moon</option>
+                                <option value="rose-pine-dawn">Rosé Pine Dawn</option>
+                                <option value="tokyo-night-dark">Tokyo Night Dark</option>
+                                <option value="tokyo-night-storm">Tokyo Night Storm</option>
+                                <option value="tokyo-night-light">Tokyo Night Light</option>
+                                <option value="gruvbox-dark-hard">Gruvbox Dark Hard</option>
+                                <option value="gruvbox-dark">Gruvbox Dark</option>
+                                <option value="gruvbox-dark-soft">Gruvbox Dark Soft</option>
+                                <option value="gruvbox-light-hard">Gruvbox Light Hard</option>
+                                <option value="gruvbox-light">Gruvbox Light</option>
+                                <option value="gruvbox-light-soft">Gruvbox Light Soft</option>
+                                <option value="bulma-dark">Bulma Dark</option>
+                                <option value="bulma-light">Bulma Light</option>
+                            </select>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -2668,7 +2777,33 @@
         const executionRows = {{ execution_rows_json|tojson }};
         const executionStepMap = {{ execution_step_map|tojson }};
         const elementDrilldownMap = {{ element_drilldown_map|tojson }};
+        const turboThemeStorageKey = 'flowscout-report-theme';
+        const turboThemeDefault = 'catppuccin-mocha';
+        const turboThemeBaseUrl = 'https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/themes/';
         let graphInitialized = false;
+
+        function availableTurboThemes() {
+            return Array.from(document.querySelectorAll('#theme-picker-select option')).map((opt) => opt.value);
+        }
+
+        function isValidTurboTheme(themeId) {
+            return availableTurboThemes().includes(themeId);
+        }
+
+        function applyTurboTheme(themeId, persist = true) {
+            const chosen = isValidTurboTheme(themeId) ? themeId : turboThemeDefault;
+            document.documentElement.setAttribute('data-theme', chosen);
+            const link = document.getElementById('turbo-theme-stylesheet');
+            if (link) {
+                link.setAttribute('href', turboThemeBaseUrl + chosen + '.css');
+            }
+            if (persist) {
+                try {
+                    window.localStorage.setItem(turboThemeStorageKey, chosen);
+                } catch (_err) {}
+            }
+            return chosen;
+        }
 
         /* --- Lazy graph init on first expand of Exploration Model section --- */
         function initGraph() {
@@ -3147,6 +3282,23 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            let savedTheme = turboThemeDefault;
+            try {
+                savedTheme = window.localStorage.getItem(turboThemeStorageKey) || turboThemeDefault;
+            } catch (_err) {}
+            const activeTheme = applyTurboTheme(savedTheme, false);
+
+            const themeSelect = document.getElementById('theme-picker-select');
+            if (themeSelect) {
+                themeSelect.value = activeTheme;
+                themeSelect.addEventListener('change', (event) => {
+                    const selected = event.target && event.target.value ? event.target.value : turboThemeDefault;
+                    const normalized = applyTurboTheme(selected, true);
+                    if (themeSelect.value !== normalized) {
+                        themeSelect.value = normalized;
+                    }
+                });
+            }
             setReportPage('overview');
         });
 
