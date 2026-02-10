@@ -48,6 +48,28 @@
             --accent-cyan-dim: color-mix(in srgb, var(--turbo-state-info, #00f5d4) 24%, transparent);
             --accent-purple: color-mix(in srgb, var(--turbo-brand-primary, #a78bfa) 52%, var(--turbo-state-danger, #a78bfa));
             --accent-purple-dim: color-mix(in srgb, var(--accent-purple) 18%, transparent);
+            --modal-overlay: color-mix(in srgb, var(--bg-deep) 82%, transparent);
+            --modal-shell-start: color-mix(in srgb, var(--bg-surface) 82%, var(--bg-base));
+            --modal-shell-end: color-mix(in srgb, var(--bg-base) 92%, var(--bg-deep));
+            --modal-aura-primary: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+            --modal-aura-secondary: color-mix(in srgb, var(--accent-blue) 12%, transparent);
+            --modal-border: color-mix(in srgb, var(--accent-cyan) 20%, var(--border-base));
+            --modal-shadow: color-mix(in srgb, var(--bg-deep) 68%, transparent);
+            --modal-header-start: color-mix(in srgb, var(--bg-raised) 72%, var(--bg-surface));
+            --modal-header-end: color-mix(in srgb, var(--bg-base) 88%, transparent);
+            --modal-close-bg: color-mix(in srgb, var(--bg-raised) 82%, var(--bg-base));
+            --modal-card-start: color-mix(in srgb, var(--bg-surface) 84%, var(--bg-base));
+            --modal-card-end: color-mix(in srgb, var(--bg-base) 92%, var(--bg-deep));
+            --modal-focus-start: color-mix(in srgb, var(--bg-raised) 82%, var(--bg-base));
+            --modal-focus-end: color-mix(in srgb, var(--bg-base) 92%, var(--bg-deep));
+            --modal-text-start: color-mix(in srgb, var(--bg-surface) 84%, var(--bg-base));
+            --modal-text-end: color-mix(in srgb, var(--bg-base) 94%, var(--bg-deep));
+            --modal-card-step-accent: color-mix(in srgb, var(--accent-purple) 78%, white 4%);
+            --modal-card-action-accent: color-mix(in srgb, var(--accent-cyan) 76%, white 4%);
+            --modal-card-outcome-accent: color-mix(in srgb, var(--accent-green) 74%, white 3%);
+            --modal-card-verdict-accent: color-mix(in srgb, var(--accent-amber) 74%, white 3%);
+            --modal-card-confidence-accent: color-mix(in srgb, var(--accent-blue) 74%, white 3%);
+            --modal-card-input-accent: color-mix(in srgb, var(--accent-purple) 68%, var(--accent-cyan) 12%);
             --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', monospace;
             --font-body: 'DM Sans', 'SF Pro Display', -apple-system, sans-serif;
         }
@@ -1396,7 +1418,7 @@
         }
 
         .elements-modal-group {
-            background: linear-gradient(180deg, rgba(13, 27, 42, 0.95), rgba(10, 20, 32, 0.95));
+            background: linear-gradient(180deg, var(--modal-card-start), var(--modal-card-end));
             border: 1px solid var(--border-dim);
             border-radius: 10px;
             padding: 0.75rem 0.8rem;
@@ -1472,7 +1494,7 @@
             position: fixed;
             inset: 0;
             z-index: 9999;
-            background: rgba(0, 8, 18, 0.78);
+            background: var(--modal-overlay);
             backdrop-filter: blur(2px);
             display: none;
             align-items: center;
@@ -1489,14 +1511,14 @@
             max-height: 92vh;
             overflow: auto;
             background:
-                radial-gradient(circle at 82% -14%, rgba(45, 212, 191, 0.10), transparent 42%),
-                radial-gradient(circle at -8% 12%, rgba(59, 130, 246, 0.12), transparent 45%),
-                linear-gradient(180deg, #0c151f 0%, #0a121a 100%);
-            border: 1px solid rgba(45, 212, 191, 0.24);
+                radial-gradient(circle at 82% -14%, var(--modal-aura-primary), transparent 42%),
+                radial-gradient(circle at -8% 12%, var(--modal-aura-secondary), transparent 45%),
+                linear-gradient(180deg, var(--modal-shell-start) 0%, var(--modal-shell-end) 100%);
+            border: 1px solid var(--modal-border);
             border-radius: 12px;
             box-shadow:
-                0 24px 80px rgba(0, 0, 0, 0.65),
-                inset 0 1px 0 rgba(45, 212, 191, 0.08);
+                0 24px 80px var(--modal-shadow),
+                inset 0 1px 0 color-mix(in srgb, var(--accent-cyan) 10%, transparent);
         }
 
         .execution-modal-header {
@@ -1505,7 +1527,7 @@
             align-items: center;
             padding: 0.875rem 1.05rem;
             border-bottom: 1px solid var(--border-dim);
-            background: linear-gradient(180deg, rgba(15, 36, 56, 0.44) 0%, rgba(10, 20, 31, 0.08) 100%);
+            background: linear-gradient(180deg, var(--modal-header-start) 0%, var(--modal-header-end) 100%);
         }
 
         .execution-modal-header h3 {
@@ -1518,7 +1540,7 @@
         .execution-modal-close {
             border: 1px solid var(--border-dim);
             border-radius: 8px;
-            background: linear-gradient(180deg, rgba(28, 46, 65, 0.62), rgba(14, 26, 39, 0.82));
+            background: linear-gradient(180deg, var(--modal-close-bg), color-mix(in srgb, var(--bg-base) 90%, var(--bg-deep)));
             color: var(--text-secondary);
             font-family: var(--font-mono);
             font-size: 0.7rem;
@@ -1527,7 +1549,7 @@
         }
 
         .execution-modal-close:hover {
-            border-color: rgba(45, 212, 191, 0.5);
+            border-color: color-mix(in srgb, var(--accent-cyan) 55%, transparent);
             color: var(--text-primary);
         }
 
@@ -1547,11 +1569,11 @@
 
         .execution-detail-card {
             position: relative;
-            background: linear-gradient(180deg, rgba(13, 27, 42, 0.95), rgba(10, 20, 32, 0.95));
-            border: 1px solid rgba(45, 212, 191, 0.14);
+            background: linear-gradient(180deg, var(--modal-card-start), var(--modal-card-end));
+            border: 1px solid color-mix(in srgb, var(--modal-border) 72%, transparent);
             border-radius: 10px;
             padding: 0.68rem 0.8rem;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 5%, transparent);
             overflow: hidden;
         }
 
@@ -1562,17 +1584,17 @@
             top: 0;
             bottom: 0;
             width: 2px;
-            background: var(--card-accent, rgba(45, 212, 191, 0.7));
+            background: var(--card-accent, var(--modal-card-outcome-accent));
         }
 
-        .execution-detail-card--step { --card-accent: rgba(167, 139, 250, 0.75); }
-        .execution-detail-card--action { --card-accent: rgba(34, 211, 238, 0.75); }
-        .execution-detail-card--outcome { --card-accent: rgba(45, 212, 191, 0.75); }
-        .execution-detail-card--verdict { --card-accent: rgba(251, 191, 36, 0.72); }
-        .execution-detail-card--confidence { --card-accent: rgba(96, 165, 250, 0.72); }
-        .execution-detail-card--input { --card-accent: rgba(192, 132, 252, 0.72); }
-        .execution-detail-card--from { --card-accent: rgba(45, 212, 191, 0.52); }
-        .execution-detail-card--to { --card-accent: rgba(45, 212, 191, 0.52); }
+        .execution-detail-card--step { --card-accent: var(--modal-card-step-accent); }
+        .execution-detail-card--action { --card-accent: var(--modal-card-action-accent); }
+        .execution-detail-card--outcome { --card-accent: var(--modal-card-outcome-accent); }
+        .execution-detail-card--verdict { --card-accent: var(--modal-card-verdict-accent); }
+        .execution-detail-card--confidence { --card-accent: var(--modal-card-confidence-accent); }
+        .execution-detail-card--input { --card-accent: var(--modal-card-input-accent); }
+        .execution-detail-card--from { --card-accent: color-mix(in srgb, var(--modal-card-outcome-accent) 72%, transparent); }
+        .execution-detail-card--to { --card-accent: color-mix(in srgb, var(--modal-card-outcome-accent) 72%, transparent); }
 
         .execution-detail-value .verdict,
         .execution-detail-value .outcome {
@@ -1601,25 +1623,25 @@
         }
 
         .execution-focus-card {
-            background: linear-gradient(180deg, rgba(14, 27, 40, 0.95), rgba(11, 22, 33, 0.95));
+            background: linear-gradient(180deg, var(--modal-focus-start), var(--modal-focus-end));
             border: 1px solid var(--border-dim);
             border-radius: 10px;
             padding: 0.72rem 0.8rem;
         }
 
         .execution-focus-card.expected {
-            border-color: rgba(167, 139, 250, 0.3);
-            box-shadow: inset 0 1px 0 rgba(167, 139, 250, 0.12);
+            border-color: color-mix(in srgb, var(--accent-purple) 36%, transparent);
+            box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-purple) 18%, transparent);
         }
 
         .execution-focus-card.actual {
-            border-color: rgba(103, 232, 249, 0.28);
-            box-shadow: inset 0 1px 0 rgba(103, 232, 249, 0.12);
+            border-color: color-mix(in srgb, var(--accent-cyan) 34%, transparent);
+            box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-cyan) 17%, transparent);
         }
 
         .execution-focus-card.selector {
-            border-color: rgba(251, 191, 36, 0.3);
-            box-shadow: inset 0 1px 0 rgba(251, 191, 36, 0.10);
+            border-color: color-mix(in srgb, var(--accent-amber) 38%, transparent);
+            box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent-amber) 14%, transparent);
         }
 
         .execution-focus-header {
@@ -1643,7 +1665,7 @@
         }
 
         .execution-detail-text {
-            background: linear-gradient(180deg, rgba(13, 27, 42, 0.94), rgba(9, 18, 28, 0.96));
+            background: linear-gradient(180deg, var(--modal-text-start), var(--modal-text-end));
             border: 1px solid var(--border-dim);
             border-radius: 10px;
             padding: 0.75rem 0.8rem;
