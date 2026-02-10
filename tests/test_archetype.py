@@ -426,6 +426,7 @@ class TestPageCatalog:
                 "element_type": "link",
                 "aria_role": "",
                 "input_type": "",
+                "is_visible": True,
                 "bounding_box": {"x": 0, "y": 0, "width": 100, "height": 30},
             },
             {
@@ -436,6 +437,7 @@ class TestPageCatalog:
                 "element_type": "input_search",
                 "aria_role": "",
                 "input_type": "search",
+                "is_visible": False,
                 "bounding_box": None,
             },
             {
@@ -456,6 +458,7 @@ class TestPageCatalog:
         assert catalog.archetype == PageArchetype.LISTING
         assert len(catalog.entries) == 3
         assert catalog.entries[0].dom_id == "home-link"
+        assert catalog.entries[1].is_visible is False
 
         nav_entries = [e for e in catalog.entries if e.zone_type == ZoneType.NAVIGATION]
         assert len(nav_entries) == 1

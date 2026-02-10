@@ -216,6 +216,26 @@
     return entities.slice(0, 30);
   }
 
+  function isElementVisible(el: Element): boolean {
+    const node = el as HTMLElement;
+    const style = window.getComputedStyle(node);
+    if (style.display === "none" || style.visibility === "hidden" || style.visibility === "collapse") {
+      return false;
+    }
+    if (Number.parseFloat(style.opacity || "1") === 0) {
+      return false;
+    }
+    if (node.hasAttribute("hidden") || node.getAttribute("aria-hidden") === "true") {
+      return false;
+    }
+    if (node.closest("[hidden], [aria-hidden='true']")) {
+      return false;
+    }
+
+    const rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
   // --- Element Catalog ---
   function buildElementCatalog(): Array<{
     selector: string;
@@ -226,6 +246,7 @@
     element_type: string;
     aria_role: string;
     input_type: string;
+    is_visible: boolean;
     bounding_box: { x: number; y: number; width: number; height: number } | null;
   }> {
     const catalog: Array<{
@@ -237,6 +258,7 @@
       element_type: string;
       aria_role: string;
       input_type: string;
+      is_visible: boolean;
       bounding_box: { x: number; y: number; width: number; height: number } | null;
     }> = [];
 
@@ -258,10 +280,11 @@
       const elementType = classifyElementType(el);
       const ariaRole = el.getAttribute("role") || "";
       const inputType = (el as HTMLInputElement).type || "";
+      const isVisible = isElementVisible(el);
 
       const rect = el.getBoundingClientRect();
       const bbox =
-        rect.width > 0 && rect.height > 0
+        isVisible
           ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
           : null;
 
@@ -274,6 +297,7 @@
         element_type: elementType,
         aria_role: ariaRole,
         input_type: inputType,
+        is_visible: isVisible,
         bounding_box: bbox,
       });
     });

@@ -486,6 +486,8 @@ def _build_element_drilldown_map(
         entry_rows: list[dict[str, Any]] = []
         interactive_count = int(page_row.get("interactive_elements", 0))
         non_interactive_count = int(page_row.get("non_interactive_elements", 0))
+        visible_count = 0
+        hidden_count = 0
 
         if isinstance(entries, list):
             for entry in entries:
@@ -517,6 +519,15 @@ def _build_element_drilldown_map(
                 tag = str(entry.get("tag") or "").strip().lower() or "unknown"
                 aria_role = str(entry.get("aria_role") or "").strip().lower()
                 input_type = str(entry.get("input_type") or "").strip().lower()
+                raw_visible = entry.get("is_visible")
+                if isinstance(raw_visible, bool):
+                    is_visible = raw_visible
+                else:
+                    is_visible = bool(entry.get("bounding_box"))
+                if is_visible:
+                    visible_count += 1
+                else:
+                    hidden_count += 1
                 is_interactive = is_interactive_element_type(element_type)
                 display_label = label or semantic_name or f"{tag} element"
                 screenshot_link = None
@@ -540,6 +551,7 @@ def _build_element_drilldown_map(
                         "tag": tag,
                         "aria_role": aria_role,
                         "input_type": input_type,
+                        "is_visible": is_visible,
                         "is_interactive": is_interactive,
                         "screenshot_link": screenshot_link,
                         "screenshot_source": screenshot_source,
@@ -548,6 +560,7 @@ def _build_element_drilldown_map(
 
         entry_rows.sort(
             key=lambda row: (
+                not bool(row.get("is_visible", True)),
                 not bool(row.get("is_interactive")),
                 str(row.get("element_type", "")),
                 str(row.get("label", "")),
@@ -569,6 +582,8 @@ def _build_element_drilldown_map(
             "interactive": interactive_count,
             "non_interactive": non_interactive_count,
             "total": total_count,
+            "visible": visible_count,
+            "hidden": hidden_count,
             "catalog_entry_count": len(entry_rows),
             "entries_truncated": len(entry_rows) > max_modal_rows,
             "entries": entries_for_modal,

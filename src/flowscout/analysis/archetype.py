@@ -87,6 +87,7 @@ class CatalogEntry(BaseModel):
     element_type: str = ""
     aria_role: str = ""
     input_type: str = ""
+    is_visible: bool = True
     semantic_name: str = ""
     bounding_box: dict[str, float] | None = None
 
@@ -353,6 +354,7 @@ def build_page_analysis(raw: dict[str, Any]) -> PageAnalysis:
                 element_type=entry.get("element_type", ""),
                 aria_role=entry.get("aria_role", ""),
                 input_type=entry.get("input_type", ""),
+                is_visible=entry.get("is_visible", True),
                 semantic_name=semantic,
                 bounding_box=entry.get("bounding_box"),
             )

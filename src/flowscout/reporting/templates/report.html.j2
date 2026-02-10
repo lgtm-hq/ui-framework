@@ -1472,6 +1472,31 @@
             background: rgba(245, 158, 11, 0.08);
         }
 
+        .elements-visibility {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.15rem 0.45rem;
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border: 1px solid var(--border-dim);
+            color: var(--text-secondary);
+        }
+
+        .elements-visibility.visible {
+            color: var(--accent-cyan);
+            border-color: rgba(34, 211, 238, 0.35);
+            background: rgba(34, 211, 238, 0.1);
+        }
+
+        .elements-visibility.hidden {
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.12);
+        }
+
         .execution-modal {
             position: fixed;
             inset: 0;
@@ -3126,6 +3151,8 @@
             const entryRows = (info.entries || []).map((entry, idx) => {
                 const kindClass = entry.is_interactive ? 'interactive' : 'content';
                 const kindLabel = entry.is_interactive ? 'Interactive' : 'Content';
+                const visibilityClass = entry.is_visible ? 'visible' : 'hidden';
+                const visibilityLabel = entry.is_visible ? 'Visible' : 'Detected hidden';
                 const domId = entry.dom_id || '—';
                 const locator = entry.selector || '—';
                 const typeLabel = pretty(entry.element_type || 'other');
@@ -3146,6 +3173,9 @@
                     '<td class="cell-dim">' +
                         '<span class="elements-entry-kind ' + esc(kindClass) + '">' + esc(kindLabel) + '</span>' +
                     '</td>' +
+                    '<td class="cell-dim">' +
+                        '<span class="elements-visibility ' + esc(visibilityClass) + '">' + esc(visibilityLabel) + '</span>' +
+                    '</td>' +
                     '<td class="cell-dim">' + esc(typeLabel) + '</td>' +
                     '<td class="cell-dim">' + esc(zoneLabel) + '</td>' +
                     '<td class="cell-url">' + esc(domId) + '</td>' +
@@ -3164,6 +3194,7 @@
                                     '<th>#</th>' +
                                     '<th>Element</th>' +
                                     '<th>Kind</th>' +
+                                    '<th>Visibility</th>' +
                                     '<th>Type</th>' +
                                     '<th>Zone</th>' +
                                     '<th>DOM ID</th>' +
@@ -3186,6 +3217,8 @@
                     '<div class="execution-detail-card execution-detail-card--outcome"><div class="execution-detail-label">Content</div><div class="execution-detail-value">' + esc(info.non_interactive) + '</div></div>' +
                     '<div class="execution-detail-card execution-detail-card--verdict"><div class="execution-detail-label">Total</div><div class="execution-detail-value">' + esc(info.total) + '</div></div>' +
                     '<div class="execution-detail-card execution-detail-card--confidence"><div class="execution-detail-label">Depth</div><div class="execution-detail-value">' + esc(info.depth) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--confidence"><div class="execution-detail-label">Visible</div><div class="execution-detail-value">' + esc(info.visible) + '</div></div>' +
+                    '<div class="execution-detail-card execution-detail-card--verdict"><div class="execution-detail-label">Detected Hidden</div><div class="execution-detail-value">' + esc(info.hidden) + '</div></div>' +
                     '<div class="execution-detail-card execution-detail-card--step"><div class="execution-detail-label">Catalog Entries</div><div class="execution-detail-value">' + esc(info.catalog_entry_count) + '</div></div>' +
                 '</div>' +
                 '<div class="elements-modal-group">' +

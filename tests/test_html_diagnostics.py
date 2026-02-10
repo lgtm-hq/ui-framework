@@ -1,8 +1,13 @@
 """Tests for HTML report diagnostics helpers."""
 
 from flowscout.analysis.graph import ExplorationResult
+from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
-from flowscout.reporting.html import _build_diagnostics, _build_execution_rows
+from flowscout.reporting.html import (
+    _build_diagnostics,
+    _build_element_drilldown_map,
+    _build_execution_rows,
+)
 
 
 def _make_action(*, action_id: str, label: str) -> Action:
@@ -132,3 +137,52 @@ def test_build_execution_rows_includes_dom_id_from_action_metadata() -> None:
 
     assert len(rows) == 1
     assert rows[0]["dom_id"] == "toggle-track-desktop"
+
+
+def test_element_drilldown_marks_hidden_entries() -> None:
+    state = PageState(
+        state_id="state-alpha",
+        url="https://example.com",
+        title="Example",
+        fingerprint="a" * 64,
+        depth=0,
+        dom_structure_hash="dom",
+        visible_text_hash="text",
+        form_state_hash="form",
+    )
+    result = ExplorationResult(
+        states={"state-alpha": state},
+        smart_analyses={
+            "state-alpha": {
+                "catalog": {
+                    "entries": [
+                        {
+                            "selector": "#visible-item",
+                            "dom_id": "visible-item",
+                            "tag": "button",
+                            "label": "Visible CTA",
+                            "zone_type": "main_content",
+                            "element_type": "button",
+                            "is_visible": True,
+                        },
+                        {
+                            "selector": "#hidden-item",
+                            "dom_id": "hidden-item",
+                            "tag": "input",
+                            "label": "Hidden Toggle",
+                            "zone_type": "header",
+                            "element_type": "input_checkbox",
+                            "is_visible": False,
+                        },
+                    ]
+                }
+            }
+        },
+    )
+
+    drilldown = _build_element_drilldown_map(result=result, element_inventory=None)
+    info = drilldown["state-alpha"]
+
+    assert info["visible"] == 1
+    assert info["hidden"] == 1
+    assert any(entry["is_visible"] is False for entry in info["entries"])
