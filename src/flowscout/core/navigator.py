@@ -7,12 +7,14 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from flowscout.analysis.element_inventory import summarize_element_inventory
 from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
 from flowscout.analysis.narrative import NarrativeGenerator
 from flowscout.analysis.verdict import VerdictComputer
 from flowscout.core.browser import BrowserManager
+from flowscout.core.errors import BrowserError
 from flowscout.core.policy import get_action_policy_block_reason
 from flowscout.core.state import ExplorerConfig, PageState
 from flowscout.discovery.actions import (
@@ -26,10 +28,12 @@ from flowscout.discovery.actions import (
 from flowscout.discovery.elements import discover_elements
 from flowscout.reporting.terminal import TerminalReporter
 
+if TYPE_CHECKING:
+    from flowscout.smart.planner import SmartPlanner as _SmartPlannerType
+
 logger = logging.getLogger(__name__)
 
-# Lazy import for smart planner (only needed in smart mode)
-SmartPlanner = None  # type: ignore[assignment]
+SmartPlanner: type[_SmartPlannerType] | None = None
 
 # After this many consecutive click actions, prefer a non-click if available
 _DIVERSITY_INTERVAL = 5
@@ -250,7 +254,7 @@ class Navigator:
             advice = await self._smart_planner.on_state_discovered(
                 state, self.browser, self.graph
             )
-        except Exception:
+        except (BrowserError, RuntimeError):
             logger.debug("Smart planner failed for %s", state.state_id, exc_info=True)
             return
 
@@ -422,7 +426,7 @@ class Navigator:
                 == self.graph.states[target_state_id].fingerprint
             ):
                 return True
-        except Exception:
+        except BrowserError:
             logger.debug(
                 "Could not capture current state for comparison", exc_info=True
             )
@@ -435,7 +439,7 @@ class Navigator:
             current_state = await self.browser.capture_state(depth=0)
             if current_state.fingerprint == target.fingerprint:
                 return True
-        except Exception:
+        except BrowserError:
             logger.debug("Direct navigation to %s failed", target.url, exc_info=True)
 
         # If direct navigation didn't reproduce the state, try replaying path
@@ -453,7 +457,7 @@ class Navigator:
                         await self.browser.execute_action(action)
 
                 return True
-            except Exception:
+            except BrowserError:
                 logger.debug(
                     "Path replay to %s failed",
                     target_state_id,
@@ -464,7 +468,7 @@ class Navigator:
         try:
             await self.browser.navigate(target.url)
             return True
-        except Exception:
+        except BrowserError:
             logger.debug(
                 "Last-resort navigation to %s failed", target.url, exc_info=True
             )

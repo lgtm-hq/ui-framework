@@ -102,6 +102,6 @@ class OutcomeDetector:
         try:
             errors = await page.evaluate(FIND_ERRORS_JS, self.error_selectors)  # type: ignore[union-attr]
             return [e for e in errors if e]
-        except Exception:
+        except (AttributeError, RuntimeError, OSError):
             logger.debug("Error scanning for error messages", exc_info=True)
             return []

@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 from itertools import islice
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
 import networkx as nx
 
+from flowscout.analysis.narrative import FlowNarrative
+from flowscout.analysis.verdict import JourneyVerdict
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
-
-if TYPE_CHECKING:
-    pass
 
 
 _MAX_PATHS_PER_LEAF = 25
@@ -33,8 +32,8 @@ class Flow(BaseModel):
     outcomes: list[OutcomeType] = Field(default_factory=list)
     is_cycle: bool = False
     depth: int = 0
-    verdict: Any = None  # JourneyVerdict | None
-    narrative: Any = None  # FlowNarrative | None
+    verdict: JourneyVerdict | None = None
+    narrative: FlowNarrative | None = None
     category: str = ""
     tags: list[str] = Field(default_factory=list)
     flow_template: str = ""

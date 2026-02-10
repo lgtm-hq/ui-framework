@@ -135,7 +135,7 @@ class TestSmartPlannerBasic:
     async def test_browser_failure_returns_empty_advice(self):
         planner = SmartPlanner()
         browser = MagicMock()
-        browser.analyze_page_structure = AsyncMock(side_effect=Exception("fail"))
+        browser.analyze_page_structure = AsyncMock(side_effect=RuntimeError("fail"))
         advice = await planner.on_state_discovered(
             _mock_state(), browser, _mock_graph()
         )

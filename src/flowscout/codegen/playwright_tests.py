@@ -42,7 +42,6 @@ def generate_test_suite(
 
 def _generate_pytest_suite(result: ExplorationResult) -> str:
     """Generate a pytest + playwright test suite."""
-    _used_names.clear()
     start_url = result.config.get("start_url", "https://example.com")
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
@@ -525,8 +524,14 @@ def _find_result_for_step(
 _used_names: set[str] = set()
 
 
-def _to_test_name(prefix: str, text: str) -> str:
-    """Convert a label to a valid Python test function name."""
+def _to_test_name(prefix: str, text: str, *, used_names: set[str] | None = None) -> str:
+    """Convert a label to a valid Python test function name.
+
+    When *used_names* is provided, that set is used for deduplication instead
+    of the module-level ``_used_names``.  Callers that create a fresh set per
+    suite generation avoid shared mutable state between runs.
+    """
+    names = used_names if used_names is not None else _used_names
     # Combine prefix and text, sanitize together
     raw = f"{prefix}_{text}".lower()
     # Remove special chars, convert spaces/arrows to underscores
@@ -538,12 +543,12 @@ def _to_test_name(prefix: str, text: str) -> str:
         clean = clean[:60].rstrip("_")
     name = f"test_{clean}"
     # Deduplicate
-    if name in _used_names:
+    if name in names:
         i = 2
-        while f"{name}_{i}" in _used_names:
+        while f"{name}_{i}" in names:
             i += 1
         name = f"{name}_{i}"
-    _used_names.add(name)
+    names.add(name)
     return name
 
 

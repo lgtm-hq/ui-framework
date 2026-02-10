@@ -4,27 +4,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from enum import StrEnum, auto
 from hashlib import md5
 
 from pydantic import BaseModel, Field
 
+from flowscout.core.text_utils import strip_css_blocks
 from flowscout.js import load_script
 
 logger = logging.getLogger(__name__)
 
-_CSS_BLOCK_RE = re.compile(r"\.[a-zA-Z0-9_-]+(?::[\w-]+)?\s*\{[^}]*\}")
-_BRACE_RE = re.compile(r"\{[^}]*\}")
-_WHITESPACE_RE = re.compile(r"\s+")
-
 
 def _sanitize_label(raw: str) -> str:
     """Strip CSS pseudo-element declarations and other noise from element labels."""
-    cleaned = _CSS_BLOCK_RE.sub("", raw)
-    cleaned = _BRACE_RE.sub("", cleaned)
-    cleaned = _WHITESPACE_RE.sub(" ", cleaned).strip()
-    return cleaned
+    return strip_css_blocks(raw)
 
 
 class ElementType(StrEnum):
@@ -288,7 +281,7 @@ async def discover_elements(page: object) -> list[InteractiveElement]:
         a11y_snapshot = await page.accessibility.snapshot()  # type: ignore[union-attr]
         if a11y_snapshot:
             _enrich_from_a11y(elements, a11y_snapshot)
-    except Exception:
+    except (AttributeError, RuntimeError):
         logger.debug("Accessibility tree enrichment failed", exc_info=True)
 
     # Layer 3: Pattern detection — detect dropdown trigger/option relationships
@@ -408,15 +401,15 @@ async def _discover_dropdown_options(
             # Close the dropdown: Escape, then fallback to re-clicking trigger
             try:
                 await page.keyboard.press("Escape")  # type: ignore[union-attr]
-            except Exception:
+            except (AttributeError, RuntimeError, OSError):
                 logger.debug("Failed to close dropdown via Escape", exc_info=True)
                 try:
                     await page.click(trigger.selector, timeout=2000)  # type: ignore[union-attr]
-                except Exception:
+                except (AttributeError, RuntimeError, OSError):
                     logger.debug("Failed to close dropdown by re-clicking", exc_info=True)
             await asyncio.sleep(0.2)
 
-        except Exception:
+        except (AttributeError, RuntimeError, OSError):
             logger.debug(
                 "Dropdown discovery failed for %s", trigger.selector, exc_info=True,
             )

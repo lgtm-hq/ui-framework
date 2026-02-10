@@ -11,6 +11,7 @@ from hashlib import sha256
 from pathlib import Path
 
 from playwright.async_api import Page, async_playwright, Browser, BrowserContext
+from playwright.async_api import Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
 
 from flowscout.analysis.detector import OutcomeDetector
 from flowscout.core.auth import AuthBootstrap
@@ -138,7 +139,7 @@ class BrowserManager:
                     timeout=self.config.load_wait_timeout_ms,
                 )
                 break
-            except Exception:
+            except PlaywrightError:
                 logger.debug("DOM load wait failed, retrying", exc_info=True)
                 await asyncio.sleep(0.3)
 
@@ -237,13 +238,29 @@ class BrowserManager:
         try:
             await self._perform_action(action)
             await self._wait_for_stability()
-        except Exception as exc:
+        except PlaywrightTimeoutError as exc:
             duration_ms = (time.monotonic() - start) * 1000
-            error_name = type(exc).__name__
-            if "timeout" in error_name.lower() or "Timeout" in str(exc):
-                outcome = OutcomeType.TIMEOUT
-            else:
-                outcome = OutcomeType.EXCEPTION
+            outcome = OutcomeType.TIMEOUT
+            message = str(exc)
+            screenshot_path = await self._capture_action_screenshot(action)
+
+            page.remove_listener("console", on_console)
+            page.remove_listener("response", on_response)
+
+            return ActionResult(
+                action_id=action.action_id,
+                outcome=outcome,
+                duration_ms=duration_ms,
+                message=message,
+                url_before=url_before,
+                url_after=page.url,
+                error_messages=[],
+                console_errors=console_errors,
+                screenshot_path=screenshot_path,
+            )
+        except (PlaywrightError, OSError) as exc:
+            duration_ms = (time.monotonic() - start) * 1000
+            outcome = OutcomeType.EXCEPTION
             message = str(exc)
             screenshot_path = await self._capture_action_screenshot(action)
 
@@ -312,7 +329,7 @@ class BrowserManager:
                 overlay_id=overlay_id,
             )
             await self.page.screenshot(path=str(screenshot_path), full_page=False)
-        except Exception:
+        except (PlaywrightError, OSError):
             logger.debug("Could not capture action screenshot", exc_info=True)
             return None
         finally:
@@ -410,7 +427,7 @@ class BrowserManager:
         """
         try:
             await self.page.evaluate(script, {"overlayId": overlay_id})
-        except Exception:
+        except PlaywrightError:
             logger.debug("Could not clear screenshot overlay", exc_info=True)
 
     async def _perform_action(self, action: Action) -> None:
@@ -441,7 +458,7 @@ class BrowserManager:
                                 await inp.fill("test query")
                                 await inp.press("Enter")
                                 break
-                        except Exception:
+                        except PlaywrightError:
                             logger.debug(
                                 "Search input %s not found", sel, exc_info=True
                             )
@@ -481,7 +498,7 @@ class BrowserManager:
                             value,
                             timeout=self.config.load_wait_timeout_ms,
                         )
-                    except Exception:
+                    except PlaywrightError:
                         logger.debug("Could not fill field %s", selector, exc_info=True)
                 await page.click(action.target_selector, timeout=timeout)
 

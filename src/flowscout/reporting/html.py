@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from pathlib import Path
-import re
 from typing import Any
+
+from flowscout.core.text_utils import strip_css_blocks
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -22,9 +23,6 @@ _ENV = Environment(
     loader=FileSystemLoader(str(_TEMPLATE_DIR)),
     autoescape=True,
 )
-_CATALOG_LABEL_STYLE_RE = re.compile(r"\.[\w-]+(?::[\w-]+)?\s*\{[^}]*\}")
-_CATALOG_LABEL_BRACE_RE = re.compile(r"\{[^}]*\}")
-_CATALOG_LABEL_SPACE_RE = re.compile(r"\s+")
 
 
 class HTMLReporter:
@@ -217,7 +215,7 @@ def _to_report_asset_href(path: str | None, *, report_dir: Path) -> str | None:
     asset_path = raw if raw.is_absolute() else (Path.cwd() / raw)
     try:
         asset_abs = asset_path.resolve()
-    except Exception:
+    except OSError:
         asset_abs = asset_path
 
     try:
@@ -266,9 +264,7 @@ def _clean_catalog_label(value: Any) -> str:
         return ""
 
     # Some pages inline CSS pseudo-element content into extracted labels.
-    text = _CATALOG_LABEL_STYLE_RE.sub(" ", text)
-    text = _CATALOG_LABEL_BRACE_RE.sub(" ", text)
-    text = _CATALOG_LABEL_SPACE_RE.sub(" ", text).strip()
+    text = strip_css_blocks(text)
     if len(text) > 120:
         return f"{text[:117].rstrip()}..."
     return text

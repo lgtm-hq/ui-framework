@@ -84,7 +84,7 @@ class SmartPlanner:
         """
         try:
             raw = await browser.analyze_page_structure()
-        except Exception:
+        except (RuntimeError, OSError):
             logger.debug("Page analysis failed for %s", state.state_id, exc_info=True)
             return PlannerAdvice()
 

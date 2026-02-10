@@ -186,7 +186,7 @@ class FlowscoutDB:
                 ]
                 if column not in cols:
                     self._conn.execute(sql)  # type: ignore[union-attr]
-            except Exception:
+            except sqlite3.OperationalError:
                 logger.debug("Migration failed for %s.%s", table, column, exc_info=True)
 
     def close(self) -> None:
@@ -310,7 +310,7 @@ class FlowscoutDB:
             if flow.narrative:
                 try:
                     narrative_json = flow.narrative.model_dump_json()
-                except Exception:
+                except (AttributeError, ValueError, TypeError):
                     logger.debug("Failed to serialize narrative", exc_info=True)
 
             self.conn.execute(
