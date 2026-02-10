@@ -61,65 +61,40 @@ class TestStepVerdict:
         )
         assert sv.verdict == Verdict.FAIL
 
-    def test_navigate_navigation_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.NAVIGATION, _intent(IntentClass.NAVIGATE)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_navigate_timeout_fails(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.TIMEOUT, _intent(IntentClass.NAVIGATE)
-        )
-        assert sv.verdict == Verdict.FAIL
-
-    def test_navigate_dom_change_warns(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.DOM_CHANGE, _intent(IntentClass.NAVIGATE)
-        )
-        assert sv.verdict == Verdict.WARN
-
-    def test_navigate_no_change_warns(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.NO_CHANGE, _intent(IntentClass.NAVIGATE)
-        )
-        assert sv.verdict == Verdict.WARN
-
-    def test_input_dom_change_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.DOM_CHANGE, _intent(IntentClass.INPUT)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_input_no_change_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.NO_CHANGE, _intent(IntentClass.INPUT)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_input_validation_error_warns(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.VALIDATION_ERROR, _intent(IntentClass.INPUT)
-        )
-        assert sv.verdict == Verdict.WARN
-
-    def test_submit_navigation_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.NAVIGATION, _intent(IntentClass.SUBMIT)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_submit_dom_change_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.DOM_CHANGE, _intent(IntentClass.SUBMIT)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_submit_validation_error_warns(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.VALIDATION_ERROR, _intent(IntentClass.SUBMIT)
-        )
-        assert sv.verdict == Verdict.WARN
+    @pytest.mark.parametrize(
+        ("outcome", "intent_class", "expected_verdict"),
+        [
+            # NAVIGATE intent
+            (OutcomeType.NAVIGATION, IntentClass.NAVIGATE, Verdict.PASS),
+            (OutcomeType.TIMEOUT, IntentClass.NAVIGATE, Verdict.FAIL),
+            (OutcomeType.DOM_CHANGE, IntentClass.NAVIGATE, Verdict.WARN),
+            (OutcomeType.NO_CHANGE, IntentClass.NAVIGATE, Verdict.WARN),
+            (OutcomeType.CONSOLE_ERROR, IntentClass.NAVIGATE, Verdict.WARN),
+            # INPUT intent
+            (OutcomeType.DOM_CHANGE, IntentClass.INPUT, Verdict.PASS),
+            (OutcomeType.NO_CHANGE, IntentClass.INPUT, Verdict.PASS),
+            (OutcomeType.VALIDATION_ERROR, IntentClass.INPUT, Verdict.WARN),
+            # SUBMIT intent
+            (OutcomeType.NAVIGATION, IntentClass.SUBMIT, Verdict.PASS),
+            (OutcomeType.DOM_CHANGE, IntentClass.SUBMIT, Verdict.PASS),
+            (OutcomeType.VALIDATION_ERROR, IntentClass.SUBMIT, Verdict.WARN),
+            (OutcomeType.TIMEOUT, IntentClass.SUBMIT, Verdict.FAIL),
+            # TOGGLE intent
+            (OutcomeType.DOM_CHANGE, IntentClass.TOGGLE, Verdict.PASS),
+            (OutcomeType.NO_CHANGE, IntentClass.TOGGLE, Verdict.WARN),
+            # REVEAL intent
+            (OutcomeType.DOM_CHANGE, IntentClass.REVEAL, Verdict.PASS),
+            (OutcomeType.TIMEOUT, IntentClass.REVEAL, Verdict.FAIL),
+            # SELECT intent
+            (OutcomeType.DOM_CHANGE, IntentClass.SELECT, Verdict.PASS),
+            (OutcomeType.NAVIGATION, IntentClass.SELECT, Verdict.PASS),
+            (OutcomeType.NO_CHANGE, IntentClass.SELECT, Verdict.WARN),
+        ],
+        ids=lambda val: val.value if hasattr(val, "value") else str(val),
+    )
+    def test_intent_outcome_verdict(self, computer, outcome, intent_class, expected_verdict):
+        sv = computer.compute_step_verdict(outcome, _intent(intent_class))
+        assert sv.verdict == expected_verdict
 
     def test_validation_error_includes_observed_detail(self, computer):
         sv = computer.compute_step_verdict(
@@ -128,60 +103,6 @@ class TestStepVerdict:
             observed_detail="Username is required",
         )
         assert "Username is required" in sv.actual
-
-    def test_submit_timeout_fails(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.TIMEOUT, _intent(IntentClass.SUBMIT)
-        )
-        assert sv.verdict == Verdict.FAIL
-
-    def test_toggle_dom_change_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.DOM_CHANGE, _intent(IntentClass.TOGGLE)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_toggle_no_change_warns(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.NO_CHANGE, _intent(IntentClass.TOGGLE)
-        )
-        assert sv.verdict == Verdict.WARN
-
-    def test_reveal_dom_change_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.DOM_CHANGE, _intent(IntentClass.REVEAL)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_reveal_timeout_fails(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.TIMEOUT, _intent(IntentClass.REVEAL)
-        )
-        assert sv.verdict == Verdict.FAIL
-
-    def test_select_dom_change_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.DOM_CHANGE, _intent(IntentClass.SELECT)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_select_navigation_passes(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.NAVIGATION, _intent(IntentClass.SELECT)
-        )
-        assert sv.verdict == Verdict.PASS
-
-    def test_select_no_change_warns(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.NO_CHANGE, _intent(IntentClass.SELECT)
-        )
-        assert sv.verdict == Verdict.WARN
-
-    def test_console_error_warns(self, computer):
-        sv = computer.compute_step_verdict(
-            OutcomeType.CONSOLE_ERROR, _intent(IntentClass.NAVIGATE)
-        )
-        assert sv.verdict == Verdict.WARN
 
     def test_no_intent_timeout_warns(self, computer):
         sv = computer.compute_step_verdict(OutcomeType.TIMEOUT, None)

@@ -1,6 +1,170 @@
-"""Shared test fixtures."""
+"""Shared test fixtures and factory functions."""
+
+from __future__ import annotations
+
+import hashlib
+import uuid
 
 import pytest
+
+from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.core.state import PageState
+from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
+from flowscout.discovery.elements import InteractiveElement
+
+TEST_URL = "https://example.com"
+
+
+def make_state(
+    *,
+    state_id: str | None = None,
+    url: str = TEST_URL,
+    title: str = "Test Page",
+    depth: int = 0,
+) -> PageState:
+    """Create a PageState with sensible defaults."""
+    sid = state_id or f"state-{uuid.uuid4().hex[:8]}"
+    fp = hashlib.sha256(sid.encode()).hexdigest()
+    return PageState(
+        state_id=sid,
+        url=url,
+        title=title,
+        fingerprint=fp,
+        depth=depth,
+        dom_structure_hash=f"dom-{sid}",
+        visible_text_hash=f"text-{sid}",
+        form_state_hash=f"form-{sid}",
+    )
+
+
+def make_action(
+    *,
+    action_id: str | None = None,
+    action_type: ActionType = ActionType.CLICK,
+    label: str = "Click button",
+    selector: str = "button#submit",
+    value: str | None = None,
+    metadata: dict[str, str] | None = None,
+) -> Action:
+    """Create an Action with sensible defaults."""
+    aid = action_id or f"action-{uuid.uuid4().hex[:8]}"
+    return Action(
+        action_id=aid,
+        action_type=action_type,
+        target_selector=selector,
+        label=label,
+        value=value,
+        metadata=metadata or {},
+    )
+
+
+def make_action_result(
+    *,
+    action_id: str = "a0",
+    source_state_id: str = "s0",
+    target_state_id: str = "s1",
+    outcome: OutcomeType = OutcomeType.NAVIGATION,
+    duration_ms: float = 100.0,
+    url_before: str = TEST_URL,
+    url_after: str = f"{TEST_URL}/next",
+) -> ActionResult:
+    """Create an ActionResult with sensible defaults."""
+    return ActionResult(
+        action_id=action_id,
+        source_state_id=source_state_id,
+        target_state_id=target_state_id,
+        outcome=outcome,
+        duration_ms=duration_ms,
+        url_before=url_before,
+        url_after=url_after,
+    )
+
+
+def make_exploration_result(
+    *,
+    start_url: str = TEST_URL,
+    num_states: int = 2,
+    num_flows: int = 1,
+    duration_seconds: float = 60.0,
+) -> ExplorationResult:
+    """Create an ExplorationResult with sensible defaults."""
+    states = {}
+    for i in range(num_states):
+        sid = f"state-{i}"
+        states[sid] = make_state(
+            state_id=sid,
+            url=f"{start_url}/page{i}" if i > 0 else start_url,
+            title=f"Page {i}",
+            depth=i,
+        )
+
+    actions = {
+        "act-0": make_action(
+            action_id="act-0",
+            label="Click link",
+            selector="a#link-0",
+        ),
+    }
+
+    src = "state-0"
+    tgt = f"state-{min(1, num_states - 1)}"
+    results = [
+        make_action_result(
+            action_id="act-0",
+            source_state_id=src,
+            target_state_id=tgt,
+            url_before=start_url,
+            url_after=f"{start_url}/page1",
+        ),
+    ]
+
+    flows = [
+        Flow(
+            flow_id=f"flow-{i}",
+            name=f"Flow {i}",
+            description=f"Test flow {i}",
+            state_ids=list(states.keys()),
+            action_ids=list(actions.keys()),
+            outcomes=[OutcomeType.NAVIGATION],
+            depth=1,
+        )
+        for i in range(num_flows)
+    ]
+
+    return ExplorationResult(
+        config={"start_url": start_url},
+        started_at="2025-01-01T00:00:00Z",
+        finished_at="2025-01-01T00:01:00Z",
+        duration_seconds=duration_seconds,
+        states=states,
+        actions=actions,
+        results=results,
+        flows=flows,
+        stats={"total_states": num_states},
+    )
+
+
+def make_element(
+    *,
+    element_id: str | None = None,
+    selector: str = "button#submit",
+    element_type: str = "button",
+    label: str = "Submit",
+    **kwargs: object,
+) -> InteractiveElement:
+    """Create an InteractiveElement with sensible defaults."""
+    defaults: dict[str, object] = {
+        "element_id": element_id or f"elem-{uuid.uuid4().hex[:8]}",
+        "selector": selector,
+        "element_type": element_type,
+        "label": label,
+        "tag": "button",
+        "priority": 25,
+        "group": "default",
+        "metadata": {},
+    }
+    defaults.update(kwargs)
+    return InteractiveElement(**defaults)
 
 
 @pytest.fixture
