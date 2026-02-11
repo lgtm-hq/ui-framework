@@ -165,7 +165,7 @@ def make_element(
         "metadata": {},
     }
     defaults.update(kwargs)
-    return InteractiveElement(**defaults)
+    return InteractiveElement.model_validate(defaults)
 
 
 @pytest.fixture

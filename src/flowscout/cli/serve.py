@@ -7,7 +7,7 @@ import click
 from flowscout.cli.app import main
 
 
-@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
+@main.command()
 @click.argument("report_path", type=click.Path(exists=True))
 @click.option(
     "--port", "-p", default=8765, help="Server port (auto-increments if taken)."

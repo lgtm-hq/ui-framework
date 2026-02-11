@@ -141,7 +141,10 @@ class TestNarrateFlow:
     def test_basic_flow(self, generator: NarrativeGenerator) -> None:
         actions = [_make_action()]
         results = [_make_result()]
-        states = [_make_state(), _make_state("s2", title="Login")]
+        states: list[PageState | None] = [
+            _make_state(),
+            _make_state("s2", title="Login"),
+        ]
         narrative = generator.narrate_flow("Login Flow", actions, results, states)
         assert narrative.title == "Login Flow"
         assert len(narrative.steps) == 1

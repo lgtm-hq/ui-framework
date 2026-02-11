@@ -34,24 +34,37 @@ class TestBuildFingerprint:
         assert len(fp) == 64  # SHA-256 hex
 
     def test_same_inputs_produce_same_fingerprint(self) -> None:
-        args = {
-            "url": "https://example.com",
-            "title": "Home",
-            "dom_structure_hash": "d1",
-            "visible_text_hash": "t1",
-            "form_state_hash": "f1",
-        }
-        assert build_fingerprint(**args) == build_fingerprint(**args)
+        fp1 = build_fingerprint(
+            url="https://example.com",
+            title="Home",
+            dom_structure_hash="d1",
+            visible_text_hash="t1",
+            form_state_hash="f1",
+        )
+        fp2 = build_fingerprint(
+            url="https://example.com",
+            title="Home",
+            dom_structure_hash="d1",
+            visible_text_hash="t1",
+            form_state_hash="f1",
+        )
+        assert fp1 == fp2
 
     def test_different_urls_produce_different_fingerprints(self) -> None:
-        common = {
-            "title": "Page",
-            "dom_structure_hash": "d",
-            "visible_text_hash": "t",
-            "form_state_hash": "f",
-        }
-        fp1 = build_fingerprint(url="https://a.com", **common)
-        fp2 = build_fingerprint(url="https://b.com", **common)
+        fp1 = build_fingerprint(
+            url="https://a.com",
+            title="Page",
+            dom_structure_hash="d",
+            visible_text_hash="t",
+            form_state_hash="f",
+        )
+        fp2 = build_fingerprint(
+            url="https://b.com",
+            title="Page",
+            dom_structure_hash="d",
+            visible_text_hash="t",
+            form_state_hash="f",
+        )
         assert fp1 != fp2
 
     def test_unicode_url(self) -> None:

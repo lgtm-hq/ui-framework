@@ -59,8 +59,8 @@ def _build_junit_xml(result: ExplorationResult) -> ET.Element:
                     "message", flow.verdict.summary if flow.verdict else "Test failed"
                 )
                 failure.set("type", "AssertionError")
-                if flow.narrative and flow.narrative.summary:
-                    failure.text = flow.narrative.summary
+                if flow.narrative and flow.narrative.conclusion:
+                    failure.text = flow.narrative.conclusion
                 suite_failures += 1
             elif verdict_val == "warn":
                 error = ET.SubElement(testcase, "error")

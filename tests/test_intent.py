@@ -11,7 +11,7 @@ from flowscout.discovery.intent import (
 
 
 def _make_elem(**kwargs: Any) -> InteractiveElement:
-    defaults = {
+    defaults: dict[str, Any] = {
         "element_id": "test",
         "element_type": ElementType.BUTTON,
         "selector": "button#test",
@@ -19,7 +19,7 @@ def _make_elem(**kwargs: Any) -> InteractiveElement:
         "tag": "button",
     }
     defaults.update(kwargs)
-    return InteractiveElement(**defaults)
+    return InteractiveElement.model_validate(defaults)
 
 
 class TestInferIntent:

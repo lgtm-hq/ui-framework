@@ -59,37 +59,54 @@ class TestNormalizeUrl:
 
 class TestBuildFingerprint:
     def test_deterministic(self) -> None:
-        args = {
-            "url": "https://example.com",
-            "title": "Example",
-            "dom_structure_hash": "abc123",
-            "visible_text_hash": "def456",
-            "form_state_hash": "ghi789",
-        }
-        fp1 = build_fingerprint(**args)
-        fp2 = build_fingerprint(**args)
+        fp1 = build_fingerprint(
+            url="https://example.com",
+            title="Example",
+            dom_structure_hash="abc123",
+            visible_text_hash="def456",
+            form_state_hash="ghi789",
+        )
+        fp2 = build_fingerprint(
+            url="https://example.com",
+            title="Example",
+            dom_structure_hash="abc123",
+            visible_text_hash="def456",
+            form_state_hash="ghi789",
+        )
         assert fp1 == fp2
 
     def test_different_url_different_fingerprint(self) -> None:
-        common = {
-            "title": "Example",
-            "dom_structure_hash": "abc123",
-            "visible_text_hash": "def456",
-            "form_state_hash": "ghi789",
-        }
-        fp1 = build_fingerprint(url="https://example.com/a", **common)
-        fp2 = build_fingerprint(url="https://example.com/b", **common)
+        fp1 = build_fingerprint(
+            url="https://example.com/a",
+            title="Example",
+            dom_structure_hash="abc123",
+            visible_text_hash="def456",
+            form_state_hash="ghi789",
+        )
+        fp2 = build_fingerprint(
+            url="https://example.com/b",
+            title="Example",
+            dom_structure_hash="abc123",
+            visible_text_hash="def456",
+            form_state_hash="ghi789",
+        )
         assert fp1 != fp2
 
     def test_different_dom_different_fingerprint(self) -> None:
-        common = {
-            "url": "https://example.com",
-            "title": "Example",
-            "visible_text_hash": "def456",
-            "form_state_hash": "ghi789",
-        }
-        fp1 = build_fingerprint(dom_structure_hash="hash_a", **common)
-        fp2 = build_fingerprint(dom_structure_hash="hash_b", **common)
+        fp1 = build_fingerprint(
+            url="https://example.com",
+            title="Example",
+            dom_structure_hash="hash_a",
+            visible_text_hash="def456",
+            form_state_hash="ghi789",
+        )
+        fp2 = build_fingerprint(
+            url="https://example.com",
+            title="Example",
+            dom_structure_hash="hash_b",
+            visible_text_hash="def456",
+            form_state_hash="ghi789",
+        )
         assert fp1 != fp2
 
     def test_sha256_hex_format(self) -> None:
@@ -104,34 +121,44 @@ class TestBuildFingerprint:
 
     def test_config_disables_url(self) -> None:
         config = FingerprintConfig(include_url=False)
-        common = {
-            "title": "Example",
-            "dom_structure_hash": "abc",
-            "visible_text_hash": "def",
-            "form_state_hash": "ghi",
-        }
-        fp1 = build_fingerprint(url="https://a.com", config=config, **common)
-        fp2 = build_fingerprint(url="https://b.com", config=config, **common)
+        fp1 = build_fingerprint(
+            url="https://a.com",
+            title="Example",
+            dom_structure_hash="abc",
+            visible_text_hash="def",
+            form_state_hash="ghi",
+            config=config,
+        )
+        fp2 = build_fingerprint(
+            url="https://b.com",
+            title="Example",
+            dom_structure_hash="abc",
+            visible_text_hash="def",
+            form_state_hash="ghi",
+            config=config,
+        )
         assert fp1 == fp2  # URL ignored
 
     def test_context_key_overrides_raw_content_signals(self) -> None:
-        common = {
-            "url": "https://example.com/products/1",
-            "title": "Product",
-            "dom_structure_hash": "dom",
-            "visible_text_hash": "text-a",
-            "form_state_hash": "form-a",
-            "route_key": "https://example.com/products/{id}",
-            "view_key": "view-key",
-            "context_key": "context-key",
-        }
-        fp1 = build_fingerprint(**common)
+        fp1 = build_fingerprint(
+            url="https://example.com/products/1",
+            title="Product",
+            dom_structure_hash="dom",
+            visible_text_hash="text-a",
+            form_state_hash="form-a",
+            route_key="https://example.com/products/{id}",
+            view_key="view-key",
+            context_key="context-key",
+        )
         fp2 = build_fingerprint(
-            **{
-                **common,
-                "visible_text_hash": "text-b",
-                "form_state_hash": "form-b",
-            }
+            url="https://example.com/products/1",
+            title="Product",
+            dom_structure_hash="dom",
+            visible_text_hash="text-b",
+            form_state_hash="form-b",
+            route_key="https://example.com/products/{id}",
+            view_key="view-key",
+            context_key="context-key",
         )
         assert fp1 == fp2
 

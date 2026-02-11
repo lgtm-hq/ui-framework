@@ -19,12 +19,12 @@ from flowscout.discovery.actions import Action, ActionType, OutcomeType
 
 
 def _config(**overrides: Any) -> ExplorerConfig:
-    defaults = {
+    defaults: dict[str, Any] = {
         "start_url": "https://example.com",
         "headless": True,
     }
     defaults.update(overrides)
-    return ExplorerConfig(**defaults)
+    return ExplorerConfig.model_validate(defaults)
 
 
 def _mock_page(

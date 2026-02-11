@@ -45,7 +45,7 @@ from flowscout.reporting.terminal import TerminalReporter
 from flowscout.storage.db import FlowscoutDB
 
 
-@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
+@main.command()
 @click.argument("url")
 @click.option(
     "--max-depth", "-d", default=3, help="Maximum traversal depth from start URL."

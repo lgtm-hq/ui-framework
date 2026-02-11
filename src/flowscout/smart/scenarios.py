@@ -110,7 +110,8 @@ class ScenarioSynthesizer:
                     if e.to_page_type == pt.page_type_id
                 ]
                 if return_edges:
-                    pair = tuple(sorted([pt.page_type_id, edge.to_page_type]))
+                    a, b = sorted([pt.page_type_id, edge.to_page_type])
+                    pair = (a, b)
                     if pair not in seen_round_trips:
                         seen_round_trips.add(pair)
                         counter += 1

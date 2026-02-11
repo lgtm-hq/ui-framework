@@ -52,7 +52,7 @@
         const parentSel = buildSelector(container);
         const itemTexts = items.slice(0, 10).map((el) => {
           const h = el.querySelector("h1, h2, h3, h4, h5, h6, a");
-          return (h ? h.textContent : el.textContent || "").trim().slice(0, 100);
+          return (h ? (h.textContent ?? "") : (el.textContent ?? "")).trim().slice(0, 100);
         });
         const itemSelectors = items.slice(0, 3).map((el) => buildSelector(el));
 

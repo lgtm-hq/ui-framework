@@ -112,7 +112,7 @@ def _evaluate_benchmark_gates(
     return failures
 
 
-@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
+@main.command()
 @click.argument("json_path", type=click.Path(exists=True))
 @click.option("--db-path", default=DEFAULT_DB_PATH, help="SQLite database path.")
 @click.option(

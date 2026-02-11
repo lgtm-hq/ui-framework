@@ -12,7 +12,7 @@ from flowscout.cli.app import console, main
 from flowscout.codegen.playwright_tests import generate_test_suite
 
 
-@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
+@main.command()
 @click.argument("json_path", type=click.Path(exists=True))
 @click.option("--output", "-o", default=None, help="Output test file path.")
 @click.option(

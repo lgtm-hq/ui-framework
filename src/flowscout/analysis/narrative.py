@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -143,7 +144,7 @@ class NarrativeGenerator:
         states: list[PageState | None],
         *,
         intents: list[ActionIntent | None] | None = None,
-        step_verdicts: list[StepVerdict | None] | None = None,
+        step_verdicts: Sequence[StepVerdict | None] | None = None,
     ) -> FlowNarrative:
         """Generate a complete narrative for a flow."""
         steps: list[NarrativeStep] = []
