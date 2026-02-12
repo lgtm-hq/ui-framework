@@ -15,6 +15,7 @@ from flowscout.core.browser import BrowserManager
 from flowscout.core.errors import BrowserError
 from flowscout.core.frontier import FrontierManager, is_diverse_action
 from flowscout.core.policy import get_action_policy_block_reason
+from flowscout.core.protocols import ITerminalReporter
 from flowscout.core.state import ExplorerConfig, PageState
 from flowscout.discovery.actions import (
     Action,
@@ -24,7 +25,6 @@ from flowscout.discovery.actions import (
     generate_form_submit_actions,
 )
 from flowscout.discovery.elements import discover_elements
-from flowscout.reporting.terminal import TerminalReporter
 
 if TYPE_CHECKING:
     from flowscout.smart.planner import SmartPlanner as _SmartPlannerType
@@ -42,7 +42,7 @@ class Navigator:
         browser: BrowserManager,
         graph: ExplorationGraph,
         config: ExplorerConfig,
-        terminal: TerminalReporter,
+        terminal: ITerminalReporter,
         *,
         frontier: FrontierManager | None = None,
     ) -> None:

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from flowscout.analysis.archetype import (
+from flowscout.modeling.archetype import (
     CatalogEntry,
     PageArchetype,
     PageCatalog,

@@ -1,15 +1,18 @@
-"""Generate command — create test suites from exploration results."""
+"""Generate command — create artifacts from exploration or site models."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlparse
 
 import click
 
 from flowscout.analysis.graph import ExplorationResult
 from flowscout.cli.app import console, main
 from flowscout.codegen.playwright_tests import generate_test_suite
+from flowscout.modeling.site_model import SiteModel
 
 
 @main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
@@ -31,7 +34,10 @@ from flowscout.codegen.playwright_tests import generate_test_suite
 @click.option(
     "--site-model",
     is_flag=True,
-    help="Generate site model and scenario tests from result.",
+    help=(
+        "Build a SiteModel from ExplorationResult before generating tests."
+        " Deprecated: SiteModel JSON input is auto-detected."
+    ),
 )
 def generate(
     json_path: str,
@@ -40,8 +46,33 @@ def generate(
     export_format: str,
     site_model: bool,
 ) -> None:
-    """Generate test suite from a JSON exploration result."""
+    """Generate artifacts from JSON input.
+
+    Args:
+        json_path: Path to either ExplorationResult JSON or SiteModel JSON.
+        output: Output path for generated artifact(s).
+        framework: Target framework.
+        export_format: Export format.
+        site_model: Force building a SiteModel from ExplorationResult input.
+    """
     data = json.loads(Path(json_path).read_text())
+    if site_model and framework == "bdd":
+        raise click.ClickException(
+            "--site-model does not support framework 'bdd'. Use pytest or playwright.",
+        )
+
+    # SiteModel input is auto-detected for Layer 3 generation.
+    if _looks_like_site_model_payload(data=data):
+        model = SiteModel.model_validate(data)
+        _generate_from_site_model(
+            model=model,
+            json_path=json_path,
+            output=output,
+            framework=framework,
+            export_format=export_format,
+        )
+        return
+
     result = ExplorationResult.model_validate(data)
 
     # Handle non-test export formats first
@@ -61,62 +92,23 @@ def generate(
         console.print(f"  [green]JUnit XML generated:[/green] {junit_output}")
         return
 
-    if site_model and framework == "bdd":
-        raise click.ClickException(
-            "--site-model does not support framework 'bdd'. Use pytest or playwright.",
-        )
-
-    if site_model and result.smart_analyses:
-        from flowscout.analysis.archetype import PageAnalysis
-        from flowscout.analysis.site_model import SiteModelBuilder
-        from flowscout.codegen.scenario_tests import generate_scenario_tests
-        from flowscout.reporting.terminal import TerminalReporter
+    if site_model:
+        from flowscout.modeling.archetype import PageAnalysis
+        from flowscout.modeling.site_model import SiteModelBuilder
 
         analyses = {
-            sid: PageAnalysis.model_validate(d)
-            for sid, d in result.smart_analyses.items()
-        }
-        builder = SiteModelBuilder()
-        model = builder.build(result, analyses)
-
-        # Save site model
-        model_output = json_path.replace(".json", "_site_model.json")
-        Path(model_output).write_text(model.model_dump_json(indent=2))
-        console.print(f"  [green]Site model generated:[/green] {model_output}")
-
-        # Print summary
-        terminal = TerminalReporter()
-        terminal.print_site_model_summary(model)
-
-        # Generate scenario tests
-        test_framework = "pytest" if framework != "playwright" else "playwright"
-        ext = ".py" if test_framework == "pytest" else ".spec.ts"
-        test_output = output or json_path.replace(".json", f"_scenario_tests{ext}")
-        generate_scenario_tests(
-            model,
-            test_output,
-            framework=test_framework,
+            sid: PageAnalysis.model_validate(raw)
+            for sid, raw in (result.smart_analyses or {}).items()
+        } or None
+        model = SiteModelBuilder().build(result=result, analyses=analyses)
+        _generate_from_site_model(
+            model=model,
+            json_path=json_path,
+            output=output,
+            framework=framework,
+            export_format=export_format,
             base_url=result.config.get("start_url", ""),
         )
-        console.print(f"  [green]Scenario tests generated:[/green] {test_output}")
-
-        # Also generate POMs if catalogs available
-        if result.page_catalogs:
-            from flowscout.codegen.page_objects import generate_page_objects
-
-            pom_dir = str(Path(json_path).parent / "pages")
-            pom_paths = generate_page_objects(
-                result.page_catalogs,
-                pom_dir,
-                framework=test_framework,
-                base_url=result.config.get("start_url", ""),
-            )
-            if pom_paths:
-                console.print(
-                    "  [green]POM classes generated:"
-                    f"[/green] {len(pom_paths)}"
-                    f" files in {pom_dir}"
-                )
         return
 
     if framework == "bdd":
@@ -132,3 +124,110 @@ def generate(
             output = json_path.replace(".json", f"_tests{ext}")
         generate_test_suite(result, output, framework=framework)
         console.print(f"  [green]Tests generated:[/green] {output}")
+
+
+def _looks_like_site_model_payload(*, data: Any) -> bool:
+    """Detect whether payload shape looks like SiteModel JSON."""
+    if not isinstance(data, dict):
+        return False
+    return any(
+        key in data
+        for key in ("page_types", "navigation_edges", "test_scenarios", "summary")
+    )
+
+
+def _resolve_site_model_outputs(
+    *,
+    json_path: str,
+    output: str | None,
+    framework: str,
+) -> tuple[str, Path]:
+    """Resolve scenario-test output file and POM directory for SiteModel generation."""
+    ext = ".py" if framework == "pytest" else ".spec.ts"
+
+    if output is None:
+        test_output = Path(json_path).with_name(
+            f"{Path(json_path).stem}_scenario_tests{ext}",
+        )
+        pom_dir = test_output.parent / "pages"
+        return str(test_output), pom_dir
+
+    output_path = Path(output)
+    if output_path.suffix == "" or output.endswith("/"):
+        output_path.mkdir(parents=True, exist_ok=True)
+        return str(output_path / f"scenario_tests{ext}"), output_path / "pages"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    return str(output_path), output_path.parent / "pages"
+
+
+def _infer_model_base_url(*, model: SiteModel) -> str:
+    """Infer base URL from representative page URLs in the model."""
+    for page_type in model.page_types:
+        if not page_type.representative_url:
+            continue
+        parsed = urlparse(page_type.representative_url)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+    return ""
+
+
+def _generate_from_site_model(
+    *,
+    model: SiteModel,
+    json_path: str,
+    output: str | None,
+    framework: str,
+    export_format: str,
+    base_url: str = "",
+) -> None:
+    """Generate Layer 3 artifacts from a SiteModel."""
+    if export_format != "tests":
+        raise click.ClickException(
+            "SiteModel input supports only '--format tests'.",
+        )
+    if framework == "bdd":
+        raise click.ClickException(
+            "--site-model does not support framework 'bdd'. Use pytest or playwright.",
+        )
+
+    from flowscout.codegen.page_objects import generate_page_objects
+    from flowscout.codegen.scenario_tests import generate_scenario_tests
+    from flowscout.reporting.terminal import TerminalReporter
+
+    test_output, pom_dir = _resolve_site_model_outputs(
+        json_path=json_path,
+        output=output,
+        framework=framework,
+    )
+    pom_dir.mkdir(parents=True, exist_ok=True)
+
+    model_base_url = base_url or _infer_model_base_url(model=model)
+    catalogs = {
+        page_type.page_type_id: page_type.catalog
+        for page_type in model.page_types
+        if page_type.catalog.entries
+    }
+    if catalogs:
+        pom_paths = generate_page_objects(
+            catalogs=catalogs,
+            output_dir=str(pom_dir),
+            framework=framework,
+            base_url=model_base_url,
+        )
+        if pom_paths:
+            console.print(
+                "  [green]POM classes generated:"
+                f"[/green] {len(pom_paths)} files in {pom_dir}",
+            )
+
+    generate_scenario_tests(
+        site_model=model,
+        output_path=test_output,
+        framework=framework,
+        base_url=model_base_url,
+    )
+    console.print(f"  [green]Scenario tests generated:[/green] {test_output}")
+
+    terminal = TerminalReporter()
+    terminal.print_site_model_summary(model)

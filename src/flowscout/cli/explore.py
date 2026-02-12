@@ -667,8 +667,8 @@ async def _run_exploration(
 
         # Build site model (when smart mode data is available)
         if config.smart_mode and result.smart_analyses:
-            from flowscout.analysis.archetype import PageAnalysis
-            from flowscout.analysis.site_model import SiteModelBuilder
+            from flowscout.modeling.archetype import PageAnalysis
+            from flowscout.modeling.site_model import SiteModelBuilder
 
             analyses = {
                 sid: PageAnalysis.model_validate(data)

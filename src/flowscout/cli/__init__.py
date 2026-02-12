@@ -13,6 +13,7 @@ import flowscout.cli.benchmark as _benchmark_mod  # noqa: F401
 import flowscout.cli.explore as _explore_mod  # noqa: F401
 import flowscout.cli.generate as _generate_mod  # noqa: F401
 import flowscout.cli.history as _history_mod  # noqa: F401
+import flowscout.cli.model as _model_mod  # noqa: F401
 import flowscout.cli.reliability as _reliability_mod  # noqa: F401
 import flowscout.cli.serve as _serve_mod  # noqa: F401
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from flowscout.analysis.expectations import ExpectationResult
     from flowscout.analysis.graph import ExplorationResult
     from flowscout.core.state import ExplorerConfig, PageState
     from flowscout.discovery.actions import Action, ActionResult, OutcomeType
@@ -105,6 +106,16 @@ class ITerminalReporter(Protocol):
     def log_info(self, message: str) -> None: ...
 
     def log_warning(self, message: str) -> None: ...
+
+    def log_archetype(
+        self,
+        state_id: str,
+        archetype: str,
+        confidence: float,
+        is_novel: bool,
+    ) -> None: ...
+
+    def log_expectation_result(self, result: ExpectationResult) -> None: ...
 
     def print_summary(self, result: ExplorationResult) -> None: ...
 

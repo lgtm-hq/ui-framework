@@ -7,14 +7,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from flowscout.analysis.archetype import CatalogEntry, PageArchetype, ZoneType
-from flowscout.analysis.site_model import SiteModel
+from flowscout.modeling.archetype import CatalogEntry, PageArchetype, ZoneType
+from flowscout.modeling.site_model import SiteModel
 from flowscout.codegen.page_objects import (
     _catalog_to_class_name,
     _group_by_zone,
     _selector_to_property_name,
 )
-from flowscout.smart.scenarios import FlowScenario
+from flowscout.modeling.scenarios import FlowScenario
 
 
 def generate_scenario_tests(
@@ -117,7 +117,7 @@ def _catalog_property_map(
 ) -> dict[ZoneType, list[tuple[CatalogEntry, str]]]:
     """Build ZoneType → [(CatalogEntry, property_name)] using the same
     deduplication logic as page_objects.py so property names match POM classes."""
-    from flowscout.analysis.archetype import PageCatalog
+    from flowscout.modeling.archetype import PageCatalog
 
     if isinstance(catalog, dict):
         catalog = PageCatalog.model_validate(catalog)

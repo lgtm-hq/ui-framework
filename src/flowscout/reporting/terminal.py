@@ -12,7 +12,7 @@ from rich.text import Text
 if TYPE_CHECKING:
     from flowscout.analysis.expectations import ExpectationResult
     from flowscout.analysis.graph import ExplorationResult
-    from flowscout.analysis.site_model import SiteModel
+    from flowscout.modeling.site_model import SiteModel
     from flowscout.core.state import ExplorerConfig, PageState
     from flowscout.discovery.actions import Action, ActionResult
 
@@ -258,7 +258,7 @@ class TerminalReporter:
 
     def print_site_model_summary(self, model: SiteModel) -> None:
         """Print a site model summary to the terminal."""
-        from flowscout.smart.scenarios import FlowScenario
+        from flowscout.modeling.scenarios import FlowScenario
 
         self.console.print()
         self.console.print(

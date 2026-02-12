@@ -54,6 +54,20 @@ uv run lintro fmt                          # Format
 
 <!-- markdownlint-enable MD013 -->
 
+## Layer import rules
+
+Flowscout uses a strict Discovery -> Modeling -> Generation pipeline.
+Keep imports aligned with these boundaries:
+
+- Layer 1 (`core/`, `discovery/`, `analysis/`, `smart/`) may import from:
+  `core/`, `discovery/`, `analysis/`
+- Layer 2 (`modeling/`) may import from:
+  `core/` (models only), `modeling/`
+- Layer 3 (`codegen/`, `mbt/`, `reporting/`) may import from:
+  `core/` (models only), `modeling/`
+- CLI (`cli/`) may import from all layers
+- Storage (`storage/`) may import from `core/` (models only)
+
 ## Key design patterns
 
 - **State fingerprinting**: Multi-signal SHA-256 hash distinguishes
