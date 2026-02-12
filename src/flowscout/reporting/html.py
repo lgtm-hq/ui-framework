@@ -14,7 +14,7 @@ from flowscout.analysis.element_inventory import (
 )
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.text_utils import strip_css_blocks
-from flowscout.discovery.actions import ActionResult
+from flowscout.discovery.actions import ActionResult, OutcomeType
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
@@ -65,39 +65,15 @@ class ReportDataBuilder:
         group_summaries: dict[str, dict[str, int]] = {}
         for cat, group_flows in flow_groups.items():
             group_summaries[cat] = {
-                "pass": sum(
-                    1
-                    for f in group_flows
-                    if f.verdict and f.verdict.verdict.value == "pass"
-                ),
-                "fail": sum(
-                    1
-                    for f in group_flows
-                    if f.verdict and f.verdict.verdict.value == "fail"
-                ),
-                "warn": sum(
-                    1
-                    for f in group_flows
-                    if f.verdict and f.verdict.verdict.value == "warn"
-                ),
+                "pass": sum(1 for f in group_flows if _flow_status(f) == "pass"),
+                "fail": sum(1 for f in group_flows if _flow_status(f) == "fail"),
+                "warn": sum(1 for f in group_flows if _flow_status(f) == "warn"),
             }
 
         flow_counts = {
-            "pass": sum(
-                1
-                for f in result.flows
-                if f.verdict and f.verdict.verdict.value == "pass"
-            ),
-            "fail": sum(
-                1
-                for f in result.flows
-                if f.verdict and f.verdict.verdict.value == "fail"
-            ),
-            "warn": sum(
-                1
-                for f in result.flows
-                if f.verdict and f.verdict.verdict.value == "warn"
-            ),
+            "pass": sum(1 for f in result.flows if _flow_status(f) == "pass"),
+            "fail": sum(1 for f in result.flows if _flow_status(f) == "fail"),
+            "warn": sum(1 for f in result.flows if _flow_status(f) == "warn"),
         }
 
         coverage = _compute_coverage(result)
@@ -305,6 +281,20 @@ def _extract_dom_id_from_selector(selector: str) -> str:
     return token.strip()
 
 
+def _flow_status(flow: Flow) -> str:
+    """Map flow stability and outcomes to report status labels."""
+    if flow.is_stable:
+        return "pass"
+    severe_outcomes = {
+        OutcomeType.NETWORK_ERROR,
+        OutcomeType.TIMEOUT,
+        OutcomeType.EXCEPTION,
+    }
+    if any(outcome in severe_outcomes for outcome in flow.outcomes):
+        return "fail"
+    return "warn"
+
+
 def _compute_coverage(result: ExplorationResult) -> dict[str, Any]:
     """Compute page, interaction, and pass-rate coverage metrics."""
     all_urls = {s.url for s in result.states.values()}
@@ -318,9 +308,7 @@ def _compute_coverage(result: ExplorationResult) -> dict[str, Any]:
     executed_ids = {r.action_id for r in result.results}
     total_discovered = len(result.actions)
 
-    passed = sum(
-        1 for f in result.flows if f.verdict and f.verdict.verdict.value == "pass"
-    )
+    passed = sum(1 for f in result.flows if _flow_status(f) == "pass")
     total_flows = len(result.flows)
 
     return {
@@ -348,7 +336,7 @@ def _build_page_coverage_map(result: ExplorationResult) -> list[dict[str, Any]]:
     """For each page, list which test cases cover it."""
     state_to_flows: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for flow in result.flows:
-        verdict_val = flow.verdict.verdict.value if flow.verdict else "inconclusive"
+        verdict_val = _flow_status(flow)
         for sid in flow.state_ids:
             state_to_flows[sid].append(
                 {
@@ -746,12 +734,22 @@ def _build_execution_rows(
                         action_selectors.get(action_result.action_id, ""),
                     )
                 ),
-                "expected": action_result.expected or "",
-                "actual": action_result.actual or "",
+                "expected": "",
+                "actual": (
+                    action_result.message
+                    or action_result.observation_notes
+                    or action_result.outcome.value
+                ),
                 "outcome": action_result.outcome.value,
-                "verdict": action_result.verdict or "",
-                "confidence_pct": round(float(action_result.confidence or 0.0) * 100),
-                "confidence_reason": action_result.confidence_reason or "",
+                "verdict": (
+                    "pass"
+                    if float(action_result.stability_score or 0.0) >= 0.7
+                    else "warn"
+                ),
+                "confidence_pct": round(
+                    float(action_result.stability_score or 0.0) * 100
+                ),
+                "confidence_reason": action_result.observation_notes or "",
                 "duration_ms": round(float(action_result.duration_ms or 0.0)),
                 "url_before": action_result.url_before or "",
                 "url_after": action_result.url_after or "",
@@ -844,12 +842,8 @@ def _select_matching_step_index(
 
 def _build_defects(result: ExplorationResult) -> dict[str, list[Flow]]:
     """Partition flows into failures and warnings."""
-    failures = [
-        f for f in result.flows if f.verdict and f.verdict.verdict.value == "fail"
-    ]
-    warnings = [
-        f for f in result.flows if f.verdict and f.verdict.verdict.value == "warn"
-    ]
+    failures = [f for f in result.flows if _flow_status(f) == "fail"]
+    warnings = [f for f in result.flows if _flow_status(f) == "warn"]
     return {"failures": failures, "warnings": warnings}
 
 
@@ -863,10 +857,17 @@ def _compute_step_verdicts(result: ExplorationResult) -> dict[str, int]:
     for flow in result.flows:
         if flow.narrative and flow.narrative.steps:
             for step in flow.narrative.steps:
-                if step.verdict:
-                    v = step.verdict.value
-                    if v in counts:
-                        counts[v] += 1
+                if step.is_stable:
+                    counts["pass"] += 1
+                    continue
+                if step.outcome in {
+                    OutcomeType.NETWORK_ERROR,
+                    OutcomeType.TIMEOUT,
+                    OutcomeType.EXCEPTION,
+                }:
+                    counts["fail"] += 1
+                    continue
+                counts["warn"] += 1
     return counts
 
 
@@ -877,9 +878,7 @@ def _compute_group_pass_rates(
     rates: dict[str, int] = {}
     for cat, flows in flow_groups.items():
         total = len(flows)
-        passed = sum(
-            1 for f in flows if f.verdict and f.verdict.verdict.value == "pass"
-        )
+        passed = sum(1 for f in flows if _flow_status(f) == "pass")
         rates[cat] = round(passed / max(total, 1) * 100)
     return rates
 
@@ -904,9 +903,9 @@ def _build_diagnostics(
         transition_outcomes[key].add(outcome)
         transition_occurrences[key] += 1
 
-        confidence = float(action_result.confidence or 0.0)
+        confidence = float(action_result.stability_score or 0.0)
         if confidence < low_confidence_threshold:
-            reason = (action_result.confidence_reason or "").strip() or "unspecified"
+            reason = (action_result.observation_notes or "").strip() or "unspecified"
             reason_counts[reason] += 1
             low_confidence_items.append(
                 {
@@ -929,8 +928,12 @@ def _build_diagnostics(
                     "confidence_pct": round(confidence * 100),
                     "confidence_reason": reason,
                     "outcome": outcome,
-                    "expected": action_result.expected or "",
-                    "actual": action_result.actual or "",
+                    "expected": "",
+                    "actual": (
+                        action_result.message
+                        or action_result.observation_notes
+                        or action_result.outcome.value
+                    ),
                     "detail": _summarize_action_detail(action_result),
                     "evidence_link": screenshot_links[index - 1],
                 }

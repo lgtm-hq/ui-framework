@@ -76,6 +76,8 @@ CREATE TABLE IF NOT EXISTS results (
     error_messages_json TEXT NOT NULL DEFAULT '[]',
     console_errors_json TEXT NOT NULL DEFAULT '[]',
     screenshot_path TEXT DEFAULT '',
+    stability_score REAL NOT NULL DEFAULT 0,
+    observation_notes TEXT NOT NULL DEFAULT '',
     confidence      REAL NOT NULL DEFAULT 0,
     confidence_reason TEXT NOT NULL DEFAULT '',
     executed_at     TEXT NOT NULL DEFAULT '',
@@ -92,6 +94,8 @@ CREATE TABLE IF NOT EXISTS flows (
     outcomes_json   TEXT NOT NULL DEFAULT '[]',
     is_cycle        INTEGER NOT NULL DEFAULT 0,
     depth           INTEGER NOT NULL DEFAULT 0,
+    stability_score REAL NOT NULL DEFAULT 0,
+    is_stable       INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (flow_id, run_id),
     FOREIGN KEY (run_id) REFERENCES runs(run_id)
 );
@@ -131,6 +135,16 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
         "confidence_reason",
         "ALTER TABLE results ADD COLUMN confidence_reason TEXT DEFAULT ''",
     ),
+    (
+        "results",
+        "stability_score",
+        "ALTER TABLE results ADD COLUMN stability_score REAL DEFAULT 0",
+    ),
+    (
+        "results",
+        "observation_notes",
+        "ALTER TABLE results ADD COLUMN observation_notes TEXT DEFAULT ''",
+    ),
     ("states", "route_key", "ALTER TABLE states ADD COLUMN route_key TEXT DEFAULT ''"),
     ("states", "view_key", "ALTER TABLE states ADD COLUMN view_key TEXT DEFAULT ''"),
     (
@@ -147,6 +161,16 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
         "states",
         "context_markers_json",
         "ALTER TABLE states ADD COLUMN context_markers_json TEXT DEFAULT '[]'",
+    ),
+    (
+        "flows",
+        "stability_score",
+        "ALTER TABLE flows ADD COLUMN stability_score REAL DEFAULT 0",
+    ),
+    (
+        "flows",
+        "is_stable",
+        "ALTER TABLE flows ADD COLUMN is_stable INTEGER DEFAULT 0",
     ),
     ("flows", "verdict", "ALTER TABLE flows ADD COLUMN verdict TEXT DEFAULT ''"),
     (
@@ -298,9 +322,9 @@ class FlowscoutDB:
                    (run_id, action_id, source_state_id, target_state_id,
                     outcome, duration_ms, message, url_before, url_after,
                     error_messages_json, console_errors_json, screenshot_path,
-                    confidence, confidence_reason, executed_at,
-                    verdict, verdict_reason, expected, actual)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    stability_score, observation_notes,
+                    confidence, confidence_reason, executed_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     run_id,
                     r.action_id,
@@ -314,21 +338,16 @@ class FlowscoutDB:
                     json.dumps(r.error_messages),
                     json.dumps(r.console_errors),
                     r.screenshot_path or "",
-                    r.confidence,
-                    r.confidence_reason,
+                    r.stability_score,
+                    r.observation_notes,
+                    r.stability_score,
+                    r.observation_notes,
                     r.timestamp,
-                    r.verdict or "",
-                    r.verdict_reason or "",
-                    r.expected or "",
-                    r.actual or "",
                 ),
             )
 
         # Flows
         for flow in result.flows:
-            verdict_str = ""
-            if flow.verdict and hasattr(flow.verdict, "verdict"):
-                verdict_str = flow.verdict.verdict.value
             narrative_json = ""
             if flow.narrative:
                 try:
@@ -340,8 +359,8 @@ class FlowscoutDB:
                 """INSERT OR REPLACE INTO flows
                    (flow_id, run_id, name, description, state_ids_json,
                     action_ids_json, outcomes_json, is_cycle, depth,
-                    verdict, narrative_json)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    stability_score, is_stable, narrative_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     flow.flow_id,
                     run_id,
@@ -352,7 +371,8 @@ class FlowscoutDB:
                     json.dumps([o.value for o in flow.outcomes]),
                     int(flow.is_cycle),
                     flow.depth,
-                    verdict_str,
+                    flow.stability_score,
+                    int(flow.is_stable),
                     narrative_json,
                 ),
             )

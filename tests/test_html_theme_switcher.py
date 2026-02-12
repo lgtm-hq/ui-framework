@@ -74,10 +74,9 @@ def test_report_moves_selector_into_flow_timeline_table(tmp_path: Path) -> None:
                 source_state_id="s1",
                 target_state_id="s2",
                 outcome=OutcomeType.NO_CHANGE,
-                confidence=0.55,
+                stability_score=0.55,
                 duration_ms=220,
-                expected="The username field should contain the entered value",
-                actual="No visible UI change observed",
+                observation_notes="No visible UI change observed",
             )
         ],
         flows=[
@@ -91,6 +90,8 @@ def test_report_moves_selector_into_flow_timeline_table(tmp_path: Path) -> None:
                 depth=1,
                 category="Form",
                 tags=["form"],
+                stability_score=0.55,
+                is_stable=False,
                 narrative=FlowNarrative(
                     title="Swag Labs · Enter Username · No Visible Change",
                     precondition='I am on the "Swag Labs" page (https://www.saucedemo.com/)',
@@ -108,7 +109,7 @@ def test_report_moves_selector_into_flow_timeline_table(tmp_path: Path) -> None:
                             target_description="Username",
                         )
                     ],
-                    conclusion="All 1 steps passed",
+                    conclusion="Average stability 0.55 (0 stable, 1 unstable)",
                     gherkin="Scenario: Enter username",
                 ),
             )

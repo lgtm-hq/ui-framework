@@ -91,7 +91,7 @@ def test_build_flow_execution_map_assigns_rows_to_flow_steps() -> None:
         source_state_id="state-home",
         target_state_id="state-detail",
         outcome=OutcomeType.NAVIGATION,
-        confidence=0.95,
+        stability_score=0.95,
     )
     flow = Flow(
         flow_id="flow-1",

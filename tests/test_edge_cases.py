@@ -158,7 +158,8 @@ class TestExplorationResultEdgeCases:
     def test_result_with_flows_no_verdicts(self) -> None:
         result = make_exploration_result(num_flows=3)
         for flow in result.flows:
-            assert flow.verdict is None
+            assert flow.is_stable is False
+            assert flow.stability_score == 0.0
 
 
 class TestMakeHelpers:

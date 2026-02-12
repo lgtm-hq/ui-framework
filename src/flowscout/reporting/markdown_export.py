@@ -6,6 +6,7 @@ from collections import Counter
 from pathlib import Path
 
 from flowscout.analysis.graph import ExplorationResult
+from flowscout.discovery.actions import OutcomeType
 
 
 def generate_markdown_report(result: ExplorationResult, output_path: str) -> None:
@@ -35,11 +36,20 @@ def _build_markdown(result: ExplorationResult) -> list[str]:
     lines.append(f"| Actions executed | {len(result.results)} |")
     lines.append(f"| Flows extracted | {len(result.flows)} |")
 
-    # Verdict summary
+    # Stability summary
     verdict_counts: Counter[str] = Counter()
     for flow in result.flows:
-        if flow.verdict:
-            verdict_counts[flow.verdict.verdict.value] += 1
+        if flow.is_stable:
+            verdict_counts["pass"] += 1
+            continue
+        if any(
+            outcome
+            in {OutcomeType.NETWORK_ERROR, OutcomeType.TIMEOUT, OutcomeType.EXCEPTION}
+            for outcome in flow.outcomes
+        ):
+            verdict_counts["fail"] += 1
+            continue
+        verdict_counts["warn"] += 1
 
     if verdict_counts:
         pass_count = verdict_counts.get("pass", 0)
@@ -69,18 +79,20 @@ def _build_markdown(result: ExplorationResult) -> list[str]:
         lines.append("## Flows")
         lines.append("")
         for flow in result.flows:
-            verdict_str = ""
-            if flow.verdict:
-                v = flow.verdict.verdict.value
-                emoji = {
-                    "pass": "PASS",
-                    "fail": "FAIL",
-                    "warn": "WARN",
-                }.get(  # nosec B105 - verdict labels, not passwords
-                    v, v.upper()
-                )
-                verdict_str = f" [{emoji}]"
-            lines.append(f"- **{flow.name}**{verdict_str}")
+            status = "PASS" if flow.is_stable else "WARN"
+            if any(
+                outcome
+                in {
+                    OutcomeType.NETWORK_ERROR,
+                    OutcomeType.TIMEOUT,
+                    OutcomeType.EXCEPTION,
+                }
+                for outcome in flow.outcomes
+            ):
+                status = "FAIL"
+            lines.append(
+                f"- **{flow.name}** [{status}] stability={flow.stability_score:.2f}"
+            )
             if flow.description:
                 lines.append(f"  {flow.description}")
         lines.append("")

@@ -83,13 +83,9 @@ class ActionResult(BaseModel):
     error_messages: list[str] = Field(default_factory=list)
     console_errors: list[str] = Field(default_factory=list)
     screenshot_path: str | None = None
-    confidence: float = 0.0
-    confidence_reason: str = ""
+    stability_score: float = 0.0
+    observation_notes: str = ""
     timestamp: str = ""
-    verdict: str | None = None
-    verdict_reason: str | None = None
-    expected: str | None = None
-    actual: str | None = None
 
 
 def build_action_id(selector: str, action_type: str, value: str = "") -> str:

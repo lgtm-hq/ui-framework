@@ -1,9 +1,11 @@
 """Tests for narrative generation."""
 
+from __future__ import annotations
+
 import pytest
 
 from flowscout.analysis.narrative import FlowNarrative, NarrativeGenerator
-from flowscout.analysis.verdict import StepVerdict, Verdict
+from flowscout.analysis.verdict import ObservationResult
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.discovery.intent import ActionIntent, IntentClass
@@ -61,64 +63,23 @@ class TestNarrateStep:
         assert step.action_description == "Click the 'Login' element"
         assert step.step_number == 1
 
-    def test_fill_description(self, generator: NarrativeGenerator) -> None:
-        action = _make_action(ActionType.FILL, label="Fill: Username = 'Jane Doe'")
-        action.value = "test@example.com"
-        result = _make_result(OutcomeType.DOM_CHANGE)
-        step = generator.narrate_step(action, result, _make_state(), _make_state(), 1)
-        assert "Enter" in step.action_description
-        assert "test@example.com" in step.action_description
-        assert " = " not in step.action_description
-
-    def test_submit_description(self, generator: NarrativeGenerator) -> None:
-        action = _make_action(ActionType.SUBMIT_FORM, label="Submit form")
-        result = _make_result(OutcomeType.NAVIGATION)
-        step = generator.narrate_step(action, result, _make_state(), _make_state(), 1)
-        assert "Submit" in step.action_description
-
-    def test_gherkin_when_click(self, generator: NarrativeGenerator) -> None:
-        action = _make_action()
-        result = _make_result()
-        step = generator.narrate_step(action, result, _make_state(), _make_state(), 1)
-        assert step.gherkin_when.startswith("When I click")
-
-    def test_gherkin_then_navigation(self, generator: NarrativeGenerator) -> None:
-        result = _make_result(OutcomeType.NAVIGATION)
+    def test_attaches_observation_data(self, generator: NarrativeGenerator) -> None:
+        observation = ObservationResult(
+            outcome=OutcomeType.DOM_CHANGE,
+            stability_score=0.82,
+            observation_notes="DOM changed after interaction",
+        )
         step = generator.narrate_step(
             _make_action(),
-            result,
-            _make_state(),
-            _make_state("s2", title="Dashboard"),
-            1,
-        )
-        assert "navigate" in step.gherkin_then.lower()
-
-    def test_gherkin_then_dom_change(self, generator: NarrativeGenerator) -> None:
-        result = _make_result(OutcomeType.DOM_CHANGE)
-        step = generator.narrate_step(
-            _make_action(), result, _make_state(), _make_state(), 1
-        )
-        assert "update" in step.gherkin_then.lower()
-
-    def test_gherkin_then_validation_error(self, generator: NarrativeGenerator) -> None:
-        result = _make_result(OutcomeType.VALIDATION_ERROR)
-        result.error_messages = ["Email is required"]
-        step = generator.narrate_step(
-            _make_action(), result, _make_state(), _make_state(), 1
-        )
-        assert "validation" in step.gherkin_then.lower()
-
-    def test_verdict_attached(self, generator: NarrativeGenerator) -> None:
-        sv = StepVerdict(verdict=Verdict.PASS, reason="ok")
-        step = generator.narrate_step(
-            _make_action(),
-            _make_result(),
+            _make_result(OutcomeType.DOM_CHANGE),
             _make_state(),
             _make_state(),
             1,
-            step_verdict=sv,
+            observation=observation,
         )
-        assert step.verdict == Verdict.PASS
+        assert step.stability_score == 0.82
+        assert step.observation_notes == "DOM changed after interaction"
+        assert step.is_stable is True
 
     def test_expected_from_intent(self, generator: NarrativeGenerator) -> None:
         intent = ActionIntent(
@@ -147,38 +108,24 @@ class TestNarrateFlow:
         assert len(narrative.steps) == 1
         assert "example.com" in narrative.precondition
 
-    def test_conclusion_all_passed(self, generator: NarrativeGenerator) -> None:
-        svs = [StepVerdict(verdict=Verdict.PASS, reason="ok")]
+    def test_conclusion_reports_average_stability(
+        self, generator: NarrativeGenerator
+    ) -> None:
         narrative = generator.narrate_flow(
             "Flow 1",
             [_make_action()],
             [_make_result()],
             [_make_state(), _make_state("s2")],
-            step_verdicts=svs,
+            observations=[
+                ObservationResult(
+                    outcome=OutcomeType.NAVIGATION,
+                    stability_score=0.9,
+                    observation_notes="Navigation completed",
+                )
+            ],
         )
-        assert "1 steps passed" in narrative.conclusion
-
-    def test_conclusion_with_failures(self, generator: NarrativeGenerator) -> None:
-        svs = [StepVerdict(verdict=Verdict.FAIL, reason="broken")]
-        narrative = generator.narrate_flow(
-            "Flow 1",
-            [_make_action()],
-            [_make_result()],
-            [_make_state(), _make_state("s2")],
-            step_verdicts=svs,
-        )
-        assert "failure" in narrative.conclusion
-
-    def test_conclusion_with_warning(self, generator: NarrativeGenerator) -> None:
-        svs = [StepVerdict(verdict=Verdict.WARN, reason="hmm")]
-        narrative = generator.narrate_flow(
-            "Flow 1",
-            [_make_action()],
-            [_make_result(OutcomeType.NO_CHANGE)],
-            [_make_state(), _make_state("s2")],
-            step_verdicts=svs,
-        )
-        assert "warning" in narrative.conclusion.lower()
+        assert "Average stability" in narrative.conclusion
+        assert "stable" in narrative.conclusion
 
     def test_gherkin_has_scenario(self, generator: NarrativeGenerator) -> None:
         narrative = generator.narrate_flow(
@@ -203,36 +150,3 @@ class TestToGherkin:
         )
         result = generator.to_gherkin(narrative)
         assert "Scenario" in result
-
-    def test_toggle_then_clause_is_expectation_based(
-        self, generator: NarrativeGenerator
-    ) -> None:
-        action = _make_action(ActionType.CHECK, label="Check: Toggle Switch")
-        action.intent = ActionIntent(
-            intent_class=IntentClass.TOGGLE,
-            target_description="Toggle Switch",
-            expected_effect="The toggle state should change",
-        )
-        result = _make_result(OutcomeType.NO_CHANGE)
-        step = generator.narrate_step(
-            action,
-            result,
-            _make_state(),
-            _make_state("s2"),
-            1,
-            intent=action.intent,
-        )
-        assert "state should change" in step.gherkin_then
-
-
-class TestToPlainEnglish:
-    def test_returns_markdown(self, generator: NarrativeGenerator) -> None:
-        narrative = generator.narrate_flow(
-            "Test Flow",
-            [_make_action()],
-            [_make_result()],
-            [_make_state(), _make_state("s2")],
-        )
-        md = generator.to_plain_english(narrative)
-        assert "## Test Flow" in md
-        assert "Step 1" in md

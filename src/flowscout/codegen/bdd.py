@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from flowscout.analysis.graph import ExplorationResult
+from flowscout.discovery.actions import OutcomeType
 
 
 def generate_feature_file(result: ExplorationResult, output_path: str) -> str:
@@ -47,16 +48,21 @@ def generate_markdown_report(result: ExplorationResult, output_path: str) -> str
     """Generate a Markdown test report with summary and step tables."""
     start_url = result.config.get("start_url", "https://example.com")
 
-    # Count verdicts across all flows
+    # Count stability statuses across all flows
     pass_count = 0
     fail_count = 0
     warn_count = 0
     for flow in result.flows:
-        verdict = getattr(flow, "verdict", None)
-        if verdict:
-            pass_count += verdict.pass_count
-            fail_count += verdict.fail_count
-            warn_count += verdict.warn_count
+        if flow.is_stable:
+            pass_count += 1
+        elif any(
+            outcome
+            in {OutcomeType.NETWORK_ERROR, OutcomeType.TIMEOUT, OutcomeType.EXCEPTION}
+            for outcome in flow.outcomes
+        ):
+            fail_count += 1
+        else:
+            warn_count += 1
 
     total = pass_count + fail_count + warn_count
     lines = [
@@ -79,8 +85,16 @@ def generate_markdown_report(result: ExplorationResult, output_path: str) -> str
     # Per-journey sections
     for flow in result.flows:
         narrative = getattr(flow, "narrative", None)
-        verdict = getattr(flow, "verdict", None)
-        verdict_label = verdict.verdict.value.upper() if verdict else "N/A"
+        if flow.is_stable:
+            verdict_label = "STABLE"
+        elif any(
+            outcome
+            in {OutcomeType.NETWORK_ERROR, OutcomeType.TIMEOUT, OutcomeType.EXCEPTION}
+            for outcome in flow.outcomes
+        ):
+            verdict_label = "UNSTABLE/SEVERE"
+        else:
+            verdict_label = "UNSTABLE"
 
         lines.append(f"## {flow.name} [{verdict_label}]")
         lines.append("")
@@ -90,13 +104,13 @@ def generate_markdown_report(result: ExplorationResult, output_path: str) -> str
             lines.append("")
 
         if narrative and narrative.steps:
-            lines.append("| Step | Action | Expected | Actual | Verdict |")
-            lines.append("|------|--------|----------|--------|---------|")
+            lines.append("| Step | Action | Expected | Actual | Stability |")
+            lines.append("|------|--------|----------|--------|-----------|")
             for step in narrative.steps:
-                v = step.verdict.value.upper() if step.verdict else "N/A"
                 lines.append(
                     f"| {step.step_number} | {step.action_description[:50]} | "
-                    f"{step.expected[:40]} | {step.actual[:40]} | {v} |"
+                    f"{step.expected[:40]} | {step.actual[:40]} | "
+                    f"{step.stability_score:.2f} |"
                 )
             lines.append("")
 

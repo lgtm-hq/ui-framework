@@ -178,6 +178,16 @@ class TerminalReporter:
         """Print the final exploration summary."""
         self.console.print()
 
+        stability_scores = [
+            float(action_result.stability_score or 0.0)
+            for action_result in result.results
+        ]
+        average_stability = (
+            sum(stability_scores) / len(stability_scores) if stability_scores else 0.0
+        )
+        stable_steps = sum(1 for score in stability_scores if score >= 0.7)
+        unstable_steps = sum(1 for score in stability_scores if score < 0.7)
+
         # Stats table
         table = Table(title="Exploration Summary", border_style="cyan")
         table.add_column("Metric", style="bold")
@@ -192,21 +202,11 @@ class TerminalReporter:
         )
         table.add_row("Flows identified", str(len(result.flows)))
         table.add_row("Duration", f"{result.duration_seconds:.1f}s")
+        table.add_row("Avg stability", f"{average_stability:.2f}")
+        table.add_row("Stable steps (>=0.7)", str(stable_steps))
+        table.add_row("Unstable steps (<0.7)", str(unstable_steps))
 
         self.console.print(table)
-
-        # Verdict summary
-        pass_count = sum(1 for r in result.results if r.verdict == "pass")
-        fail_count = sum(1 for r in result.results if r.verdict == "fail")
-        warn_count = sum(1 for r in result.results if r.verdict == "warn")
-        if pass_count or fail_count or warn_count:
-            verdict_line = Text("  Verdicts: ")
-            verdict_line.append(f"{pass_count} PASSED", style="green")
-            verdict_line.append(", ")
-            verdict_line.append(f"{fail_count} FAILED", style="red")
-            verdict_line.append(", ")
-            verdict_line.append(f"{warn_count} WARNINGS", style="yellow")
-            self.console.print(verdict_line)
 
         # Outcome breakdown
         outcome_table = Table(title="Outcome Breakdown", border_style="dim")
@@ -230,30 +230,22 @@ class TerminalReporter:
             flow_table.add_column("Name", style="bold")
             flow_table.add_column("Steps", justify="right", width=6)
             flow_table.add_column("Type", width=8)
-            flow_table.add_column("Verdict", width=8)
+            flow_table.add_column("Stability", width=14)
             flow_table.add_column("Description", max_width=55)
 
             for i, flow in enumerate(result.flows[:20], 1):
                 flow_type = "[red]Cycle[/red]" if flow.is_cycle else "Linear"
-                v = getattr(flow.verdict, "verdict", None)
-                if v:
-                    v_str = v.value.upper()
-                    if v_str == "PASS":
-                        verdict_text = "[green]PASS[/green]"
-                    elif v_str == "FAIL":
-                        verdict_text = "[red]FAIL[/red]"
-                    elif v_str == "WARN":
-                        verdict_text = "[yellow]WARN[/yellow]"
-                    else:
-                        verdict_text = f"[dim]{v_str}[/dim]"
-                else:
-                    verdict_text = "[dim]N/A[/dim]"
+                stability_text = (
+                    f"[green]{flow.stability_score:.2f} stable[/green]"
+                    if flow.is_stable
+                    else f"[yellow]{flow.stability_score:.2f} unstable[/yellow]"
+                )
                 flow_table.add_row(
                     str(i),
                     flow.name,
                     str(flow.depth),
                     flow_type,
-                    verdict_text,
+                    stability_text,
                     flow.description[:55],
                 )
 

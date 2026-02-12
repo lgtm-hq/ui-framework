@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field
 import networkx as nx
 
 from flowscout.analysis.narrative import FlowNarrative
-from flowscout.analysis.verdict import JourneyVerdict
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
@@ -31,7 +30,8 @@ class Flow(BaseModel):
     outcomes: list[OutcomeType] = Field(default_factory=list)
     is_cycle: bool = False
     depth: int = 0
-    verdict: JourneyVerdict | None = None
+    stability_score: float = 0.0
+    is_stable: bool = False
     narrative: FlowNarrative | None = None
     category: str = ""
     tags: list[str] = Field(default_factory=list)
@@ -369,8 +369,8 @@ class ExplorationGraph:
                     name = f"{name} · {outcome_summary}"
 
             description = action_summary
-            if result.actual:
-                description = f"{description} \u2192 {result.actual}"
+            if result.observation_notes:
+                description = f"{description} \u2192 {result.observation_notes}"
             elif result.message:
                 description = f"{description} \u2192 {result.message}"
 

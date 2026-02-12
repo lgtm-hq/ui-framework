@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.table import Table
@@ -24,6 +25,21 @@ def _compute_benchmark_metrics(
     low_confidence_threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD,
 ) -> dict[str, int | float | bool]:
     """Compute key v1 benchmark metrics from an exploration result."""
+
+    def _result_stability_score(action_result: Any) -> float:
+        """Return normalized stability score for current/legacy artifacts."""
+        score = float(getattr(action_result, "stability_score", 0.0) or 0.0)
+        if score > 0:
+            return score
+        return float(getattr(action_result, "confidence", 0.0) or 0.0)
+
+    def _result_stability_note(action_result: Any) -> str:
+        """Return observation note for current/legacy artifacts."""
+        note = str(getattr(action_result, "observation_notes", "") or "").strip()
+        if note:
+            return note
+        return str(getattr(action_result, "confidence_reason", "") or "").strip()
+
     all_urls = {state.url for state in result.states.values()}
     tested_urls: set[str] = set()
     for action_result in result.results:
@@ -37,9 +53,10 @@ def _compute_benchmark_metrics(
     executed_ids = {action_result.action_id for action_result in result.results}
     total_discovered_actions = len(result.actions)
     confidence_samples = [
-        action_result.confidence
+        _result_stability_score(action_result)
         for action_result in result.results
-        if action_result.confidence > 0 or action_result.confidence_reason
+        if _result_stability_score(action_result) > 0
+        or _result_stability_note(action_result)
     ]
     avg_confidence = sum(confidence_samples) / max(len(confidence_samples), 1)
     low_confidence_count = sum(

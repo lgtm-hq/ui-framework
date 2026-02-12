@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from flowscout.analysis.element_inventory import summarize_element_inventory
 from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
 from flowscout.analysis.narrative import NarrativeGenerator
-from flowscout.analysis.verdict import VerdictComputer
+from flowscout.analysis.verdict import ObservationComputer, ObservationResult
 from flowscout.core.browser import BrowserManager
 from flowscout.core.errors import BrowserError
 from flowscout.core.frontier import FrontierManager, is_diverse_action
@@ -52,7 +52,7 @@ class Navigator:
         self.terminal = terminal
         self._frontier = frontier or FrontierManager()
         self._total_actions_executed = 0
-        self._verdict_computer = VerdictComputer()
+        self._observation_computer = ObservationComputer()
         self._narrative_generator = NarrativeGenerator()
 
         # Smart planner (only active in smart mode)
@@ -126,22 +126,16 @@ class Navigator:
             is_new_state = self.graph.add_state(target_state)
             self.graph.add_result(result)
 
-            # Compute step verdict
+            # Compute step observation
             is_invalid = action.meta.is_invalid_scenario
             observed_detail = self._result_detail(result)
-            step_verdict = self._verdict_computer.compute_step_verdict(
+            observation = self._observation_computer.compute_observation(
                 result.outcome,
-                action.intent,
-                is_invalid_scenario=is_invalid,
                 observed_detail=observed_detail,
+                is_invalid_scenario=is_invalid,
             )
-            result.verdict = step_verdict.verdict.value
-            result.verdict_reason = step_verdict.reason
-            result.expected = step_verdict.expected
-            result.actual = step_verdict.actual
-            result.confidence, result.confidence_reason = (
-                self._compute_transition_confidence(result.outcome)
-            )
+            result.stability_score = observation.stability_score
+            result.observation_notes = observation.observation_notes
 
             self.terminal.log_action_result(action, result, is_new_state)
 
@@ -160,9 +154,9 @@ class Navigator:
                     " reached, not exploring further"
                 )
 
-        # 5. Extract flows and compute verdicts + narratives
+        # 5. Extract flows and compute observation summaries + narratives
         flows = self.graph.extract_flows()
-        self._compute_flow_verdicts_and_narratives(flows)
+        self._compute_flow_summaries_and_narratives(flows)
         duration = time.monotonic() - start_time
         stats = self.graph.get_stats()
 
@@ -375,12 +369,10 @@ class Navigator:
             )
             return False
 
-    def _compute_flow_verdicts_and_narratives(self, flows: list[Flow]) -> None:
-        """Compute journey verdicts and narratives for each flow."""
-        from flowscout.analysis.verdict import StepVerdict, Verdict
-
+    def _compute_flow_summaries_and_narratives(self, flows: list[Flow]) -> None:
+        """Compute flow stability summaries and narratives for each flow."""
         for flow in flows:
-            step_verdicts: list[StepVerdict] = []
+            step_observations: list[ObservationResult] = []
             flow_actions: list[Action] = []
             flow_results: list[ActionResult] = []
             flow_intents = []
@@ -404,22 +396,17 @@ class Navigator:
                     flow_intents.append(action.intent)
                 if matching_result:
                     flow_results.append(matching_result)
-                    sv = StepVerdict(
-                        verdict=(
-                            Verdict(matching_result.verdict)
-                            if matching_result.verdict
-                            else Verdict.INCONCLUSIVE
-                        ),
-                        reason=matching_result.verdict_reason or "",
-                        expected=matching_result.expected or "",
-                        actual=matching_result.actual or "",
+                    step_observations.append(
+                        ObservationResult(
+                            outcome=matching_result.outcome,
+                            stability_score=matching_result.stability_score,
+                            observation_notes=matching_result.observation_notes,
+                        )
                     )
-                    step_verdicts.append(sv)
 
-            journey_verdict = self._verdict_computer.compute_journey_verdict(
-                step_verdicts
-            )
-            flow.verdict = journey_verdict
+            flow_summary = self._observation_computer.summarize_flow(step_observations)
+            flow.stability_score = flow_summary.stability_score
+            flow.is_stable = flow_summary.is_stable
 
             flow_states: list[PageState | None] = [
                 self.graph.states.get(sid) for sid in flow.state_ids
@@ -430,7 +417,7 @@ class Navigator:
                 flow_results,
                 flow_states,
                 intents=flow_intents,
-                step_verdicts=step_verdicts,
+                observations=step_observations,
             )
             flow.narrative = narrative
 
@@ -459,18 +446,8 @@ class Navigator:
     @staticmethod
     def _compute_transition_confidence(outcome: OutcomeType) -> tuple[float, str]:
         """Map an observed outcome to a confidence score and reason."""
-        mapping: dict[OutcomeType, tuple[float, str]] = {
-            OutcomeType.NAVIGATION: (0.95, "URL changed and navigation completed"),
-            OutcomeType.DOM_CHANGE: (0.85, "DOM changed after interaction"),
-            OutcomeType.VALIDATION_ERROR: (0.8, "Validation feedback detected"),
-            OutcomeType.VISUAL_CHANGE: (0.7, "Visual state changed"),
-            OutcomeType.NO_CHANGE: (0.55, "No visible transition detected"),
-            OutcomeType.TIMEOUT: (0.3, "Action timed out"),
-            OutcomeType.NETWORK_ERROR: (0.25, "HTTP/network errors detected"),
-            OutcomeType.CONSOLE_ERROR: (0.25, "Console errors detected"),
-            OutcomeType.EXCEPTION: (0.2, "Action raised an exception"),
-        }
-        return mapping.get(outcome, (0.5, "Unknown outcome"))
+        observation = ObservationComputer().compute_observation(outcome)
+        return observation.stability_score, observation.observation_notes
 
 
 # Backward-compatible alias

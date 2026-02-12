@@ -7,6 +7,7 @@ from pathlib import Path
 from xml.dom import minidom  # nosec B408 - generating XML, not parsing untrusted input
 
 from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.discovery.actions import OutcomeType
 
 
 def generate_junit_report(result: ExplorationResult, output_path: str) -> None:
@@ -49,29 +50,34 @@ def _build_junit_xml(result: ExplorationResult) -> ET.Element:
             testcase.set("name", flow.name)
             testcase.set("classname", f"flowscout.{cat_name}")
 
-            verdict_val = ""
-            if flow.verdict:
-                verdict_val = flow.verdict.verdict.value
+            has_severe = any(
+                outcome
+                in {
+                    OutcomeType.NETWORK_ERROR,
+                    OutcomeType.TIMEOUT,
+                    OutcomeType.EXCEPTION,
+                }
+                for outcome in flow.outcomes
+            )
+            verdict_val = (
+                "pass" if flow.is_stable else ("fail" if has_severe else "warn")
+            )
 
             if verdict_val == "fail":
                 failure = ET.SubElement(testcase, "failure")
-                failure.set(
-                    "message", flow.verdict.summary if flow.verdict else "Test failed"
-                )
+                failure.set("message", "Unstable flow with severe failure outcomes")
                 failure.set("type", "AssertionError")
-                if flow.narrative and flow.narrative.summary:
-                    failure.text = flow.narrative.summary
+                if flow.narrative and flow.narrative.conclusion:
+                    failure.text = flow.narrative.conclusion
                 suite_failures += 1
             elif verdict_val == "warn":
                 error = ET.SubElement(testcase, "error")
-                error.set(
-                    "message", flow.verdict.summary if flow.verdict else "Warning"
-                )
+                error.set("message", "Unstable flow")
                 error.set("type", "Warning")
                 suite_errors += 1
-            elif not verdict_val or verdict_val == "inconclusive":
+            elif not verdict_val:
                 skipped = ET.SubElement(testcase, "skipped")
-                skipped.set("message", "Inconclusive verdict")
+                skipped.set("message", "No stability signal")
                 suite_skipped += 1
 
         testsuite.set("failures", str(suite_failures))

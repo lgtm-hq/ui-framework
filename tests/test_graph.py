@@ -207,7 +207,7 @@ class TestExplorationGraph:
                 source_state_id="s1",
                 target_state_id="s1",
                 outcome=OutcomeType.VALIDATION_ERROR,
-                actual="Validation error was shown",
+                observation_notes="Validation error was shown",
             )
         )
 

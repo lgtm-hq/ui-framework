@@ -6,7 +6,6 @@ import xml.etree.ElementTree as ET  # nosec B405 - parsing our own generated XML
 from pathlib import Path
 
 from flowscout.analysis.graph import ExplorationResult, Flow
-from flowscout.analysis.verdict import JourneyVerdict, Verdict
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.junit_export import generate_junit_report
@@ -57,18 +56,25 @@ def _make_result(
     flows = []
     for i in range(num_flows):
         v = verdicts[i] if i < len(verdicts) else "pass"
+        outcomes = [OutcomeType.NO_CHANGE]
+        is_stable = True
+        if v == "fail":
+            outcomes = [OutcomeType.TIMEOUT]
+            is_stable = False
+        elif v == "warn":
+            outcomes = [OutcomeType.NO_CHANGE]
+            is_stable = False
+
         flow = Flow(
             flow_id=f"flow-{i}",
             name=f"Flow {i}",
             description=f"Test flow {i}",
             state_ids=["s0"],
             action_ids=["a0"],
-            outcomes=[OutcomeType.NO_CHANGE],
+            outcomes=outcomes,
             depth=1,
-        )
-        flow.verdict = JourneyVerdict(
-            verdict=Verdict(v),
-            summary=f"Test {v}",
+            stability_score=0.95 if is_stable else 0.45,
+            is_stable=is_stable,
         )
         flows.append(flow)
 

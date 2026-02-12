@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 if TYPE_CHECKING:
     from flowscout.core.state import PageState
 
-from flowscout.analysis.verdict import StepVerdict, Verdict
+from flowscout.analysis.verdict import ObservationResult
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.discovery.intent import ActionIntent, IntentClass
 
@@ -22,7 +22,10 @@ class NarrativeStep(BaseModel):
     action_description: str
     expected: str = ""
     actual: str = ""
-    verdict: Verdict | None = None
+    outcome: OutcomeType | None = None
+    stability_score: float = 0.0
+    observation_notes: str = ""
+    is_stable: bool = False
     gherkin_when: str = ""
     gherkin_then: str = ""
     target_selector: str = ""
@@ -81,6 +84,8 @@ def _humanize(text: str) -> str:
 class NarrativeGenerator:
     """Generates human-readable narratives and Gherkin from flow data."""
 
+    _STEP_STABLE_THRESHOLD = 0.7
+
     def narrate_step(
         self,
         action: Action,
@@ -90,19 +95,21 @@ class NarrativeGenerator:
         step_number: int,
         *,
         intent: ActionIntent | None = None,
-        step_verdict: StepVerdict | None = None,
+        observation: ObservationResult | None = None,
     ) -> NarrativeStep:
         """Generate a narrative for a single action step."""
         desc = self._action_description(action, result, source_state)
-        expected = (
-            _humanize(step_verdict.expected)
-            if step_verdict and step_verdict.expected
-            else (_humanize(intent.expected_effect) if intent else "")
+        expected = _humanize(intent.expected_effect) if intent else ""
+        actual = self._outcome_description(result, target_state)
+        stability_score = (
+            observation.stability_score
+            if observation
+            else float(result.stability_score or 0.0)
         )
-        actual = (
-            step_verdict.actual
-            if step_verdict and step_verdict.actual
-            else self._outcome_description(result, target_state)
+        observation_notes = (
+            observation.observation_notes
+            if observation
+            else (result.observation_notes or "").strip()
         )
 
         gherkin_when = self._gherkin_when(action)
@@ -123,7 +130,10 @@ class NarrativeGenerator:
             action_description=desc,
             expected=expected,
             actual=actual,
-            verdict=step_verdict.verdict if step_verdict else None,
+            outcome=result.outcome,
+            stability_score=stability_score,
+            observation_notes=observation_notes,
+            is_stable=stability_score >= self._STEP_STABLE_THRESHOLD,
             gherkin_when=gherkin_when,
             gherkin_then=gherkin_then,
             target_selector=action.target_selector,
@@ -143,7 +153,7 @@ class NarrativeGenerator:
         states: list[PageState | None],
         *,
         intents: list[ActionIntent | None] | None = None,
-        step_verdicts: list[StepVerdict | None] | None = None,
+        observations: list[ObservationResult | None] | None = None,
     ) -> FlowNarrative:
         """Generate a complete narrative for a flow."""
         steps: list[NarrativeStep] = []
@@ -158,7 +168,9 @@ class NarrativeGenerator:
             source = states[i] if i < len(states) else None
             target = states[i + 1] if (i + 1) < len(states) else None
             intent = intents[i] if intents and i < len(intents) else None
-            sv = step_verdicts[i] if step_verdicts and i < len(step_verdicts) else None
+            observation = (
+                observations[i] if observations and i < len(observations) else None
+            )
 
             step = self.narrate_step(
                 action,
@@ -167,23 +179,22 @@ class NarrativeGenerator:
                 target,
                 i + 1,
                 intent=intent,
-                step_verdict=sv,
+                observation=observation,
             )
             steps.append(step)
 
-        # Conclusion from verdict counts
-        pass_count = sum(1 for s in steps if s.verdict == Verdict.PASS)
-        fail_count = sum(1 for s in steps if s.verdict == Verdict.FAIL)
-        warn_count = sum(1 for s in steps if s.verdict == Verdict.WARN)
+        # Conclusion from stability observations.
         total = len(steps)
-        if fail_count > 0:
-            conclusion = f"{fail_count} failure(s) out of {total} steps"
-        elif warn_count > 0:
-            conclusion = f"{pass_count} steps passed with {warn_count} warning(s)"
-        elif total > 0:
-            conclusion = f"All {total} steps passed"
-        else:
+        if total == 0:
             conclusion = "No steps executed"
+        else:
+            avg_stability = sum(step.stability_score for step in steps) / total
+            stable_count = sum(1 for step in steps if step.is_stable)
+            unstable_count = total - stable_count
+            conclusion = (
+                f"Average stability {avg_stability:.2f}"
+                f" ({stable_count} stable, {unstable_count} unstable)"
+            )
 
         gherkin = self._build_gherkin(flow_name, precondition, steps)
 
@@ -207,9 +218,16 @@ class NarrativeGenerator:
             lines.append("")
 
         for step in narrative.steps:
-            verdict_tag = f" [{step.verdict.value.upper()}]" if step.verdict else ""
-            lines.append(f"### Step {step.step_number}{verdict_tag}")
+            lines.append(f"### Step {step.step_number}")
             lines.append(f"**Action:** {step.action_description}")
+            if step.outcome:
+                lines.append(f"**Outcome:** {step.outcome.value}")
+            lines.append(
+                f"**Stability:** {step.stability_score:.2f}"
+                f" ({'stable' if step.is_stable else 'unstable'})"
+            )
+            if step.observation_notes:
+                lines.append(f"**Observation:** {step.observation_notes}")
             if step.expected:
                 lines.append(f"**Expected:** {step.expected}")
             if step.actual:

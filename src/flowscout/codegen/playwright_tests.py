@@ -162,14 +162,6 @@ def _generate_flow_test(
             _traceability_comments(action, matching_result, prefix="    # "),
         )
 
-        # Verdict comment
-        if matching_result and matching_result.verdict:
-            expected = matching_result.expected or "N/A"
-            actual = matching_result.actual or "N/A"
-            verdict = matching_result.verdict.upper()
-            lines.append(
-                f"    # Expected: {expected} | Actual: {actual} | Verdict: {verdict}"
-            )
         lines.extend(_confidence_comments(matching_result, prefix="    # "))
 
         # Visibility check before interaction
@@ -243,15 +235,7 @@ def _generate_action_test(
     lines.append('    page.wait_for_load_state("networkidle")')
     lines.append("")
 
-    # Verdict comment
     lines.extend(_traceability_comments(action, r, prefix="    # "))
-    if r.verdict:
-        r_expected = r.expected or "N/A"
-        r_actual = r.actual or "N/A"
-        r_verdict = r.verdict.upper()
-        lines.append(
-            f"    # Expected: {r_expected} | Actual: {r_actual} | Verdict: {r_verdict}"
-        )
     lines.extend(_confidence_comments(r, prefix="    # "))
 
     # Visibility check
@@ -414,14 +398,6 @@ def _generate_playwright_suite(result: ExplorationResult) -> str:
                 _traceability_comments(action, matching_result, prefix="    // "),
             )
 
-            # Verdict comment
-            if matching_result and matching_result.verdict:
-                ts_exp = matching_result.expected or "N/A"
-                ts_act = matching_result.actual or "N/A"
-                ts_ver = matching_result.verdict.upper()
-                lines.append(
-                    f"    // Expected: {ts_exp} | Actual: {ts_act} | Verdict: {ts_ver}"
-                )
             lines.extend(_confidence_comments(matching_result, prefix="    // "))
 
             sel = action.target_selector.replace("'", "\\'")
@@ -501,17 +477,14 @@ def _confidence_comments(
     if not result:
         return []
 
-    score = max(0.0, min(result.confidence, 1.0))
-    reason = result.confidence_reason or "No confidence reason recorded"
+    score = max(0.0, min(result.stability_score, 1.0))
+    reason = result.observation_notes or "No observation note recorded"
     comments = [
-        (
-            f"{prefix}Reliability: confidence={score:.2f} "
-            f"({score * 100:.0f}%) | reason={reason}"
-        )
+        f"{prefix}Stability: score={score:.2f} ({score * 100:.0f}%) | reason={reason}"
     ]
     if score < LOW_CONFIDENCE_THRESHOLD:
         comments.append(
-            f"{prefix}Reliability flag: LOW_CONFIDENCE"
+            f"{prefix}Stability flag: LOW_STABILITY"
             " transition - review waits/selectors"
             " before relying on this assertion."
         )

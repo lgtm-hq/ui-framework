@@ -52,14 +52,14 @@ def test_compute_benchmark_metrics_counts_low_confidence_and_coverage() -> None:
                 source_state_id="s1",
                 target_state_id="s2",
                 outcome=OutcomeType.NAVIGATION,
-                confidence=0.92,
+                stability_score=0.92,
             ),
             ActionResult(
                 action_id="a2",
                 source_state_id="s2",
                 target_state_id="s2",
                 outcome=OutcomeType.NO_CHANGE,
-                confidence=0.4,
+                stability_score=0.4,
             ),
         ],
         stats={
@@ -137,8 +137,8 @@ def test_compute_benchmark_metrics_ignores_missing_legacy_confidence() -> None:
                 source_state_id="s1",
                 target_state_id="s2",
                 outcome=OutcomeType.NAVIGATION,
-                confidence=0.0,
-                confidence_reason="",
+                stability_score=0.0,
+                observation_notes="",
             )
         ],
     )
@@ -168,7 +168,7 @@ def test_compute_benchmark_metrics_includes_element_inventory() -> None:
                 source_state_id="s1",
                 target_state_id="s1",
                 outcome=OutcomeType.NO_CHANGE,
-                confidence=0.7,
+                stability_score=0.7,
             )
         ],
         element_inventory={

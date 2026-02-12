@@ -716,13 +716,20 @@ async def _run_exploration(
                 if features:
                     console.print(f"    Features: {', '.join(features)}")
 
-        # Print verdict summary
-        pass_count = sum(1 for r in result.results if r.verdict == "pass")
-        fail_count = sum(1 for r in result.results if r.verdict == "fail")
-        if pass_count or fail_count:
+        # Print stability summary
+        stability_scores = [
+            float(action_result.stability_score or 0.0)
+            for action_result in result.results
+        ]
+        if stability_scores:
+            avg_stability = sum(stability_scores) / len(stability_scores)
+            stable_steps = sum(1 for score in stability_scores if score >= 0.7)
+            unstable_steps = len(stability_scores) - stable_steps
             console.print(
-                f"\n  Verdict: [green]{pass_count} passed"
-                f"[/green], [red]{fail_count} failed[/red]"
+                "\n  Stability: "
+                f"[cyan]{avg_stability:.2f} avg[/cyan], "
+                f"[green]{stable_steps} stable[/green], "
+                f"[yellow]{unstable_steps} unstable[/yellow]"
             )
 
     except KeyboardInterrupt:

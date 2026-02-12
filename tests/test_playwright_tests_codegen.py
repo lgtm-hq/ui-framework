@@ -22,7 +22,7 @@ def _make_state(state_id: str, url: str, *, title: str) -> PageState:
     )
 
 
-def _build_result(*, confidence: float, reason: str) -> ExplorationResult:
+def _build_result(*, stability: float, reason: str) -> ExplorationResult:
     flow = Flow(
         flow_id="flow-1",
         name="Home to target",
@@ -53,8 +53,8 @@ def _build_result(*, confidence: float, reason: str) -> ExplorationResult:
                 target_state_id="s2",
                 outcome=OutcomeType.NAVIGATION,
                 url_after="https://example.com/target",
-                confidence=confidence,
-                confidence_reason=reason,
+                stability_score=stability,
+                observation_notes=reason,
             )
         ],
         flows=[flow],
@@ -63,7 +63,7 @@ def _build_result(*, confidence: float, reason: str) -> ExplorationResult:
 
 def test_pytest_codegen_marks_low_confidence_transition() -> None:
     result = _build_result(
-        confidence=0.55,
+        stability=0.55,
         reason="No visible transition detected",
     )
 
@@ -72,15 +72,15 @@ def test_pytest_codegen_marks_low_confidence_transition() -> None:
         generate_test_suite(result, str(output), framework="pytest")
         code = output.read_text()
 
-    assert "Reliability: confidence=0.55 (55%)" in code
+    assert "Stability: score=0.55 (55%)" in code
     assert "reason=No visible transition detected" in code
-    assert "Reliability flag: LOW_CONFIDENCE transition" in code
+    assert "Stability flag: LOW_STABILITY transition" in code
     assert "Trace: action_id=a1 | edge=s1->s2 | outcome=navigation" in code
 
 
 def test_pytest_codegen_does_not_flag_high_confidence_transition() -> None:
     result = _build_result(
-        confidence=0.95,
+        stability=0.95,
         reason="URL changed and navigation completed",
     )
 
@@ -89,15 +89,15 @@ def test_pytest_codegen_does_not_flag_high_confidence_transition() -> None:
         generate_test_suite(result, str(output), framework="pytest")
         code = output.read_text()
 
-    assert "Reliability: confidence=0.95 (95%)" in code
+    assert "Stability: score=0.95 (95%)" in code
     assert "reason=URL changed and navigation completed" in code
-    assert "Reliability flag: LOW_CONFIDENCE transition" not in code
+    assert "Stability flag: LOW_STABILITY transition" not in code
     assert "Trace: action_id=a1 | edge=s1->s2 | outcome=navigation" in code
 
 
 def test_playwright_codegen_marks_low_confidence_transition() -> None:
     result = _build_result(
-        confidence=0.3,
+        stability=0.3,
         reason="Action timed out",
     )
 
@@ -106,7 +106,7 @@ def test_playwright_codegen_marks_low_confidence_transition() -> None:
         generate_test_suite(result, str(output), framework="playwright")
         code = output.read_text()
 
-    assert "// Reliability: confidence=0.30 (30%)" in code
+    assert "// Stability: score=0.30 (30%)" in code
     assert "reason=Action timed out" in code
-    assert "// Reliability flag: LOW_CONFIDENCE transition" in code
+    assert "// Stability flag: LOW_STABILITY transition" in code
     assert "// Trace: action_id=a1 | edge=s1->s2 | outcome=navigation" in code

@@ -9,7 +9,6 @@ from typing import Any
 
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.analysis.narrative import FlowNarrative, NarrativeStep
-from flowscout.analysis.verdict import JourneyVerdict, Verdict
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import HTMLReporter
@@ -80,7 +79,8 @@ def _generate_report(tmp_path: Path) -> str:
                 action_ids=["a0"],
                 outcomes=[OutcomeType.NAVIGATION],
                 depth=1,
-                verdict=JourneyVerdict(verdict=Verdict.PASS, summary="Passed"),
+                stability_score=0.95,
+                is_stable=True,
                 narrative=FlowNarrative(
                     title="Navigate to About",
                     precondition="User is on the Home page",
@@ -88,7 +88,10 @@ def _generate_report(tmp_path: Path) -> str:
                         NarrativeStep(
                             step_number=1,
                             action_description="Click About link",
-                            verdict=Verdict.PASS,
+                            outcome=OutcomeType.NAVIGATION,
+                            stability_score=0.95,
+                            observation_notes="Navigation completed",
+                            is_stable=True,
                         ),
                     ],
                     conclusion="Navigation successful",
