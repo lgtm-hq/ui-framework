@@ -42,6 +42,8 @@ tangled coupling that requires painful refactoring later.
 │  Output: ExplorationResult (serializable JSON)      │
 │                                                     │
 │  Modules: core/browser, core/navigator,             │
+│           core/state, core/archetypes,               │
+│           core/action_types,                         │
 │           discovery/elements, discovery/actions,     │
 │           discovery/inputs, analysis/detector        │
 └──────────────────────┬──────────────────────────────┘
@@ -58,7 +60,8 @@ tangled coupling that requires painful refactoring later.
 │  Input:  ExplorationResult                          │
 │  Output: SiteModel (serializable JSON)              │
 │                                                     │
-│  Modules: analysis/site_model, analysis/archetype,  │
+│  Modules: modeling/site_model, modeling/archetype,   │
+│           modeling/scenarios,                        │
 │           analysis/graph (flow dedup only),          │
 │           modeling/components, modeling/locators     │
 └──────────────────────┬──────────────────────────────┘
@@ -125,17 +128,19 @@ uv run flowscout generate model.json --mbt edge        # MBT walk + tests
 | Concern | Currently Lives In | Should Live In | Migration |
 |---|---|---|---|
 | Flow extraction | `analysis/graph.py` (Layer 1) | `analysis/graph.py` (Layer 1 — raw flows) + `modeling/flows.py` (Layer 2 — dedup) | Split in Phase 2.1 |
-| Scenario synthesis | `smart/scenarios.py` (Layer 1/2 blend) | `modeling/scenarios.py` (Layer 2) | Move in Phase 1.4 |
-| Page analysis | `smart/planner.py` (Layer 1 — during crawl) | Keep in Layer 1 (real-time guidance), but output feeds Layer 2 cleanly | Clean interface in Phase 1.4 |
-| POM generation | `codegen/page_objects.py` (Layer 3) | `codegen/page_objects.py` (Layer 3) — already correct | No change needed |
-| Report building | `reporting/html.py` (Layer 3) | `reporting/html.py` (Layer 3) — already correct | Feed from SiteModel in Phase 4 |
-| Test codegen | `codegen/playwright_tests.py` + `codegen/scenario_tests.py` (Layer 3) | Single `codegen/tests.py` (Layer 3) | Consolidate in Phase 1.3 |
-| Site model | `analysis/site_model.py` (Layer 1/2 blend) | `modeling/site_model.py` (Layer 2) | Move in Phase 1.4 |
+| Scenario synthesis | `modeling/scenarios.py` (Layer 2) | `modeling/scenarios.py` (Layer 2) | Done (Phase 1.4) |
+| Page analysis | `smart/planner.py` (Layer 1 — during crawl) | Keep in Layer 1, shared types in `core/archetypes.py` | Done (Phase 1.4) |
+| POM generation | `codegen/page_objects.py` (Layer 3) | `codegen/page_objects.py` (Layer 3) | No change needed |
+| Report building | `reporting/html.py` (Layer 3) | `reporting/html.py` (Layer 3) | Feed from SiteModel in Phase 4 |
+| Test codegen | `codegen/scenario_tests.py` (primary) + `codegen/playwright_tests.py` (legacy) | `codegen/scenario_tests.py` (Layer 3) | Done (Phase 1.3) |
+| Site model | `modeling/site_model.py` (Layer 2) | `modeling/site_model.py` (Layer 2) | Done (Phase 1.4) |
 | MBT walking | Does not exist | `mbt/walker.py` (Layer 3) | Create in Phase 3.1 |
 
 ---
 
 ## Phase 1: Foundation Reset
+
+**Status**: COMPLETE
 
 **Goal**: Align defaults with the vision and establish the three-layer
 boundary.
@@ -154,11 +159,11 @@ Smart mode is the product. Non-smart mode becomes `--no-smart`.
 
 **Acceptance criteria**:
 
-- [ ] `uv run flowscout explore <url>` runs with smart mode enabled
-- [ ] `uv run flowscout explore <url> --no-smart` disables it
-- [ ] All existing tests pass (update fixtures that assumed non-smart
+- [x] `uv run flowscout explore <url>` runs with smart mode enabled
+- [x] `uv run flowscout explore <url> --no-smart` disables it
+- [x] All existing tests pass (update fixtures that assumed non-smart
       default)
-- [ ] CLI help text reflects the new default
+- [x] CLI help text reflects the new default
 
 ### 1.2 Simplify the verdict system
 
@@ -202,13 +207,13 @@ what's there — it doesn't judge pass/fail without requirements.
 
 **Acceptance criteria**:
 
-- [ ] `ActionResult` has `stability_score: float` instead of
+- [x] `ActionResult` has `stability_score: float` instead of
       `confidence` + `verdict` + `expected` + `actual`
-- [ ] `Flow` has `stability_score: float` and `is_stable: bool`
+- [x] `Flow` has `stability_score: float` and `is_stable: bool`
       instead of `verdict: JourneyVerdict`
-- [ ] Reports show stability scores, not pass/fail verdicts
-- [ ] All tests updated and passing
-- [ ] No references to `StepVerdict` or `JourneyVerdict` remain
+- [x] Reports show stability scores, not pass/fail verdicts
+- [x] All tests updated and passing
+- [x] No references to `StepVerdict` or `JourneyVerdict` remain
 
 ### 1.3 Consolidate codegen output paths
 
@@ -232,11 +237,11 @@ produces inferior output that contradicts the POM vision).
 
 **Acceptance criteria**:
 
-- [ ] `--generate-tests` produces `pages/` directory + scenario test
+- [x] `--generate-tests` produces `pages/` directory + scenario test
       file by default
-- [ ] `--generate-tests --legacy` produces old flat scripts
-- [ ] BDD output still works via `--bdd` flag
-- [ ] No duplicate codegen logic between modules
+- [x] `--generate-tests --legacy` produces old flat scripts
+- [x] BDD output still works via `--bdd` flag
+- [x] No duplicate codegen logic between modules
 
 ### 1.4 Establish the three-layer boundary
 
@@ -278,7 +283,8 @@ src/flowscout/
   # Layer 3: Generation
   codegen/
     page_objects.py     # POM class generation
-    tests.py            # Scenario test generation (consolidated)
+    scenario_tests.py   # Scenario test generation (primary)
+    playwright_tests.py # Legacy flat tests (--legacy escape hatch)
     bdd.py              # BDD feature file generation (optional)
   mbt/
     __init__.py
@@ -334,17 +340,17 @@ src/flowscout/
 
 **Acceptance criteria**:
 
-- [ ] `modeling/` package exists with all Layer 2 modules
-- [ ] `mbt/` package exists (stubs for Phase 3)
-- [ ] No Layer 1 module imports from `modeling/` or `codegen/`
-- [ ] No Layer 2 module imports from `codegen/`, `mbt/`, or
+- [x] `modeling/` package exists with all Layer 2 modules
+- [x] `mbt/` package exists (stubs for Phase 3)
+- [x] No Layer 1 module imports from `modeling/` or `codegen/`
+- [x] No Layer 2 module imports from `codegen/`, `mbt/`, or
       `reporting/`
-- [ ] `flowscout model result.json` CLI command works
-- [ ] `flowscout generate model.json` CLI command works
-- [ ] Full pipeline (`flowscout explore <url>`) still works
+- [x] `flowscout model result.json` CLI command works
+- [x] `flowscout generate model.json` CLI command works
+- [x] Full pipeline (`flowscout explore <url>`) still works
       end-to-end
-- [ ] All existing tests pass
-- [ ] Import rules documented in CLAUDE.md
+- [x] All existing tests pass
+- [x] Import rules documented in CLAUDE.md
 
 ### 1.5 Define serialization contracts between layers
 
@@ -372,12 +378,239 @@ always consume Layer 2 output, even across versions.
 
 **Acceptance criteria**:
 
-- [ ] `ExplorationResult` has `schema_version: str`
-- [ ] `SiteModel` has `schema_version: str`
-- [ ] `SiteModel.from_exploration_result(result)` validates input
-- [ ] Round-trip test: explore → serialize → deserialize → model →
+- [x] `ExplorationResult` has `schema_version: str`
+- [x] `SiteModel` has `schema_version: str`
+- [x] `SiteModel.from_exploration_result(result)` validates input
+- [x] Round-trip test: explore → serialize → deserialize → model →
       serialize → deserialize → generate
-- [ ] Clear error messages when schema versions mismatch
+- [x] Clear error messages when schema versions mismatch
+
+---
+
+## Phase 1b: Real-World Site Readiness
+
+**Goal**: Make the crawler work reliably on real-world sites that have
+bot protection, authentication walls, and access controls. Without
+this, all later phases are moot for production use.
+
+**Context**: Testing against clean demo sites works fine. But real
+test/UAT environments often have WAFs, bot detection, cookie consent
+walls, and authentication — even in non-production. These milestones
+add a graduated set of capabilities: detect when you're blocked,
+reduce how often it happens, and provide escape hatches when it does.
+
+### 1b.1 Blocked page detection
+
+When the crawler lands on a page that's blocked (access denied, CAPTCHA,
+WAF challenge, cookie consent wall), it currently treats it as a normal
+page with 0 elements — a silent dead-end. The crawler should detect
+these situations and surface them clearly.
+
+**Layer**: 1 (Discovery)
+
+**Detection signals**:
+
+| Signal | Detected Via | Classification |
+|---|---|---|
+| HTTP 401/403 | Response status code | `ACCESS_DENIED` |
+| "Access Denied" text | DOM content scan | `ACCESS_DENIED` |
+| CAPTCHA iframe | reCAPTCHA/hCaptcha/Turnstile element detection | `CAPTCHA` |
+| "Verify you're human" | DOM content scan | `CAPTCHA` |
+| Cookie consent modal | Common consent framework selectors | `CONSENT_WALL` |
+| Cloudflare challenge | `cf-challenge` page markers | `WAF_CHALLENGE` |
+| 0 elements + error text | Heuristic fallback | `BLOCKED_UNKNOWN` |
+
+**Design**:
+
+```python
+# core/state.py
+class PageBlockReason(StrEnum):
+    NONE = auto()
+    ACCESS_DENIED = auto()
+    CAPTCHA = auto()
+    CONSENT_WALL = auto()
+    WAF_CHALLENGE = auto()
+    BLOCKED_UNKNOWN = auto()
+
+# On PageState
+block_reason: PageBlockReason = PageBlockReason.NONE
+block_detail: str = ""   # Human-readable description
+```
+
+**Behavior when blocked**:
+
+- Log a clear warning: "Page blocked: ACCESS_DENIED — 'Access Denied'
+  detected in page title"
+- Mark the `PageState` with `block_reason` and `block_detail`
+- Surface in terminal report and HTML report
+- Still capture a screenshot (useful for debugging)
+- Skip element discovery (don't waste time scanning a blocked page)
+- Continue exploration from other frontier items
+
+**Files to create/modify**:
+
+- `src/flowscout/core/state.py` — add `PageBlockReason` enum, add
+  fields to `PageState`
+- `src/flowscout/analysis/detector.py` — add `detect_page_block()`
+  function with DOM content scanning
+- `src/flowscout/core/navigator.py` — call block detection before
+  element discovery, skip discovery if blocked
+- `src/flowscout/reporting/terminal.py` — surface blocked states with
+  clear warning
+- `src/flowscout/reporting/html.py` — show blocked states in report
+
+**Acceptance criteria**:
+
+- [ ] Pages returning HTTP 401/403 are classified as `ACCESS_DENIED`
+- [ ] Pages with "Access Denied" / "Forbidden" in title/body are
+      detected
+- [ ] CAPTCHA pages (reCAPTCHA, hCaptcha, Turnstile) are detected
+- [ ] Blocked states are clearly reported in terminal and HTML output
+- [ ] Element discovery is skipped for blocked pages
+- [ ] Exploration continues from remaining frontier items
+- [ ] Screenshot is still captured for blocked pages
+
+### 1b.2 Browser stealth defaults
+
+Add baseline anti-detection measures so the crawler doesn't get
+blocked by simple bot checks on sites the user has legitimate access
+to. This is not about evading sophisticated security — it's about
+not failing on standard WAF configurations in test/UAT environments.
+
+**Layer**: 1 (Discovery)
+
+**Implementation**:
+
+- Integrate `playwright-stealth` (or equivalent inline patches) to
+  mask common automation indicators:
+  - `navigator.webdriver` set to `undefined`
+  - Chrome runtime properties present
+  - Plugin/mime type arrays populated
+  - WebGL vendor/renderer strings set to real values
+  - Language and platform properties consistent
+- Set a realistic User-Agent header matching the Chromium version
+- Add `--disable-blink-features=AutomationControlled` browser arg
+- Add `--stealth/--no-stealth` CLI flag (default: `--stealth`)
+
+**Files to modify**:
+
+- `src/flowscout/core/browser.py` — apply stealth patches during
+  browser launch, add realistic User-Agent, add browser args
+- `src/flowscout/cli/explore.py` — add `--stealth/--no-stealth` flag
+- `pyproject.toml` — add `playwright-stealth` dependency (if using
+  the package rather than inline patches)
+
+**Acceptance criteria**:
+
+- [ ] `navigator.webdriver` returns `undefined` on pages
+- [ ] User-Agent matches a real Chrome browser string
+- [ ] `--no-stealth` disables all stealth patches
+- [ ] Stealth is enabled by default
+- [ ] Sites with basic bot detection (webdriver check) no longer
+      block the crawler
+- [ ] No impact on existing test suite
+
+### 1b.3 Persistent browser context
+
+Allow saving and restoring browser state (cookies, localStorage,
+sessionStorage) between runs. This enables:
+
+- Solving a CAPTCHA once, then reusing the session
+- Logging in manually once, then exploring authenticated pages
+- Passing a WAF challenge once, then crawling freely
+
+**Layer**: 1 (Discovery) + CLI
+
+**Design**:
+
+```bash
+# Save browser state after exploration
+uv run flowscout explore <url> --save-context ./ctx/mysite.json
+
+# Restore browser state for next run
+uv run flowscout explore <url> --load-context ./ctx/mysite.json
+
+# Combined: load existing context, save updated context after
+uv run flowscout explore <url> --context ./ctx/mysite.json
+```
+
+**Implementation**:
+
+- After browser context creation, load cookies/storage from file if
+  `--load-context` or `--context` is provided
+- After exploration completes, save cookies/storage to file if
+  `--save-context` or `--context` is provided
+- Context file format: JSON with `cookies`, `localStorage`,
+  `sessionStorage`, `origins` sections
+- Use Playwright's `context.storage_state()` and
+  `browser.new_context(storage_state=...)` APIs
+
+**Files to modify**:
+
+- `src/flowscout/core/browser.py` — add `save_context()` and
+  `load_context()` methods using Playwright's storage state API
+- `src/flowscout/cli/explore.py` — add `--context`,
+  `--save-context`, `--load-context` CLI flags
+- `src/flowscout/core/state.py` — add context path to
+  `ExplorerConfig`
+
+**Acceptance criteria**:
+
+- [ ] `--save-context` writes browser state to JSON file
+- [ ] `--load-context` restores browser state before navigation
+- [ ] `--context` combines load + save (round-trip)
+- [ ] Cookies from a previous session are present on subsequent runs
+- [ ] Context file format is documented
+- [ ] Works with `--no-headless` for manual login → save → headless
+      explore workflow
+
+### 1b.4 CDP connection to existing browser
+
+The ultimate escape hatch for hardened environments. Instead of
+launching a new browser, connect to one the user already has open
+with an active session. This completely sidesteps bot detection
+because it's a real browser with real user activity history.
+
+**Layer**: 1 (Discovery) + CLI
+
+**Workflow**:
+
+```bash
+# User launches Chrome with remote debugging
+google-chrome --remote-debugging-port=9222
+
+# User navigates to site, passes any challenges manually
+
+# Flowscout connects and explores
+uv run flowscout explore <url> --cdp-endpoint ws://localhost:9222
+```
+
+**Implementation**:
+
+- Add `--cdp-endpoint` CLI flag
+- When provided, use `playwright.chromium.connect_over_cdp(endpoint)`
+  instead of `playwright.chromium.launch()`
+- Use existing page/tab or create a new one in the connected browser
+- Skip browser launch/close lifecycle when using CDP
+- All other exploration logic remains unchanged
+
+**Files to modify**:
+
+- `src/flowscout/core/browser.py` — add CDP connection path in
+  `launch()`, use `connect_over_cdp()` when endpoint provided, skip
+  `close()` for CDP sessions (don't close the user's browser)
+- `src/flowscout/cli/explore.py` — add `--cdp-endpoint` flag
+- `src/flowscout/core/state.py` — add `cdp_endpoint` to
+  `ExplorerConfig`
+
+**Acceptance criteria**:
+
+- [ ] `--cdp-endpoint ws://localhost:9222` connects to running Chrome
+- [ ] Exploration works on the connected browser's pages
+- [ ] Browser is NOT closed when exploration ends (user's browser)
+- [ ] All existing exploration features work over CDP
+- [ ] Falls back to normal launch when `--cdp-endpoint` not provided
+- [ ] Clear error message if CDP connection fails
 
 ---
 
@@ -1108,33 +1341,37 @@ generate parameterized tests.
 
 ## Milestone Summary
 
-| Phase | ID | Milestone | Layer | Key Deliverable | Depends On |
-|---|---|---|---|---|---|
-| 1 | 1.1 | Smart default | CLI | `--smart` on by default | — |
-| 1 | 1.2 | Verdict simplification | L1+L3 | Observation model | — |
-| 1 | 1.3 | Codegen consolidation | L3 | POM + scenarios primary | — |
-| 1 | 1.4 | Three-layer boundary | All | `modeling/` package, CLI pipeline | 1.1–1.3 |
-| 1 | 1.5 | Serialization contracts | L1+L2 | Versioned schemas | 1.4 |
-| 2 | 2.1 | Flow deduplication | L2 | Flow templates | 1.4 |
-| 2 | 2.2 | Component extraction | L2 | Shared components | 1.4 |
-| 2 | 2.3 | POM inheritance | L3 | BasePage + subclasses | 2.2 |
-| 2 | 2.4 | Interaction patterns | L2+L3 | Domain-specific methods | 2.2 |
-| 2 | 2.5 | Locator scoring | L2 | Stability tiers + scores | 1.4 |
-| 2 | 2.6 | XPath fallback | L1+L2 | Alternative selectors | 2.5 |
-| 3 | 3.1 | Graph walker | L3 | MBT coverage strategies | 2.1 |
-| 3 | 3.2 | Coverage metrics | L3 | State/edge/path coverage | 3.1 |
-| 3 | 3.3 | MBT export | L3 | GraphWalker, DOT, Mermaid | 3.1 |
-| 3 | 3.4 | Guard conditions | L2+L3 | Inferred preconditions | 3.1 |
-| 4 | 4.1 | Tab restructure | L3 | New IA | 2.x |
-| 4 | 4.2 | Page Objects tab | L3 | POM preview + quality | 2.3, 2.5 |
-| 4 | 4.3 | Site Map tab | L3 | MBT state machine viz | 3.2 |
-| 4 | 4.4 | Flow Templates tab | L3 | Deduplicated flow display | 2.1 |
-| 4 | 4.5 | Quality tab | L3 | Actionable recommendations | 2.5 |
-| 4 | 4.6 | Dashboard refinements | L3 | Top issues on landing | 4.5 |
-| 5 | 5.1 | Codegen validation | L3 | Round-trip verification | 2.3 |
-| 5 | 5.2 | Catalog merging | L2 | Union of locators | 2.2 |
-| 5 | 5.3 | Cross-run comparison | L3 | Regression detection | 3.2 |
-| 5 | 5.4 | Parametric tests | L2+L3 | Data-driven generation | 2.1 |
+| Phase | ID | Milestone | Layer | Key Deliverable | Depends On | Status |
+|---|---|---|---|---|---|---|
+| 1 | 1.1 | Smart default | CLI | `--smart` on by default | — | DONE |
+| 1 | 1.2 | Verdict simplification | L1+L3 | Observation model | — | DONE |
+| 1 | 1.3 | Codegen consolidation | L3 | POM + scenarios primary | — | DONE |
+| 1 | 1.4 | Three-layer boundary | All | `modeling/` package, CLI pipeline | 1.1–1.3 | DONE |
+| 1 | 1.5 | Serialization contracts | L1+L2 | Versioned schemas | 1.4 | DONE |
+| 1b | 1b.1 | Blocked page detection | L1 | Block reason classification | 1.5 | — |
+| 1b | 1b.2 | Browser stealth defaults | L1 | Anti-detection baseline | 1b.1 | — |
+| 1b | 1b.3 | Persistent browser context | L1+CLI | Cookie/storage persistence | 1b.2 | — |
+| 1b | 1b.4 | CDP connection | L1+CLI | Connect to existing browser | 1b.2 | — |
+| 2 | 2.1 | Flow deduplication | L2 | Flow templates | 1.4 | — |
+| 2 | 2.2 | Component extraction | L2 | Shared components | 1.4 | — |
+| 2 | 2.3 | POM inheritance | L3 | BasePage + subclasses | 2.2 | — |
+| 2 | 2.4 | Interaction patterns | L2+L3 | Domain-specific methods | 2.2 | — |
+| 2 | 2.5 | Locator scoring | L2 | Stability tiers + scores | 1.4 | — |
+| 2 | 2.6 | XPath fallback | L1+L2 | Alternative selectors | 2.5 | — |
+| 3 | 3.1 | Graph walker | L3 | MBT coverage strategies | 2.1 | — |
+| 3 | 3.2 | Coverage metrics | L3 | State/edge/path coverage | 3.1 | — |
+| 3 | 3.3 | MBT export | L3 | GraphWalker, DOT, Mermaid | 3.1 | — |
+| 3 | 3.4 | Guard conditions | L2+L3 | Inferred preconditions | 3.1 | — |
+| 4 | 4.1 | Tab restructure | L3 | New IA | 2.x | — |
+| 4 | 4.2 | Page Objects tab | L3 | POM preview + quality | 2.3, 2.5 | — |
+| 4 | 4.3 | Site Map tab | L3 | MBT state machine viz | 3.2 | — |
+| 4 | 4.4 | Flow Templates tab | L3 | Deduplicated flow display | 2.1 | — |
+| 4 | 4.5 | Quality tab | L3 | Actionable recommendations | 2.5 | — |
+| 4 | 4.6 | Dashboard refinements | L3 | Top issues on landing | 4.5 | — |
+| 5 | 5.1 | Codegen validation | L3 | Round-trip verification | 2.3 | — |
+| 5 | 5.2 | Catalog merging | L2 | Union of locators | 2.2 | — |
+| 5 | 5.3 | Cross-run comparison | L3 | Regression detection | 3.2 | — |
+| 5 | 5.4 | Parametric tests | L2+L3 | Data-driven generation | 2.1 | — |
 
 ---
 
