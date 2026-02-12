@@ -13,6 +13,7 @@ from flowscout.codegen.page_objects import (
     _catalog_to_class_name,
     _group_by_zone,
     _selector_to_property_name,
+    _to_snake_case,
 )
 from flowscout.modeling.scenarios import FlowScenario
 
@@ -83,11 +84,6 @@ def _build_pom_map(site_model: SiteModel) -> dict[str, _PomInfo]:
     return pom_map
 
 
-def _to_snake_case(name: str) -> str:
-    result = re.sub(r"(?<!^)(?=[A-Z])", "_", name)
-    return result.lower()
-
-
 def _to_var_name(class_name: str) -> str:
     """Convert PascalCase class name to a short variable name."""
     # MovieListingPage → listing, MovieDetailPage → detail
@@ -96,7 +92,7 @@ def _to_var_name(class_name: str) -> str:
     words = re.findall(r"[A-Z][a-z]*", name)
     if words:
         return str(words[-1].lower())
-    return _to_snake_case(name).replace("_", "")
+    return str(_to_snake_case(name)).replace("_", "")
 
 
 def _sanitize_test_name(text: str) -> str:
