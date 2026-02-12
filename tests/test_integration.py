@@ -63,6 +63,7 @@ def _make_config(base_url: str) -> ExplorerConfig:
         headless=True,
         timeout_ms=10000,
         take_screenshots=False,
+        smart_mode=False,
     )
 
 

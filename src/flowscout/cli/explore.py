@@ -99,8 +99,9 @@ from flowscout.storage.db import FlowscoutDB
 )
 @click.option("--no-db", is_flag=True, help="Skip saving to database.")
 @click.option(
-    "--smart",
-    is_flag=True,
+    "--smart/--no-smart",
+    default=True,
+    show_default=True,
     help=(
         "Enable smart mode: archetype recognition,"
         " contextual input, coverage-aware exploration."

@@ -44,7 +44,7 @@ class ExplorerConfig(BaseModel):
     evidence_dir: str | None = None
     strategy: ExplorationStrategy = ExplorationStrategy.PRIORITY
     verbose: bool = False
-    smart_mode: bool = False
+    smart_mode: bool = True
     smart_stop_on_saturation: bool = True
     smart_min_features_before_stop: int = Field(default=3, ge=0)
     smart_min_archetypes_before_stop: int = Field(default=2, ge=0)
