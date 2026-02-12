@@ -1,0 +1,50 @@
+# Crawl runtime defaults consumed by `flowscout explore` and `just crawl <site-url>`.
+# Precedence: CLI flags > this file > built-in defaults.
+
+# Exploration budget
+max_depth = 2
+max_states = 30
+max_actions_per_state = 15
+
+# Runtime behavior
+headless = true
+smart = true
+# Smart mode saturation controls
+smart_stop_on_saturation = true
+smart_min_archetypes_before_stop = 2
+smart_min_features_before_stop = 3
+smart_archetype_instance_limit = 3
+input_profile = "safe" # safe | contextual | negative
+enforce_non_destructive = true
+allow_form_submits = false
+
+# Timing (milliseconds)
+navigation_timeout_ms = 10000
+action_timeout_ms = 5000
+stability_timeout_ms = 2000
+load_wait_timeout_ms = 3000
+
+# Artifacts and persistence
+output_dir = "reports"
+environment = "baseline"
+capture_screenshots = true
+persist_history = true
+db_path = ".flowscout/history.db"
+
+# Auth bootstrap (optional, security-first via env var references)
+auth_config_file = ".flowscout-auth.toml"
+# auth_profile = "shop_staging"
+auth_required = false
+
+# Credentials are resolved from environment variables referenced by auth profiles.
+
+# Optional per-domain/per-environment overrides
+#
+# [domains."*.example.com"]
+# max_depth = 3
+# auth_profile = "example_default"
+#
+# [domains."*.example.com".environments.staging]
+# max_states = 80
+# environment = "staging"
+# auth_profile = "example_staging"

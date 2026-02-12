@@ -1,0 +1,18 @@
+# Copy to `.flowscout-auth.toml` and adjust selectors/domains for your target.
+#
+# Security note:
+# - This file stores only references to env vars, never secret values.
+# - Export env vars in your shell before running `flowscout explore`.
+
+[profiles.sample_staging]
+domains = ["example.com", "*.example.com"]
+environments = ["staging"]
+login_url = "https://example.com/login"
+username_selector = "input[name='username']"
+password_selector = "input[name='password']"
+submit_selector = "button[type='submit']"
+success_selector = "[data-test='dashboard']"
+success_url_pattern = "/dashboard"
+username_env_var = "E2E_USERNAME"
+password_env_var = "E2E_PASSWORD"
+post_login_wait_ms = 3000
