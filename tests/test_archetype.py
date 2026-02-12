@@ -429,6 +429,7 @@ class TestPageCatalog:
         raw["element_catalog"] = [
             {
                 "selector": "a[href='/home']",
+                "xpath": "//*[@id='home-link']",
                 "dom_id": "home-link",
                 "tag": "a",
                 "label": "Home",
@@ -468,6 +469,7 @@ class TestPageCatalog:
         assert catalog.archetype == PageArchetype.LISTING
         assert len(catalog.entries) == 3
         assert catalog.entries[0].dom_id == "home-link"
+        assert catalog.entries[0].xpath == "//*[@id='home-link']"
         assert catalog.entries[1].is_visible is False
 
         nav_entries = [e for e in catalog.entries if e.zone_type == ZoneType.NAVIGATION]

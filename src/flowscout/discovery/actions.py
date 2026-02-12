@@ -108,6 +108,8 @@ def _is_low_signal_click_target(elem: InteractiveElement) -> bool:
 def _element_identity_metadata(elem: InteractiveElement) -> dict[str, str]:
     """Return stable locator metadata for reportability/debugging."""
     metadata: dict[str, str] = {"selector": elem.selector}
+    if elem.xpath:
+        metadata["xpath"] = elem.xpath
     if elem.dom_id:
         metadata["dom_id"] = elem.dom_id
     if elem.name:

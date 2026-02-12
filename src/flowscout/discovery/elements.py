@@ -89,6 +89,10 @@ class InteractiveElement(BaseModel):
     element_id: str = Field(description="Stable hash for deduplication")
     element_type: ElementType
     selector: str = Field(description="CSS selector to target this element")
+    xpath: str | None = Field(
+        default=None,
+        description="XPath fallback selector when CSS is fragile",
+    )
     dom_id: str | None = Field(
         default=None,
         description="Raw DOM id attribute when present",
@@ -259,6 +263,7 @@ async def discover_elements(page: Any) -> list[InteractiveElement]:
             element_id=build_element_id(raw["selector"], raw.get("label", "")),
             element_type=etype,
             selector=raw["selector"],
+            xpath=raw.get("xpath"),
             dom_id=raw.get("dom_id"),
             label=_sanitize_label(raw.get("label", "")),
             tag=raw["tag"],

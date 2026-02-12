@@ -242,6 +242,12 @@ def _to_kebab_case(name: str) -> str:
     return result.lower()
 
 
+def _entry_locator(entry: CatalogEntry) -> str:
+    """Return preferred selector when provided, else default CSS selector."""
+    preferred = str(entry.preferred_selector or "").strip()
+    return preferred or entry.selector
+
+
 def _selector_to_property_name(selector: str, label: str, tag: str) -> str:
     """Generate a clean property name from selector/label/tag."""
     # Prefer label if clean enough
@@ -341,7 +347,7 @@ def _generate_python_component(component: SharedComponent) -> str:
 
     for entry in component.entries:
         prop_name = entry_names[entry.selector]
-        selector = entry.selector.replace('"', '\\"')
+        selector = _entry_locator(entry).replace('"', '\\"')
         lines.append(f'        self.{prop_name} = page.locator("{selector}")')
     lines.append("")
 
@@ -411,7 +417,7 @@ def _generate_typescript_component(component: SharedComponent) -> str:
     )
     for entry in component.entries:
         prop_name = entry_names[entry.selector]
-        selector = entry.selector.replace("'", "\\'")
+        selector = _entry_locator(entry).replace("'", "\\'")
         lines.append(f"    this.{prop_name} = page.locator('{selector}');")
     lines.append("  }")
     lines.append("")
@@ -869,7 +875,7 @@ def _generate_python_pom(
                 prop_name = f"{prop_name}_{index}"
             seen_names.add(prop_name)
 
-            selector = entry.selector.replace('"', '\\"')
+            selector = _entry_locator(entry).replace('"', '\\"')
             lines.append(f'        self.{prop_name} = page.locator("{selector}")')
 
     lines.append("")
@@ -898,7 +904,7 @@ def _generate_python_pom(
             (entry for entry in search_entries if "input" in entry.element_type), None
         )
         if input_entry:
-            selector = input_entry.selector.replace('"', '\\"')
+            selector = _entry_locator(input_entry).replace('"', '\\"')
             lines.extend(
                 [
                     "    def search(self, query: str) -> None:",
@@ -916,7 +922,7 @@ def _generate_python_pom(
             if entry.element_type in ("link", "button", "other")
         ]
         if content_entries:
-            selector = content_entries[0].selector.replace('"', '\\"')
+            selector = _entry_locator(content_entries[0]).replace('"', '\\"')
             lines.extend(
                 [
                     "    def select_item(self, index: int = 0) -> None:",
@@ -1028,7 +1034,7 @@ def _generate_typescript_pom(
                 prop_name = f"{prop_name}_{index}"
             seen_names_ctor.add(prop_name)
 
-            selector = entry.selector.replace("'", "\\'")
+            selector = _entry_locator(entry).replace("'", "\\'")
             lines.append(f"    this.{prop_name} = page.locator('{selector}');")
 
     lines.append("  }")
@@ -1058,7 +1064,7 @@ def _generate_typescript_pom(
             (entry for entry in search_entries if "input" in entry.element_type), None
         )
         if input_entry:
-            selector = input_entry.selector.replace("'", "\\'")
+            selector = _entry_locator(input_entry).replace("'", "\\'")
             lines.extend(
                 [
                     "  async search(query: string) {",
@@ -1077,7 +1083,7 @@ def _generate_typescript_pom(
             if entry.element_type in ("link", "button", "other")
         ]
         if content_entries:
-            selector = content_entries[0].selector.replace("'", "\\'")
+            selector = _entry_locator(content_entries[0]).replace("'", "\\'")
             lines.extend(
                 [
                     "  async selectItem(index: number = 0) {",

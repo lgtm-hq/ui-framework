@@ -229,6 +229,7 @@
   // --- Element Catalog ---
   function buildElementCatalog(): Array<{
     selector: string;
+    xpath: string;
     dom_id: string;
     tag: string;
     label: string;
@@ -241,6 +242,7 @@
   }> {
     const catalog: Array<{
       selector: string;
+      xpath: string;
       dom_id: string;
       tag: string;
       label: string;
@@ -261,6 +263,7 @@
 
     allElements.forEach((el) => {
       const selector = buildSelector(el);
+      const xpath = buildXPath(el);
       if (seen.has(selector)) return;
       seen.add(selector);
 
@@ -279,6 +282,7 @@
 
       catalog.push({
         selector,
+        xpath,
         dom_id: el.id || "",
         tag,
         label,
@@ -415,6 +419,33 @@
     }
 
     return tag;
+  }
+
+  function buildXPath(el: Element): string {
+    if (el.id) {
+      return `//*[@id=${JSON.stringify(el.id)}]`;
+    }
+
+    const segments: string[] = [];
+    let current: Element | null = el;
+    while (current !== null) {
+      const node: Element = current;
+      const tag = node.tagName.toLowerCase();
+      const parentEl: Element | null = node.parentElement;
+      if (!parentEl) {
+        segments.unshift(tag);
+        break;
+      }
+
+      const siblings = Array.from(parentEl.children).filter(
+        (child): child is Element => child.tagName === node.tagName,
+      );
+      const index = siblings.indexOf(node) + 1;
+      segments.unshift(`${tag}[${index}]`);
+      current = parentEl;
+    }
+
+    return `/${segments.join("/")}`;
   }
 
   // --- Main ---

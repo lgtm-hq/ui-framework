@@ -397,6 +397,42 @@ class TestFileGeneration:
             assert "super().__init__(page)" in page_content
             assert "super().navigate(self.URL)" in page_content
 
+    def test_uses_preferred_locator_from_model_when_available(self) -> None:
+        catalog = _make_catalog(
+            PageArchetype.LISTING,
+            entries=[
+                CatalogEntry(
+                    selector="main > div:nth-of-type(2) > button",
+                    preferred_selector="xpath=/html/body/main/div[2]/button",
+                    tag="button",
+                    label="Open",
+                    zone_type=ZoneType.MAIN_CONTENT,
+                    element_type="button",
+                    semantic_name="open",
+                )
+            ],
+            url_pattern="/movies",
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = generate_page_objects(
+                {"sig1": catalog.model_dump()},
+                tmpdir,
+                framework="pytest",
+                base_url="https://example.com",
+            )
+
+            page_path = next(
+                path
+                for path in paths
+                if path.endswith("_page.py") and not path.endswith("base_page.py")
+            )
+            page_content = Path(page_path).read_text()
+            assert 'page.locator("xpath=/html/body/main/div[2]/button")' in page_content
+            assert (
+                'page.locator("main > div:nth-of-type(2) > button")' not in page_content
+            )
+
     def test_component_pattern_methods_are_generated(self) -> None:
         catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
         dropdown_component = SharedComponent(

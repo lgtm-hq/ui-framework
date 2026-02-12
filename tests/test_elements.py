@@ -132,3 +132,15 @@ class TestBuildElementId:
     def test_12_chars(self) -> None:
         result = build_element_id("selector", "label")
         assert len(result) == 12
+
+
+def test_interactive_element_supports_xpath_fallback() -> None:
+    element = InteractiveElement(
+        element_id="xpath-1",
+        element_type=ElementType.BUTTON,
+        selector="main > div:nth-of-type(2) > button",
+        xpath="/html/body/main/div[2]/button",
+        label="Open",
+        tag="button",
+    )
+    assert element.xpath == "/html/body/main/div[2]/button"

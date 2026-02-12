@@ -70,6 +70,33 @@
     return parentSel + " > " + tag + ":nth-of-type(" + idx + ")";
   }
 
+  function getXPath(el: Element): string {
+    if (el.id) {
+      return `//*[@id=${JSON.stringify(el.id)}]`;
+    }
+
+    const segments: string[] = [];
+    let current: Element | null = el;
+    while (current !== null) {
+      const node: Element = current;
+      const tag = node.tagName.toLowerCase();
+      const parentEl: Element | null = node.parentElement;
+      if (!parentEl) {
+        segments.unshift(tag);
+        break;
+      }
+
+      const siblings = Array.from(parentEl.children).filter(
+        (child): child is Element => child.tagName === node.tagName,
+      );
+      const index = siblings.indexOf(node) + 1;
+      segments.unshift(`${tag}[${index}]`);
+      current = parentEl;
+    }
+
+    return `/${segments.join("/")}`;
+  }
+
   function sanitizeLabel(raw: string): string {
     // Strip CSS block patterns: .class-name:pseudo { ... }
     let text = raw.replace(/\.[a-zA-Z0-9_-]+(?::[\w-]+)?\s*\{[^}]*\}/g, "");
@@ -230,6 +257,7 @@
 
     results.push({
       selector: selector,
+      xpath: getXPath(el),
       dom_id: el.id || null,
       tag: tag,
       input_type: el.getAttribute("type") || null,
