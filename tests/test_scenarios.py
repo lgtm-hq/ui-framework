@@ -1,14 +1,14 @@
 """Tests for scenario synthesis."""
 
-from flowscout.analysis.archetype import (
+from flowscout.core.archetypes import (
     CatalogEntry,
     PageArchetype,
     PageCatalog,
     ZoneType,
 )
-from flowscout.analysis.site_model import NavigationEdge, PageType
+from flowscout.modeling.site_model import NavigationEdge, PageType
 from flowscout.discovery.actions import ActionType, OutcomeType
-from flowscout.smart.scenarios import ScenarioSynthesizer
+from flowscout.modeling.scenarios import ScenarioSynthesizer
 
 # ---------------------------------------------------------------------------
 # Helpers

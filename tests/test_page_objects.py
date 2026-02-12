@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 
-from flowscout.analysis.archetype import (
+from flowscout.core.archetypes import (
     CatalogEntry,
     PageArchetype,
     PageCatalog,

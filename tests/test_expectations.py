@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 
-from flowscout.analysis.archetype import (
+from flowscout.core.archetypes import (
     ContentDensity,
     PageAnalysis,
     PageArchetype,

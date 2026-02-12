@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from flowscout.modeling.archetype import PageAnalysis, PageArchetype
+from flowscout.core.archetypes import PageAnalysis, PageArchetype
 
 
 class ContentExpectation(BaseModel):

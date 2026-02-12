@@ -5,13 +5,13 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flowscout.analysis.archetype import (
+from flowscout.core.archetypes import (
     CatalogEntry,
     PageArchetype,
     PageCatalog,
     ZoneType,
 )
-from flowscout.analysis.site_model import (
+from flowscout.modeling.site_model import (
     NavigationEdge,
     PageType,
     SiteModel,
@@ -21,7 +21,7 @@ from flowscout.cli import _build_output_dirs
 from flowscout.codegen.scenario_tests import generate_scenario_tests
 from flowscout.core.state import ExplorerConfig
 from flowscout.discovery.actions import ActionType, OutcomeType
-from flowscout.smart.scenarios import ScenarioSynthesizer
+from flowscout.modeling.scenarios import ScenarioSynthesizer
 
 # ---------------------------------------------------------------------------
 # Helpers

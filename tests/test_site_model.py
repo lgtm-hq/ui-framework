@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from flowscout.analysis.archetype import (
+from flowscout.core.archetypes import (
     CatalogEntry,
     PageAnalysis,
     PageArchetype,
@@ -10,7 +10,7 @@ from flowscout.analysis.archetype import (
     ZoneType,
 )
 from flowscout.analysis.graph import ExplorationResult
-from flowscout.analysis.site_model import (
+from flowscout.modeling.site_model import (
     SiteModel,
     SiteModelBuilder,
     _common_subject_from_titles,

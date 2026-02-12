@@ -6,7 +6,7 @@ from typing import Any
 
 import pytest
 
-from flowscout.analysis.archetype import (
+from flowscout.core.archetypes import (
     ArchetypeRegistry,
     PageAnalysis,
     PageArchetype,

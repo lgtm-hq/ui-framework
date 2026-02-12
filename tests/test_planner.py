@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from flowscout.analysis.archetype import (
+from flowscout.core.archetypes import (
     PageArchetype,
 )
 from flowscout.smart.planner import FlowTemplate, PlannerAdvice, SmartPlanner
