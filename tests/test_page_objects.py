@@ -237,10 +237,15 @@ class TestFileGeneration:
                 framework="pytest",
                 base_url="https://example.com",
             )
-            assert len(paths) == 1
-            content = Path(paths[0]).read_text()
+            assert len(paths) == 2
+            assert any(path.endswith("/base_page.py") for path in paths)
+            page_path = next(
+                path
+                for path in paths
+                if path.endswith("_page.py") and not path.endswith("base_page.py")
+            )
+            content = Path(page_path).read_text()
             assert "class" in content
-            assert paths[0].endswith(".py")
 
     def test_generates_typescript_files(self) -> None:
         catalog = _make_catalog()
@@ -251,8 +256,9 @@ class TestFileGeneration:
                 framework="playwright",
                 base_url="https://example.com",
             )
-            assert len(paths) == 1
-            assert paths[0].endswith(".ts")
+            assert len(paths) == 2
+            assert any(path.endswith("/base-page.ts") for path in paths)
+            assert any(path.endswith(".ts") for path in paths)
 
     def test_skips_empty_catalogs(self) -> None:
         empty = PageCatalog()
@@ -276,7 +282,7 @@ class TestFileGeneration:
                 framework="pytest",
                 base_url="https://example.com",
             )
-            assert len(paths) == 2
+            assert len(paths) == 3
 
     def test_generates_component_classes_and_composes_pages(self) -> None:
         catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
@@ -314,14 +320,79 @@ class TestFileGeneration:
             assert "class NavigationComponent" in component_content
             assert "def click_home" in component_content
 
-            page_path = next(path for path in paths if path.endswith("_page.py"))
+            page_path = next(
+                path
+                for path in paths
+                if path.endswith("_page.py") and not path.endswith("base_page.py")
+            )
             page_content = Path(page_path).read_text()
+            assert "from pages.base_page import BasePage" in page_content
+            assert "(BasePage)" in page_content
             assert (
                 "from pages.components.navigation_component import NavigationComponent"
-                in page_content
+                not in page_content
             )
             assert (
-                "self.navigation_component = NavigationComponent(page)" in page_content
+                "self.navigation_component = NavigationComponent(page)"
+                not in page_content
+            )
+
+            base_path = next(path for path in paths if path.endswith("base_page.py"))
+            base_content = Path(base_path).read_text()
+            assert (
+                "from pages.components.navigation_component import NavigationComponent"
+                in base_content
+            )
+            assert (
+                "self.navigation_component = NavigationComponent(page)" in base_content
             )
             # Shared selectors should be removed from page-level properties.
             assert "self.home = page.locator(\"a[href='/home']\")" not in page_content
+
+    def test_base_page_contains_high_frequency_components(self) -> None:
+        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        base_component = SharedComponent(
+            component_id="component-navigation",
+            name="NavigationBar",
+            class_name="NavigationComponent",
+            entries=[
+                CatalogEntry(
+                    selector="a[href='/home']",
+                    tag="a",
+                    label="Home",
+                    zone_type=ZoneType.NAVIGATION,
+                    element_type="link",
+                    semantic_name="home",
+                )
+            ],
+            appears_on=["sig1"],
+            frequency=0.85,
+            zone=ZoneType.NAVIGATION,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = generate_page_objects(
+                {"sig1": catalog.model_dump()},
+                tmpdir,
+                framework="pytest",
+                base_url="https://example.com",
+                shared_components=[base_component.model_dump()],
+            )
+
+            base_path = next(path for path in paths if path.endswith("base_page.py"))
+            base_content = Path(base_path).read_text()
+            assert "class BasePage:" in base_content
+            assert "def navigate(self, path: str)" in base_content
+            assert (
+                "self.navigation_component = NavigationComponent(page)" in base_content
+            )
+
+            page_path = next(
+                path
+                for path in paths
+                if path.endswith("_page.py") and not path.endswith("base_page.py")
+            )
+            page_content = Path(page_path).read_text()
+            assert "class MoviesListingPage(BasePage):" in page_content
+            assert "super().__init__(page)" in page_content
+            assert "super().navigate(self.URL)" in page_content

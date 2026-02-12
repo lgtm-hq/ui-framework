@@ -39,6 +39,10 @@ def generate_page_objects(
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
+    parsed_catalogs = [
+        (signature, _parse_catalog(catalog_data))
+        for signature, catalog_data in catalogs.items()
+    ]
     parsed_components = [
         _parse_shared_component(component_data)
         for component_data in (shared_components or [])
@@ -46,9 +50,35 @@ def generate_page_objects(
     parsed_components = [
         component for component in parsed_components if component.entries
     ]
-    page_components = _build_page_component_map(parsed_components=parsed_components)
+    if not parsed_components and not any(
+        catalog.entries for _signature, catalog in parsed_catalogs
+    ):
+        return []
+
+    base_components, page_scoped_components = _partition_components(
+        parsed_components=parsed_components
+    )
+    page_components = _build_page_component_map(
+        parsed_components=page_scoped_components
+    )
 
     generated: list[str] = []
+    if framework == "pytest":
+        base_path = out / "base_page.py"
+        base_path.write_text(
+            _generate_python_base_page(
+                base_components=base_components,
+            )
+        )
+    else:
+        base_path = out / "base-page.ts"
+        base_path.write_text(
+            _generate_typescript_base_page(
+                base_components=base_components,
+            )
+        )
+    generated.append(str(base_path))
+
     if parsed_components:
         components_dir = out / "components"
         components_dir.mkdir(parents=True, exist_ok=True)
@@ -64,12 +94,12 @@ def generate_page_objects(
             path.write_text(content)
             generated.append(str(path))
 
-    for sig, catalog_data in catalogs.items():
-        catalog = _parse_catalog(catalog_data)
+    for sig, catalog in parsed_catalogs:
         components_for_page = page_components.get(sig, [])
+        all_components_for_page = [*base_components, *components_for_page]
         filtered_catalog = _strip_component_entries(
             catalog=catalog,
-            components_for_page=components_for_page,
+            components_for_page=all_components_for_page,
         )
         if not filtered_catalog.entries and not components_for_page:
             continue
@@ -80,6 +110,7 @@ def generate_page_objects(
                 filtered_catalog,
                 class_name,
                 base_url,
+                has_base_page=True,
                 page_components=components_for_page,
             )
             filename = _to_snake_case(class_name) + ".py"
@@ -88,6 +119,7 @@ def generate_page_objects(
                 filtered_catalog,
                 class_name,
                 base_url,
+                has_base_page=True,
                 page_components=components_for_page,
             )
             filename = _to_kebab_case(class_name) + ".ts"
@@ -133,6 +165,20 @@ def _build_page_component_map(
             key=lambda component: component.class_name,
         )
     return component_map
+
+
+def _partition_components(
+    *,
+    parsed_components: list[SharedComponent],
+) -> tuple[list[SharedComponent], list[SharedComponent]]:
+    """Split components into base-level and page-scoped buckets."""
+    base_components = [
+        component for component in parsed_components if component.frequency >= 0.8
+    ]
+    page_scoped_components = [
+        component for component in parsed_components if component.frequency < 0.8
+    ]
+    return base_components, page_scoped_components
 
 
 def _strip_component_entries(
@@ -401,11 +447,102 @@ def _generate_typescript_component(component: SharedComponent) -> str:
     return "\n".join(lines)
 
 
+def _generate_python_base_page(*, base_components: list[SharedComponent]) -> str:
+    """Generate a Python BasePage class with shared components."""
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    imports = ["from playwright.sync_api import Page"]
+    for component in base_components:
+        module_name = _to_snake_case(component.class_name)
+        imports.append(
+            f"from pages.components.{module_name} import {component.class_name}"
+        )
+
+    lines: list[str] = [
+        '"""',
+        "Auto-generated Base Page Object.",
+        "",
+        f"Generated: {timestamp}",
+        '"""',
+        "",
+        *imports,
+        "",
+        "",
+        "class BasePage:",
+        '    """Base page with shared components and navigation helpers."""',
+        "",
+        "    def __init__(self, page: Page) -> None:",
+        "        self.page = page",
+    ]
+
+    if base_components:
+        lines.append("        # High-frequency shared components")
+        for component in base_components:
+            prop_name = _to_snake_case(component.class_name)
+            lines.append(f"        self.{prop_name} = {component.class_name}(page)")
+
+    lines.extend(
+        [
+            "",
+            "    def navigate(self, path: str) -> None:",
+            "        self.page.goto(path)",
+            '        self.page.wait_for_load_state("networkidle")',
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _generate_typescript_base_page(*, base_components: list[SharedComponent]) -> str:
+    """Generate a TypeScript BasePage class with shared components."""
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    lines: list[str] = [
+        "// Auto-generated Base Page Object.",
+        f"// Generated: {timestamp}",
+        "",
+        "import { type Page } from '@playwright/test';",
+    ]
+    for component in base_components:
+        module_name = _to_kebab_case(component.class_name)
+        lines.append(
+            f"import {{ {component.class_name} }} from './components/{module_name}';"
+        )
+
+    lines.extend(["", "export class BasePage {"])
+    for component in base_components:
+        prop_name = _to_snake_case(component.class_name)
+        lines.append(f"  readonly {prop_name}: {component.class_name};")
+
+    lines.extend(
+        [
+            "",
+            "  constructor(public readonly page: Page) {",
+        ]
+    )
+    for component in base_components:
+        prop_name = _to_snake_case(component.class_name)
+        lines.append(f"    this.{prop_name} = new {component.class_name}(page);")
+
+    lines.extend(
+        [
+            "  }",
+            "",
+            "  async navigate(path: string) {",
+            "    await this.page.goto(path);",
+            "    await this.page.waitForLoadState('networkidle');",
+            "  }",
+            "}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def _generate_python_pom(
     catalog: PageCatalog,
     class_name: str,
     base_url: str,
     *,
+    has_base_page: bool = False,
     page_components: list[SharedComponent] | None = None,
 ) -> str:
     """Generate a Python POM class."""
@@ -415,6 +552,8 @@ def _generate_python_pom(
     page_components = page_components or []
 
     imports = ["from playwright.sync_api import Locator, Page, expect"]
+    if has_base_page:
+        imports.append("from pages.base_page import BasePage")
     for component in page_components:
         module_name = _to_snake_case(component.class_name)
         imports.append(
@@ -433,7 +572,7 @@ def _generate_python_pom(
         *imports,
         "",
         "",
-        f"class {class_name}:",
+        (f"class {class_name}(BasePage):" if has_base_page else f"class {class_name}:"),
         f'    """Page object for: {archetype} page.',
         f"    URL pattern: {url_pattern}",
         '    """',
@@ -446,7 +585,10 @@ def _generate_python_pom(
 
     # Constructor
     lines.append("    def __init__(self, page: Page) -> None:")
-    lines.append("        self.page = page")
+    if has_base_page:
+        lines.append("        super().__init__(page)")
+    else:
+        lines.append("        self.page = page")
 
     if page_components:
         lines.append("        # Shared components")
@@ -484,14 +626,20 @@ def _generate_python_pom(
 
     # Navigate method
     if base_url:
-        lines.extend(
-            [
-                "    def navigate(self) -> None:",
-                "        self.page.goto(self.URL)",
-                '        self.page.wait_for_load_state("networkidle")',
-                "",
-            ]
-        )
+        navigate_lines = [
+            "    def navigate(self) -> None:",
+            (
+                "        super().navigate(self.URL)"
+                if has_base_page
+                else "        self.page.goto(self.URL)"
+            ),
+        ]
+        if not has_base_page:
+            navigate_lines.append(
+                '        self.page.wait_for_load_state("networkidle")'
+            )
+        navigate_lines.append("")
+        lines.extend(navigate_lines)
 
     # Search method if search zone exists
     if ZoneType.SEARCH in grouped:
@@ -535,6 +683,7 @@ def _generate_typescript_pom(
     class_name: str,
     base_url: str,
     *,
+    has_base_page: bool = False,
     page_components: list[SharedComponent] | None = None,
 ) -> str:
     """Generate a TypeScript POM class."""
@@ -551,6 +700,8 @@ def _generate_typescript_pom(
         "",
         "import { type Locator, type Page } from '@playwright/test';",
     ]
+    if has_base_page:
+        lines.append("import { BasePage } from './base-page';")
     for component in page_components:
         module_name = _to_kebab_case(component.class_name)
         lines.append(
@@ -559,7 +710,11 @@ def _generate_typescript_pom(
     lines.extend(
         [
             "",
-            f"export class {class_name} {{",
+            (
+                f"export class {class_name} extends BasePage {{"
+                if has_base_page
+                else f"export class {class_name} {{"
+            ),
         ]
     )
 
@@ -600,6 +755,8 @@ def _generate_typescript_pom(
 
     # Constructor
     lines.append("  constructor(public readonly page: Page) {")
+    if has_base_page:
+        lines.append("    super(page);")
     for component in page_components:
         prop_name = _to_snake_case(component.class_name)
         lines.append(f"    this.{prop_name} = new {component.class_name}(page);")
@@ -629,15 +786,20 @@ def _generate_typescript_pom(
 
     # Navigate
     if base_url:
-        lines.extend(
-            [
-                "  async navigate() {",
-                f"    await this.page.goto({class_name}.URL);",
-                "    await this.page.waitForLoadState('networkidle');",
-                "  }",
-                "",
-            ]
-        )
+        navigate_lines = [
+            "  async navigate() {",
+            (
+                f"    await super.navigate({class_name}.URL);"
+                if has_base_page
+                else f"    await this.page.goto({class_name}.URL);"
+            ),
+        ]
+        if not has_base_page:
+            navigate_lines.append(
+                "    await this.page.waitForLoadState('networkidle');"
+            )
+        navigate_lines.extend(["  }", ""])
+        lines.extend(navigate_lines)
 
     # Search
     if ZoneType.SEARCH in grouped:
