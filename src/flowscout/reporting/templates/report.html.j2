@@ -2186,9 +2186,13 @@
                         <span class="verdict fail">fail</span>
                         <span class="defect-name">{{ flow.name }}</span>
                     </div>
-                    {% if flow.verdict %}
-                    <div class="defect-detail">{{ flow.verdict.summary }}</div>
-                    {% endif %}
+                    <div class="defect-detail">
+                        {% if flow.narrative and flow.narrative.conclusion %}
+                        {{ flow.narrative.conclusion }}
+                        {% else %}
+                        Stability score: {{ "%.2f"|format(flow.stability_score or 0.0) }}
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
                 {% for flow in defects.warnings %}
@@ -2197,9 +2201,13 @@
                         <span class="verdict warn">warn</span>
                         <span class="defect-name">{{ flow.name }}</span>
                     </div>
-                    {% if flow.verdict %}
-                    <div class="defect-detail">{{ flow.verdict.summary }}</div>
-                    {% endif %}
+                    <div class="defect-detail">
+                        {% if flow.narrative and flow.narrative.conclusion %}
+                        {{ flow.narrative.conclusion }}
+                        {% else %}
+                        Stability score: {{ "%.2f"|format(flow.stability_score or 0.0) }}
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -2378,7 +2386,7 @@
                 </div>
                 <div class="suite-body">
                     {% for flow in group_flows %}
-                    {% set v = flow.verdict.verdict.value if flow.verdict else 'inconclusive' %}
+                    {% set v = flow_status_map.get(flow.flow_id, 'warn') %}
                     {% set flow_rows = flow_execution_map.get(flow.flow_id, []) %}
                     <details class="test-case" data-verdict="{{ v }}" data-flow-id="{{ flow.flow_id }}" data-name="{{ flow.name|lower }}">
                         <summary class="test-case-header">
@@ -2409,13 +2417,19 @@
                             {% if flow.narrative and flow.narrative.steps %}
                             <div class="step-timeline">
                                 {% for step in flow.narrative.steps %}
-                                {% set sv = step.verdict.value if step.verdict else '' %}
+                                {% if step.is_stable %}
+                                {% set sv = 'pass' %}
+                                {% elif step.outcome and step.outcome.value in ['network_error', 'timeout', 'exception'] %}
+                                {% set sv = 'fail' %}
+                                {% else %}
+                                {% set sv = 'warn' %}
+                                {% endif %}
                                 <div class="step-item {{ sv }}">
                                     <div class="step-number">{{ step.step_number }}</div>
                                     <div class="step-content">
                                         <div class="step-action-row">
                                             <span class="step-action-text">{{ step.action_description }}</span>
-                                            {% if step.verdict %}<span class="verdict {{ sv }}">{{ sv }}</span>{% endif %}
+                                            <span class="verdict {{ sv }}">{{ sv }}</span>
                                         </div>
                                         <div class="step-details">
                                             {% if step.target_description %}<div class="step-target"><span class="step-target-label">Target</span><span>{{ step.target_description }}</span></div>{% endif %}

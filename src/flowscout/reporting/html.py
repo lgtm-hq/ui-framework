@@ -75,6 +75,7 @@ class ReportDataBuilder:
             "fail": sum(1 for f in result.flows if _flow_status(f) == "fail"),
             "warn": sum(1 for f in result.flows if _flow_status(f) == "warn"),
         }
+        flow_status_map = {flow.flow_id: _flow_status(flow) for flow in result.flows}
 
         coverage = _compute_coverage(result)
         page_coverage_map = _build_page_coverage_map(result)
@@ -150,6 +151,7 @@ class ReportDataBuilder:
             "flow_groups": dict(flow_groups),
             "group_summaries": group_summaries,
             "flow_counts": flow_counts,
+            "flow_status_map": flow_status_map,
             "states": list(result.states.values()),
             "states_by_id": result.states,
             "results": result.results,
