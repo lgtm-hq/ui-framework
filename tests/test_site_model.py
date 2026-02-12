@@ -9,7 +9,7 @@ from flowscout.core.archetypes import (
     PageCatalog,
     ZoneType,
 )
-from flowscout.analysis.graph import ExplorationResult
+from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.modeling.site_model import (
     SiteModel,
     SiteModelBuilder,
@@ -79,12 +79,14 @@ def _make_result(
     states: dict[str, PageState] | None = None,
     actions: dict[str, Action] | None = None,
     results: list[ActionResult] | None = None,
+    flows: list[Flow] | None = None,
     smart_analyses: dict[str, Any] | None = None,
 ) -> ExplorationResult:
     return ExplorationResult(
         states=states or {},
         actions=actions or {},
         results=results or [],
+        flows=flows or [],
         smart_analyses=smart_analyses or {},
     )
 
@@ -435,6 +437,64 @@ class TestSiteModelSummary:
         assert model.summary.total_page_types == 2
         assert model.summary.total_navigation_edges == 1
         assert model.summary.total_scenarios > 0
+
+
+class TestFlowTemplates:
+    def test_builder_deduplicates_flows_by_page_type_sequence(self) -> None:
+        s1 = _make_state("s1", url="https://example.com/movies")
+        s2 = _make_state("s2", url="https://example.com/movies/1")
+        s3 = _make_state("s3", url="https://example.com/movies/2")
+        analyses = {
+            "s1": _make_analysis(PageArchetype.LISTING, "listing_sig"),
+            "s2": _make_analysis(PageArchetype.DETAIL, "detail_sig"),
+            "s3": _make_analysis(PageArchetype.DETAIL, "detail_sig"),
+        }
+        action_1 = Action(
+            action_id="a1",
+            action_type=ActionType.CLICK,
+            target_selector="a.movie-1",
+            label="Open movie 1",
+        )
+        action_2 = Action(
+            action_id="a2",
+            action_type=ActionType.CLICK,
+            target_selector="a.movie-2",
+            label="Open movie 2",
+        )
+
+        flow_1 = Flow(
+            flow_id="flow-1",
+            name="Movie 1 detail",
+            description="Open movie 1 detail",
+            state_ids=["s1", "s2"],
+            action_ids=["a1"],
+            stability_score=0.81,
+        )
+        flow_2 = Flow(
+            flow_id="flow-2",
+            name="Movie 2 detail",
+            description="Open movie 2 detail",
+            state_ids=["s1", "s3"],
+            action_ids=["a2"],
+            stability_score=0.93,
+        )
+
+        result = _make_result(
+            states={"s1": s1, "s2": s2, "s3": s3},
+            actions={"a1": action_1, "a2": action_2},
+            flows=[flow_1, flow_2],
+        )
+
+        builder = SiteModelBuilder()
+        model = builder.build(result, analyses)
+
+        assert len(model.flow_templates) == 1
+        template = model.flow_templates[0]
+        assert template.page_type_sequence == ["listing_sig", "detail_sig"]
+        assert template.occurrence_count == 2
+        assert template.representative_flow_id == "flow-2"
+        assert template.instance_flow_ids == ["flow-1", "flow-2"]
+        assert template.action_type_sequence == ["CLICK"]
 
 
 # ---------------------------------------------------------------------------

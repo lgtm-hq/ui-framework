@@ -310,6 +310,22 @@ class TerminalReporter:
                 )
             self.console.print(nav_table)
 
+        # Flow templates table
+        if model.flow_templates:
+            template_table = Table(title="Flow Templates", border_style="green")
+            template_table.add_column("Template", style="bold")
+            template_table.add_column("Representative", style="dim", max_width=24)
+            template_table.add_column("Stability", justify="right", width=10)
+
+            for template in model.flow_templates:
+                template_table.add_row(
+                    f"{template.name} ({template.occurrence_count} instances)",
+                    template.representative_flow_id,
+                    f"{template.stability_score:.2f}",
+                )
+
+            self.console.print(template_table)
+
         # Scenarios table
         if model.test_scenarios:
             sc_table = Table(title="Test Scenarios", border_style="green")

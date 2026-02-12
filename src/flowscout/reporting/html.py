@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -15,6 +16,7 @@ from flowscout.analysis.element_inventory import (
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.text_utils import strip_css_blocks
 from flowscout.discovery.actions import ActionResult, OutcomeType
+from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
@@ -58,9 +60,7 @@ class ReportDataBuilder:
             aid: dict(a.metadata or {}) for aid, a in result.actions.items()
         }
 
-        flow_groups: dict[str, list[Flow]] = defaultdict(list)
-        for flow in result.flows:
-            flow_groups[flow.category or "Other"].append(flow)
+        flow_templates, flow_groups = _build_template_flow_groups(result=result)
 
         group_summaries: dict[str, dict[str, int]] = {}
         for cat, group_flows in flow_groups.items():
@@ -148,6 +148,7 @@ class ReportDataBuilder:
             "duration": result.duration_seconds,
             "config_strategy": result.config.get("strategy", "priority"),
             "flows": result.flows,
+            "flow_templates": flow_templates,
             "flow_groups": dict(flow_groups),
             "group_summaries": group_summaries,
             "flow_counts": flow_counts,
@@ -258,6 +259,78 @@ def _build_graph_data(result: ExplorationResult) -> dict[str, Any]:
         )
 
     return {"nodes": nodes, "edges": edges}
+
+
+def _build_template_flow_groups(
+    *,
+    result: ExplorationResult,
+) -> tuple[list[FlowTemplate], dict[str, list[Flow]]]:
+    """Group flows by deduplicated page-type sequences for report suites."""
+    if not result.flows:
+        return [], {}
+
+    state_to_page_type = _build_state_to_page_type_lookup(result=result)
+    templates = deduplicate_flows(
+        flows=result.flows,
+        state_to_page_type=state_to_page_type,
+        actions_by_id=result.actions,
+    )
+
+    flow_lookup = {flow.flow_id: flow for flow in result.flows}
+    grouped: dict[str, list[Flow]] = {}
+    for template in templates:
+        group_flows = [
+            flow_lookup[flow_id]
+            for flow_id in template.instance_flow_ids
+            if flow_id in flow_lookup
+        ]
+        if not group_flows:
+            continue
+        label = f"{template.name} ({template.occurrence_count} instances)"
+        grouped[label] = group_flows
+
+    # Fallback: retain legacy grouping if templates cannot be formed.
+    if not grouped:
+        fallback: dict[str, list[Flow]] = defaultdict(list)
+        for flow in result.flows:
+            fallback[flow.category or "Other"].append(flow)
+        return [], dict(fallback)
+
+    return templates, grouped
+
+
+def _build_state_to_page_type_lookup(*, result: ExplorationResult) -> dict[str, str]:
+    """Build a state_id -> page_type lookup from analysis signatures or URLs."""
+    lookup: dict[str, str] = {}
+
+    for state_id, payload in result.smart_analyses.items():
+        if isinstance(payload, dict):
+            signature = str(payload.get("structural_signature", "")).strip()
+        else:
+            signature = str(getattr(payload, "structural_signature", "")).strip()
+        if signature:
+            lookup[state_id] = signature
+
+    if lookup:
+        return lookup
+
+    for state_id, state in result.states.items():
+        lookup[state_id] = _url_to_template(state.url)
+    return lookup
+
+
+def _url_to_template(url: str) -> str:
+    """Convert URL into a simple template string for fallback grouping."""
+    parsed = urlparse(url)
+    segments = [segment for segment in parsed.path.rstrip("/").split("/") if segment]
+    template_parts: list[str] = []
+    for segment in segments:
+        if segment.isdigit():
+            template_parts.append("{id}")
+        else:
+            template_parts.append(segment)
+    template_path = "/" + "/".join(template_parts) if template_parts else "/"
+    return f"{parsed.scheme}://{parsed.netloc}{template_path}"
 
 
 def _clean_catalog_label(value: Any) -> str:

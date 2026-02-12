@@ -17,6 +17,7 @@ from flowscout.modeling.archetype import (
     PageArchetype,
     PageCatalog,
 )
+from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
 
 if TYPE_CHECKING:
     from flowscout.analysis.graph import ExplorationResult
@@ -77,6 +78,7 @@ class SiteModel(BaseModel):
     version: str = SITE_MODEL_SCHEMA_VERSION
     page_types: list[PageType] = Field(default_factory=list)
     navigation_edges: list[NavigationEdge] = Field(default_factory=list)
+    flow_templates: list[FlowTemplate] = Field(default_factory=list)
     test_scenarios: list[Any] = Field(default_factory=list)
     summary: SiteModelSummary = Field(default_factory=SiteModelSummary)
 
@@ -160,6 +162,13 @@ class SiteModelBuilder:
         page_types = self._build_page_types(result, analyses)
         state_to_pt = self._build_state_lookup(page_types, analyses, result)
         nav_edges = self._build_navigation_edges(result, state_to_pt)
+        page_type_names = {pt.page_type_id: pt.name for pt in page_types}
+        flow_templates = deduplicate_flows(
+            flows=result.flows,
+            state_to_page_type=state_to_pt,
+            actions_by_id=result.actions,
+            page_type_names=page_type_names,
+        )
 
         # Scenario synthesis (imported lazily to avoid circular deps)
         from flowscout.modeling.scenarios import ScenarioSynthesizer
@@ -172,6 +181,7 @@ class SiteModelBuilder:
         return SiteModel(
             page_types=page_types,
             navigation_edges=nav_edges,
+            flow_templates=flow_templates,
             test_scenarios=scenarios,
             summary=summary,
         )
