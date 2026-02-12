@@ -207,6 +207,7 @@ def _generate_from_site_model(
             output_dir=str(pom_dir),
             framework=framework,
             base_url=model_base_url,
+            shared_components=model.shared_components,
         )
         if pom_paths:
             console.print(

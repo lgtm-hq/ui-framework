@@ -632,6 +632,7 @@ async def _run_exploration(
             and generate_tests
             and not generate_legacy
             and result.page_catalogs
+            and not result.smart_analyses
         ):
             from flowscout.codegen.page_objects import generate_page_objects
 
@@ -685,6 +686,28 @@ async def _run_exploration(
 
             # Print site model summary
             terminal.print_site_model_summary(site_model)
+
+            if generate_tests and not generate_legacy and result.page_catalogs:
+                from flowscout.codegen.page_objects import generate_page_objects
+
+                pom_dir = str((workspace_dir or run_dir) / "pages")
+                catalogs = {
+                    page_type.page_type_id: page_type.catalog
+                    for page_type in site_model.page_types
+                    if page_type.catalog.entries
+                }
+                pom_paths = generate_page_objects(
+                    catalogs=catalogs,
+                    output_dir=pom_dir,
+                    framework=test_framework,
+                    base_url=config.start_url,
+                    shared_components=site_model.shared_components,
+                )
+                if pom_paths:
+                    console.print(
+                        "  [green]POM classes generated:"
+                        f"[/green] {len(pom_paths)} files in {pom_dir}"
+                    )
 
             # Generate scenario-based tests (POMs are a prerequisite)
             if generate_tests and not generate_legacy and result.page_catalogs:

@@ -497,6 +497,70 @@ class TestFlowTemplates:
         assert template.action_type_sequence == ["CLICK"]
 
 
+class TestSharedComponents:
+    def test_builder_extracts_shared_navigation_component(self) -> None:
+        s1 = _make_state("s1", url="https://example.com/movies")
+        s2 = _make_state("s2", url="https://example.com/movies/1")
+
+        nav_entry = CatalogEntry(
+            selector="a[href='/home']",
+            tag="a",
+            label="Home",
+            zone_type=ZoneType.NAVIGATION,
+            element_type="link",
+            semantic_name="home",
+        )
+        listing_catalog = PageCatalog(
+            archetype=PageArchetype.LISTING,
+            url_pattern="/movies",
+            entries=[
+                nav_entry,
+                CatalogEntry(
+                    selector=".movie-card",
+                    tag="div",
+                    label="Movie card",
+                    zone_type=ZoneType.MAIN_CONTENT,
+                    element_type="other",
+                    semantic_name="movie_card",
+                ),
+            ],
+        )
+        detail_catalog = PageCatalog(
+            archetype=PageArchetype.DETAIL,
+            url_pattern="/movies/:id",
+            entries=[
+                nav_entry,
+                CatalogEntry(
+                    selector="h1.movie-title",
+                    tag="h1",
+                    label="Movie title",
+                    zone_type=ZoneType.MAIN_CONTENT,
+                    element_type="heading",
+                    semantic_name="movie_title",
+                ),
+            ],
+        )
+
+        analyses = {
+            "s1": _make_analysis(PageArchetype.LISTING, "listing_sig").model_copy(
+                update={"catalog": listing_catalog}
+            ),
+            "s2": _make_analysis(PageArchetype.DETAIL, "detail_sig").model_copy(
+                update={"catalog": detail_catalog}
+            ),
+        }
+        result = _make_result(states={"s1": s1, "s2": s2})
+
+        builder = SiteModelBuilder()
+        model = builder.build(result, analyses)
+
+        assert len(model.shared_components) == 1
+        component = model.shared_components[0]
+        assert component.class_name == "NavigationComponent"
+        assert component.zone == ZoneType.NAVIGATION
+        assert component.appears_on == ["detail_sig", "listing_sig"]
+
+
 # ---------------------------------------------------------------------------
 # Tests: serialization round-trip
 # ---------------------------------------------------------------------------

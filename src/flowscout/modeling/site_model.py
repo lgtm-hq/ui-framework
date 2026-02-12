@@ -17,6 +17,7 @@ from flowscout.modeling.archetype import (
     PageArchetype,
     PageCatalog,
 )
+from flowscout.modeling.components import SharedComponent, extract_shared_components
 from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
 
 if TYPE_CHECKING:
@@ -79,6 +80,7 @@ class SiteModel(BaseModel):
     page_types: list[PageType] = Field(default_factory=list)
     navigation_edges: list[NavigationEdge] = Field(default_factory=list)
     flow_templates: list[FlowTemplate] = Field(default_factory=list)
+    shared_components: list[SharedComponent] = Field(default_factory=list)
     test_scenarios: list[Any] = Field(default_factory=list)
     summary: SiteModelSummary = Field(default_factory=SiteModelSummary)
 
@@ -162,6 +164,13 @@ class SiteModelBuilder:
         page_types = self._build_page_types(result, analyses)
         state_to_pt = self._build_state_lookup(page_types, analyses, result)
         nav_edges = self._build_navigation_edges(result, state_to_pt)
+        shared_components = extract_shared_components(
+            page_catalogs={
+                page_type.page_type_id: page_type.catalog
+                for page_type in page_types
+                if page_type.catalog.entries
+            },
+        )
         page_type_names = {pt.page_type_id: pt.name for pt in page_types}
         flow_templates = deduplicate_flows(
             flows=result.flows,
@@ -182,6 +191,7 @@ class SiteModelBuilder:
             page_types=page_types,
             navigation_edges=nav_edges,
             flow_templates=flow_templates,
+            shared_components=shared_components,
             test_scenarios=scenarios,
             summary=summary,
         )

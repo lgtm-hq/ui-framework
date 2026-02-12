@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 from flowscout.modeling import archetype as _archetype_module
+from flowscout.modeling import components as _components_module
 from flowscout.modeling import flows as _flows_module
 from flowscout.modeling import scenarios as _scenarios_module
 from flowscout.modeling import site_model as _site_model_module
 
-_modules = (_archetype_module, _flows_module, _scenarios_module, _site_model_module)
+_modules = (
+    _archetype_module,
+    _components_module,
+    _flows_module,
+    _scenarios_module,
+    _site_model_module,
+)
 __all__ = sorted(
     {name for module in _modules for name in dir(module) if not name.startswith("_")}
 )

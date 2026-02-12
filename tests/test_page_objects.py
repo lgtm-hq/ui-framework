@@ -19,6 +19,7 @@ from flowscout.codegen.page_objects import (
     _selector_to_property_name,
     generate_page_objects,
 )
+from flowscout.modeling.components import SharedComponent
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -276,3 +277,51 @@ class TestFileGeneration:
                 base_url="https://example.com",
             )
             assert len(paths) == 2
+
+    def test_generates_component_classes_and_composes_pages(self) -> None:
+        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        navigation_component = SharedComponent(
+            component_id="component-navigation",
+            name="NavigationBar",
+            class_name="NavigationComponent",
+            entries=[
+                CatalogEntry(
+                    selector="a[href='/home']",
+                    tag="a",
+                    label="Home",
+                    zone_type=ZoneType.NAVIGATION,
+                    element_type="link",
+                    semantic_name="home",
+                )
+            ],
+            appears_on=["sig1"],
+            frequency=1.0,
+            zone=ZoneType.NAVIGATION,
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = generate_page_objects(
+                {"sig1": catalog.model_dump()},
+                tmpdir,
+                framework="pytest",
+                base_url="https://example.com",
+                shared_components=[navigation_component.model_dump()],
+            )
+
+            component_path = Path(tmpdir) / "components" / "navigation_component.py"
+            assert component_path.exists()
+            component_content = component_path.read_text()
+            assert "class NavigationComponent" in component_content
+            assert "def click_home" in component_content
+
+            page_path = next(path for path in paths if path.endswith("_page.py"))
+            page_content = Path(page_path).read_text()
+            assert (
+                "from pages.components.navigation_component import NavigationComponent"
+                in page_content
+            )
+            assert (
+                "self.navigation_component = NavigationComponent(page)" in page_content
+            )
+            # Shared selectors should be removed from page-level properties.
+            assert "self.home = page.locator(\"a[href='/home']\")" not in page_content
