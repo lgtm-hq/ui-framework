@@ -84,7 +84,12 @@ from flowscout.storage.db import FlowscoutDB
     "--generate-tests",
     "-g",
     is_flag=True,
-    help="Generate Playwright test suite from results.",
+    help="Generate POM classes and scenario tests from results.",
+)
+@click.option(
+    "--legacy",
+    is_flag=True,
+    help="Generate legacy flat tests (deprecated escape hatch).",
 )
 @click.option(
     "--test-framework",
@@ -167,6 +172,7 @@ def explore(
     strategy: str,
     verbose: bool,
     generate_tests: bool,
+    legacy: bool,
     test_framework: str,
     bdd: bool,
     narrative: bool,
@@ -451,6 +457,7 @@ def explore(
         _run_exploration(
             config,
             generate_tests=generate_tests,
+            generate_legacy=legacy,
             test_framework=test_framework,
             generate_bdd=bdd,
             generate_narrative=narrative,
@@ -509,6 +516,7 @@ async def _run_exploration(
     config: ExplorerConfig,
     *,
     generate_tests: bool = False,
+    generate_legacy: bool = False,
     test_framework: str = "pytest",
     generate_bdd: bool = False,
     generate_narrative: bool = False,
@@ -607,17 +615,25 @@ async def _run_exploration(
             # Show cross-run insights if we have history
             _print_cross_run_insights(db, run_id, config.start_url)
 
-        # Generate tests
-        if generate_tests:
+        generated_primary_tests = False
+
+        # Generate legacy flat tests (deprecated escape hatch)
+        if generate_tests and generate_legacy:
             ext = ".py" if test_framework == "pytest" else ".spec.ts"
             test_path = str(run_dir / f"tests{ext}")
             generate_test_suite(result, test_path, framework=test_framework)
-            console.print(f"  [green]Tests generated:[/green] {test_path}")
+            console.print(
+                f"  [yellow]Legacy tests generated (deprecated):[/yellow] {test_path}"
+            )
 
-        # Generate POM classes + POM-based tests when smart mode is on
-        if config.smart_mode and generate_tests and result.page_catalogs:
+        # Generate POM classes by default when smart mode is on.
+        if (
+            config.smart_mode
+            and generate_tests
+            and not generate_legacy
+            and result.page_catalogs
+        ):
             from flowscout.codegen.page_objects import generate_page_objects
-            from flowscout.codegen.pom_tests import generate_pom_tests
 
             pom_dir = str((workspace_dir or run_dir) / "pages")
             pom_paths = generate_page_objects(
@@ -632,16 +648,6 @@ async def _run_exploration(
                     f"[/green] {len(pom_paths)}"
                     f" files in {pom_dir}"
                 )
-
-                pom_ext = ".py" if test_framework == "pytest" else ".spec.ts"
-                pom_test_path = str(run_dir / f"pom_tests{pom_ext}")
-                generate_pom_tests(
-                    result,
-                    result.page_catalogs,
-                    pom_test_path,
-                    framework=test_framework,
-                )
-                console.print(f"  [green]POM tests generated:[/green] {pom_test_path}")
 
         # Generate BDD feature file
         if generate_bdd:
@@ -681,7 +687,7 @@ async def _run_exploration(
             terminal.print_site_model_summary(site_model)
 
             # Generate scenario-based tests (POMs are a prerequisite)
-            if generate_tests and result.page_catalogs:
+            if generate_tests and not generate_legacy and result.page_catalogs:
                 from flowscout.codegen.scenario_tests import generate_scenario_tests
 
                 scenario_ext = ".py" if test_framework == "pytest" else ".spec.ts"
@@ -697,6 +703,13 @@ async def _run_exploration(
                 console.print(
                     f"  [green]Scenario tests generated:[/green] {scenario_test_path}"
                 )
+                generated_primary_tests = True
+
+        if generate_tests and (not generate_legacy) and (not generated_primary_tests):
+            console.print(
+                "  [yellow]Unable to generate scenario tests from this run."
+                " Use --legacy for flat test output.[/yellow]"
+            )
 
         # Update workspace symlink and print workspace path
         if workspace_dir:

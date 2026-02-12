@@ -1,4 +1,7 @@
-"""Generate executable Playwright test scripts from discovered flows."""
+"""Generate executable flat Playwright test scripts from discovered flows.
+
+Legacy path kept as an escape hatch; default generation uses POM + scenarios.
+"""
 
 from __future__ import annotations
 
