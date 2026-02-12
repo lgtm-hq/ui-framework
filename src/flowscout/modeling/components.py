@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
+from enum import StrEnum, auto
 from typing import Mapping
 
 from pydantic import BaseModel, Field
@@ -23,6 +24,17 @@ _ZONE_COMPONENT_NAMES: dict[ZoneType, tuple[str, str]] = {
 }
 
 
+class InteractionPattern(StrEnum):
+    """Detected interaction behaviors for reusable components."""
+
+    DROPDOWN = auto()
+    TABS = auto()
+    SEARCH = auto()
+    FORM = auto()
+    PAGINATION = auto()
+    TOGGLE = auto()
+
+
 class SharedComponent(BaseModel):
     """A reusable component observed across multiple page types."""
 
@@ -33,6 +45,7 @@ class SharedComponent(BaseModel):
     appears_on: list[str] = Field(default_factory=list)
     frequency: float = 0.0
     zone: ZoneType = ZoneType.MAIN_CONTENT
+    interaction_patterns: list[InteractionPattern] = Field(default_factory=list)
 
 
 def extract_shared_components(
@@ -100,6 +113,10 @@ def extract_shared_components(
                 appears_on=appears_on,
                 frequency=round(frequency, 4),
                 zone=zone,
+                interaction_patterns=_detect_interaction_patterns(
+                    entries=entries,
+                    zone=zone,
+                ),
             )
         )
 
@@ -107,3 +124,94 @@ def extract_shared_components(
         key=lambda component: (-component.frequency, component.name.lower())
     )
     return components
+
+
+def _detect_interaction_patterns(
+    *,
+    entries: list[CatalogEntry],
+    zone: ZoneType,
+) -> list[InteractionPattern]:
+    """Infer interaction patterns from component entry metadata."""
+    element_types = {
+        entry.element_type.lower() for entry in entries if entry.element_type
+    }
+    aria_roles = {entry.aria_role.lower() for entry in entries if entry.aria_role}
+    selectors = [entry.selector.lower() for entry in entries]
+    labels = [entry.label.lower() for entry in entries if entry.label]
+
+    patterns: list[InteractionPattern] = []
+
+    has_dropdown_trigger = any(
+        token in element_types
+        for token in (
+            "dropdown_trigger",
+            "select",
+            "combobox",
+        )
+    )
+    has_dropdown_option = any(
+        token in element_types
+        for token in (
+            "dropdown_option",
+            "option",
+            "menuitem",
+        )
+    )
+    if has_dropdown_trigger and (has_dropdown_option or "menuitem" in aria_roles):
+        patterns.append(InteractionPattern.DROPDOWN)
+
+    has_tabs = any("tab" in token for token in element_types) or "tab" in aria_roles
+    has_tabs = has_tabs or any("data-tab" in selector for selector in selectors)
+    if has_tabs:
+        patterns.append(InteractionPattern.TABS)
+
+    has_search = zone == ZoneType.SEARCH or any(
+        "search" in token for token in element_types
+    )
+    has_search = has_search or any("search" in label for label in labels)
+    if has_search:
+        patterns.append(InteractionPattern.SEARCH)
+
+    has_form_fields = any(
+        token.startswith("input_") or token in {"textarea", "select"}
+        for token in element_types
+    )
+    has_submit_control = any(
+        token in element_types
+        for token in (
+            "button",
+            "input_submit",
+            "input_button",
+        )
+    )
+    has_submit_control = has_submit_control or any(
+        "submit" in label or "save" in label for label in labels
+    )
+    if zone == ZoneType.FORM or (has_form_fields and has_submit_control):
+        patterns.append(InteractionPattern.FORM)
+
+    has_pagination = zone == ZoneType.PAGINATION or any(
+        "pagination" in selector or "pager" in selector for selector in selectors
+    )
+    has_pagination = has_pagination or any(
+        label in {"next", "previous", "prev"} for label in labels
+    )
+    if has_pagination:
+        patterns.append(InteractionPattern.PAGINATION)
+
+    has_toggle = any(
+        token in element_types
+        for token in (
+            "input_checkbox",
+            "input_radio",
+            "toggle",
+            "switch",
+        )
+    )
+    has_toggle = has_toggle or any(
+        role in {"switch", "checkbox", "radio"} for role in aria_roles
+    )
+    if has_toggle:
+        patterns.append(InteractionPattern.TOGGLE)
+
+    return patterns

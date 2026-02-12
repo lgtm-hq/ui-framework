@@ -19,7 +19,7 @@ from flowscout.codegen.page_objects import (
     _selector_to_property_name,
     generate_page_objects,
 )
-from flowscout.modeling.components import SharedComponent
+from flowscout.modeling.components import InteractionPattern, SharedComponent
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -396,3 +396,51 @@ class TestFileGeneration:
             assert "class MoviesListingPage(BasePage):" in page_content
             assert "super().__init__(page)" in page_content
             assert "super().navigate(self.URL)" in page_content
+
+    def test_component_pattern_methods_are_generated(self) -> None:
+        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        dropdown_component = SharedComponent(
+            component_id="component-theme",
+            name="ThemeDropdown",
+            class_name="ThemeDropdownComponent",
+            entries=[
+                CatalogEntry(
+                    selector="button[aria-haspopup='listbox']",
+                    tag="button",
+                    label="Theme",
+                    zone_type=ZoneType.HEADER,
+                    element_type="dropdown_trigger",
+                    semantic_name="theme_trigger",
+                ),
+                CatalogEntry(
+                    selector="[role='option']",
+                    tag="div",
+                    label="Dark",
+                    zone_type=ZoneType.HEADER,
+                    element_type="dropdown_option",
+                    aria_role="option",
+                    semantic_name="theme_option",
+                ),
+            ],
+            appears_on=["sig1"],
+            frequency=0.7,
+            zone=ZoneType.HEADER,
+            interaction_patterns=[InteractionPattern.DROPDOWN],
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = generate_page_objects(
+                {"sig1": catalog.model_dump()},
+                tmpdir,
+                framework="pytest",
+                base_url="https://example.com",
+                shared_components=[dropdown_component.model_dump()],
+            )
+
+            component_path = Path(tmpdir) / "components" / "theme_dropdown_component.py"
+            assert component_path.exists()
+            component_content = component_path.read_text()
+            assert "def open(self)" in component_content
+            assert "def close(self)" in component_content
+            assert "def select(self, value: str)" in component_content
+            assert any(path.endswith("_page.py") for path in paths)

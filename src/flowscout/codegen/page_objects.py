@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from flowscout.modeling.archetype import (
     CatalogEntry,
@@ -13,7 +13,7 @@ from flowscout.modeling.archetype import (
     PageCatalog,
     ZoneType,
 )
-from flowscout.modeling.components import SharedComponent
+from flowscout.modeling.components import InteractionPattern, SharedComponent
 
 
 def generate_page_objects(
@@ -374,6 +374,13 @@ def _generate_python_component(component: SharedComponent) -> str:
                 ]
             )
 
+    lines.extend(
+        _generate_python_pattern_methods(
+            component=component,
+            entry_names=entry_names,
+        )
+    )
+
     return "\n".join(lines)
 
 
@@ -442,9 +449,252 @@ def _generate_typescript_component(component: SharedComponent) -> str:
                 ]
             )
 
+    lines.extend(
+        _generate_typescript_pattern_methods(
+            component=component,
+            entry_names=entry_names,
+        )
+    )
+
     lines.append("}")
     lines.append("")
     return "\n".join(lines)
+
+
+def _find_component_prop_name(
+    *,
+    component: SharedComponent,
+    entry_names: dict[str, str],
+    predicate: Callable[[CatalogEntry], bool],
+) -> str:
+    """Find the first component property name matching a predicate."""
+    for entry in component.entries:
+        if predicate(entry):
+            return entry_names[entry.selector]
+    if component.entries:
+        return entry_names[component.entries[0].selector]
+    return ""
+
+
+def _generate_python_pattern_methods(
+    *,
+    component: SharedComponent,
+    entry_names: dict[str, str],
+) -> list[str]:
+    """Generate Python methods from detected interaction patterns."""
+    lines: list[str] = []
+    patterns = set(component.interaction_patterns)
+
+    if InteractionPattern.DROPDOWN in patterns:
+        trigger_prop = _find_component_prop_name(
+            component=component,
+            entry_names=entry_names,
+            predicate=lambda entry: (
+                "dropdown_trigger" in entry.element_type
+                or entry.element_type in {"select", "combobox", "button"}
+            ),
+        )
+        if trigger_prop:
+            lines.extend(
+                [
+                    "    def open(self) -> None:",
+                    f"        self.{trigger_prop}.click()",
+                    "",
+                    "    def close(self) -> None:",
+                    "        self.page.keyboard.press('Escape')",
+                    "",
+                    "    def select(self, value: str) -> None:",
+                    "        self.open()",
+                    "        self.page.get_by_role('option', name=value).click()",
+                    "",
+                ]
+            )
+
+    if InteractionPattern.TABS in patterns:
+        lines.extend(
+            [
+                "    def switch_to(self, tab_name: str) -> None:",
+                "        self.page.get_by_role('tab', name=tab_name).click()",
+                "",
+            ]
+        )
+
+    if InteractionPattern.SEARCH in patterns:
+        search_prop = _find_component_prop_name(
+            component=component,
+            entry_names=entry_names,
+            predicate=lambda entry: (
+                "search" in entry.element_type or "search" in entry.label.lower()
+            ),
+        )
+        if search_prop:
+            lines.extend(
+                [
+                    "    def search(self, query: str) -> None:",
+                    f"        self.{search_prop}.fill(query)",
+                    f"        self.{search_prop}.press('Enter')",
+                    "",
+                ]
+            )
+
+    if InteractionPattern.FORM in patterns:
+        lines.extend(
+            [
+                "    def fill_and_submit(self, **fields: str) -> None:",
+                "        for name, value in fields.items():",
+                "            self.page.locator(f\"[name='{name}']\").fill(value)",
+                "        submit_selector = (",
+                "            \"button[type='submit'], input[type='submit']\"",
+                "        )",
+                "        self.page.locator(submit_selector).first.click()",
+                "",
+            ]
+        )
+
+    if InteractionPattern.PAGINATION in patterns:
+        lines.extend(
+            [
+                "    def next_page(self) -> None:",
+                "        self.page.get_by_role('link', name='Next').first.click()",
+                "",
+                "    def previous_page(self) -> None:",
+                "        self.page.get_by_role('link', name='Previous').first.click()",
+                "",
+            ]
+        )
+
+    if InteractionPattern.TOGGLE in patterns:
+        lines.extend(
+            [
+                "    def toggle(self, name: str) -> None:",
+                "        self.page.locator(f\"[name='{name}']\").click()",
+                "",
+                "    def is_checked(self, name: str) -> bool:",
+                "        toggle_locator = self.page.locator(f\"[name='{name}']\")",
+                "        return bool(toggle_locator.is_checked())",
+                "",
+            ]
+        )
+
+    return lines
+
+
+def _generate_typescript_pattern_methods(
+    *,
+    component: SharedComponent,
+    entry_names: dict[str, str],
+) -> list[str]:
+    """Generate TypeScript methods from detected interaction patterns."""
+    lines: list[str] = []
+    patterns = set(component.interaction_patterns)
+
+    if InteractionPattern.DROPDOWN in patterns:
+        trigger_prop = _find_component_prop_name(
+            component=component,
+            entry_names=entry_names,
+            predicate=lambda entry: (
+                "dropdown_trigger" in entry.element_type
+                or entry.element_type in {"select", "combobox", "button"}
+            ),
+        )
+        if trigger_prop:
+            lines.extend(
+                [
+                    "  async open() {",
+                    f"    await this.{trigger_prop}.click();",
+                    "  }",
+                    "",
+                    "  async close() {",
+                    "    await this.page.keyboard.press('Escape');",
+                    "  }",
+                    "",
+                    "  async select(value: string) {",
+                    "    await this.open();",
+                    "    await this.page.getByRole('option', { name: value }).click();",
+                    "  }",
+                    "",
+                ]
+            )
+
+    if InteractionPattern.TABS in patterns:
+        lines.extend(
+            [
+                "  async switchTo(tabName: string) {",
+                "    await this.page.getByRole('tab', { name: tabName }).click();",
+                "  }",
+                "",
+            ]
+        )
+
+    if InteractionPattern.SEARCH in patterns:
+        search_prop = _find_component_prop_name(
+            component=component,
+            entry_names=entry_names,
+            predicate=lambda entry: (
+                "search" in entry.element_type or "search" in entry.label.lower()
+            ),
+        )
+        if search_prop:
+            lines.extend(
+                [
+                    "  async search(query: string) {",
+                    f"    await this.{search_prop}.fill(query);",
+                    f"    await this.{search_prop}.press('Enter');",
+                    "  }",
+                    "",
+                ]
+            )
+
+    if InteractionPattern.FORM in patterns:
+        lines.extend(
+            [
+                "  async fillAndSubmit(fields: Record<string, string>) {",
+                "    for (const [name, value] of Object.entries(fields)) {",
+                "      await this.page.locator(`[name='${name}']`).fill(value);",
+                "    }",
+                "    await this.page",
+                "      .locator(\"button[type='submit'], input[type='submit']\")",
+                "      .first()",
+                "      .click();",
+                "  }",
+                "",
+            ]
+        )
+
+    if InteractionPattern.PAGINATION in patterns:
+        lines.extend(
+            [
+                "  async nextPage() {",
+                "    const nextLink = this.page.getByRole('link', { name: 'Next' });",
+                "    await nextLink.first().click();",
+                "  }",
+                "",
+                "  async previousPage() {",
+                "    const previousLink = this.page.getByRole(",
+                "      'link',",
+                "      { name: 'Previous' },",
+                "    );",
+                "    await previousLink.first().click();",
+                "  }",
+                "",
+            ]
+        )
+
+    if InteractionPattern.TOGGLE in patterns:
+        lines.extend(
+            [
+                "  async toggle(name: string) {",
+                "    await this.page.locator(`[name='${name}']`).click();",
+                "  }",
+                "",
+                "  async isChecked(name: string) {",
+                "    return await this.page.locator(`[name='${name}']`).isChecked();",
+                "  }",
+                "",
+            ]
+        )
+
+    return lines
 
 
 def _generate_python_base_page(*, base_components: list[SharedComponent]) -> str:

@@ -1,7 +1,7 @@
 """Tests for shared component extraction."""
 
 from flowscout.core.archetypes import CatalogEntry, PageArchetype, PageCatalog, ZoneType
-from flowscout.modeling.components import extract_shared_components
+from flowscout.modeling.components import InteractionPattern, extract_shared_components
 
 
 def _catalog(entries: list[CatalogEntry]) -> PageCatalog:
@@ -117,3 +117,81 @@ def test_does_not_extract_component_below_frequency_threshold() -> None:
     )
 
     assert components == []
+
+
+def test_detects_dropdown_pattern_on_shared_component() -> None:
+    page_catalogs = {
+        "listing_sig": _catalog(
+            [
+                CatalogEntry(
+                    selector="button[aria-haspopup='listbox']",
+                    tag="button",
+                    label="Theme",
+                    zone_type=ZoneType.HEADER,
+                    element_type="dropdown_trigger",
+                    semantic_name="theme_trigger",
+                ),
+                CatalogEntry(
+                    selector="[role='option']",
+                    tag="div",
+                    label="Dark",
+                    zone_type=ZoneType.HEADER,
+                    element_type="dropdown_option",
+                    aria_role="option",
+                    semantic_name="theme_option",
+                ),
+            ]
+        ),
+        "detail_sig": _catalog(
+            [
+                CatalogEntry(
+                    selector="button[aria-haspopup='listbox']",
+                    tag="button",
+                    label="Theme",
+                    zone_type=ZoneType.HEADER,
+                    element_type="dropdown_trigger",
+                    semantic_name="theme_trigger",
+                ),
+                CatalogEntry(
+                    selector="[role='option']",
+                    tag="div",
+                    label="Dark",
+                    zone_type=ZoneType.HEADER,
+                    element_type="dropdown_option",
+                    aria_role="option",
+                    semantic_name="theme_option",
+                ),
+            ]
+        ),
+    }
+
+    components = extract_shared_components(
+        page_catalogs=page_catalogs, min_frequency=0.6
+    )
+
+    assert components
+    header_component = next(c for c in components if c.zone == ZoneType.HEADER)
+    assert InteractionPattern.DROPDOWN in header_component.interaction_patterns
+
+
+def test_detects_search_pattern_on_shared_component() -> None:
+    search_entry = CatalogEntry(
+        selector="input[type='search']",
+        tag="input",
+        label="Search",
+        zone_type=ZoneType.SEARCH,
+        element_type="input_search",
+        semantic_name="search_input",
+    )
+    page_catalogs = {
+        "listing_sig": _catalog([search_entry]),
+        "detail_sig": _catalog([search_entry]),
+    }
+
+    components = extract_shared_components(
+        page_catalogs=page_catalogs, min_frequency=0.6
+    )
+
+    assert components
+    search_component = next(c for c in components if c.zone == ZoneType.SEARCH)
+    assert InteractionPattern.SEARCH in search_component.interaction_patterns
