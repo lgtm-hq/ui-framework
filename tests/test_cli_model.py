@@ -45,4 +45,6 @@ def test_model_generates_site_model_json() -> None:
 
         assert result.exit_code == 0, result.output
         payload = json.loads(output_path.read_text())
+        assert payload["schema_version"] == "1.0.0"
+        assert payload["version"] == "1.0.0"
         assert "page_types" in payload

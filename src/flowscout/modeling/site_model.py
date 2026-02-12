@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from flowscout.modeling.archetype import (
     PageAnalysis,
@@ -22,6 +22,9 @@ if TYPE_CHECKING:
     from flowscout.analysis.graph import ExplorationResult
 
 logger = logging.getLogger(__name__)
+
+SITE_MODEL_SCHEMA_VERSION = "1.0.0"
+EXPLORATION_RESULT_SCHEMA_VERSION = "1.0.0"
 
 
 # ---------------------------------------------------------------------------
@@ -70,10 +73,58 @@ class SiteModelSummary(BaseModel):
 class SiteModel(BaseModel):
     """Complete site model — the top-level deliverable of Stream 2."""
 
+    schema_version: str = SITE_MODEL_SCHEMA_VERSION
+    version: str = SITE_MODEL_SCHEMA_VERSION
     page_types: list[PageType] = Field(default_factory=list)
     navigation_edges: list[NavigationEdge] = Field(default_factory=list)
     test_scenarios: list[Any] = Field(default_factory=list)
     summary: SiteModelSummary = Field(default_factory=SiteModelSummary)
+
+    @classmethod
+    def from_exploration_result(cls, result: ExplorationResult) -> SiteModel:
+        """Build a SiteModel from a contract-valid ExplorationResult.
+
+        Args:
+            result: Exploration artifact produced by Layer 1.
+
+        Returns:
+            A SiteModel generated from the exploration artifact.
+
+        Raises:
+            ValueError: If schema metadata or required fields are invalid.
+        """
+        if result.schema_version != EXPLORATION_RESULT_SCHEMA_VERSION:
+            raise ValueError(
+                "Unsupported ExplorationResult schema_version "
+                f"'{result.schema_version}'. Expected "
+                f"'{EXPLORATION_RESULT_SCHEMA_VERSION}'.",
+            )
+
+        if result.version != result.schema_version:
+            raise ValueError(
+                "ExplorationResult version mismatch: "
+                f"version='{result.version}' "
+                f"schema_version='{result.schema_version}'.",
+            )
+
+        if not result.states:
+            raise ValueError(
+                "ExplorationResult is missing required field data: states.",
+            )
+
+        analyses: dict[str, PageAnalysis] | None = None
+        if result.smart_analyses:
+            analyses = {}
+            for state_id, payload in result.smart_analyses.items():
+                try:
+                    analyses[state_id] = PageAnalysis.model_validate(payload)
+                except ValidationError as exc:
+                    raise ValueError(
+                        "ExplorationResult smart_analyses entry is invalid "
+                        f"for state '{state_id}'.",
+                    ) from exc
+
+        return SiteModelBuilder().build(result=result, analyses=analyses)
 
 
 # ---------------------------------------------------------------------------

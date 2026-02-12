@@ -93,14 +93,7 @@ def generate(
         return
 
     if site_model:
-        from flowscout.modeling.archetype import PageAnalysis
-        from flowscout.modeling.site_model import SiteModelBuilder
-
-        analyses = {
-            sid: PageAnalysis.model_validate(raw)
-            for sid, raw in (result.smart_analyses or {}).items()
-        } or None
-        model = SiteModelBuilder().build(result=result, analyses=analyses)
+        model = SiteModel.from_exploration_result(result=result)
         _generate_from_site_model(
             model=model,
             json_path=json_path,

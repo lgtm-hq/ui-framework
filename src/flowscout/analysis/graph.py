@@ -17,6 +17,7 @@ from flowscout.discovery.actions import Action, ActionResult, ActionType, Outcom
 _MAX_PATHS_PER_LEAF = 25
 _MAX_TOTAL_LINEAR_FLOWS = 500
 _MAX_CYCLE_FLOWS = 200
+EXPLORATION_RESULT_SCHEMA_VERSION = "1.0.0"
 
 
 class Flow(BaseModel):
@@ -42,6 +43,8 @@ class Flow(BaseModel):
 class ExplorationResult(BaseModel):
     """Complete exploration output."""
 
+    schema_version: str = EXPLORATION_RESULT_SCHEMA_VERSION
+    version: str = EXPLORATION_RESULT_SCHEMA_VERSION
     config: dict[str, Any] = Field(default_factory=dict)
     started_at: str = ""
     finished_at: str = ""

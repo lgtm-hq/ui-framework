@@ -68,6 +68,17 @@ Keep imports aligned with these boundaries:
 - CLI (`cli/`) may import from all layers
 - Storage (`storage/`) may import from `core/` (models only)
 
+## Schema contracts
+
+Layer artifacts are versioned and serializable:
+
+- `ExplorationResult` carries `schema_version` and `version`
+- `SiteModel` carries `schema_version` and `version`
+- `SiteModel.from_exploration_result(...)` validates:
+  - `schema_version` compatibility
+  - `version == schema_version`
+  - required Layer 1 payload data (`states`)
+
 ## Key design patterns
 
 - **State fingerprinting**: Multi-signal SHA-256 hash distinguishes
