@@ -9,6 +9,7 @@ from flowscout.discovery.actions import Action, ActionResult, ActionType, Outcom
 from flowscout.reporting.html import (
     _build_execution_rows,
     _build_flow_execution_map,
+    _build_locator_quality_data,
     _to_report_asset_href,
 )
 
@@ -134,3 +135,61 @@ def test_build_flow_execution_map_assigns_rows_to_flow_steps() -> None:
             "flow_step": 1,
         }
     }
+
+
+def test_build_locator_quality_data_uses_site_model_scoring() -> None:
+    state_home = PageState(
+        state_id="state-home",
+        url="https://example.com/",
+        title="Home",
+        fingerprint="f" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+    )
+    result = ExplorationResult(
+        states={"state-home": state_home},
+        smart_analyses={
+            "state-home": {
+                "archetype": "listing",
+                "archetype_confidence": 0.8,
+                "structural_signature": "sig-home",
+                "zones": [],
+                "repeated_structures": [],
+                "content_density": {
+                    "total_text_length": 0,
+                    "heading_count": 0,
+                    "image_count": 0,
+                    "link_count": 0,
+                    "form_input_count": 0,
+                    "interactive_count": 0,
+                    "text_to_interactive_ratio": 0.0,
+                },
+                "extracted_entities": [],
+                "has_search": False,
+                "has_pagination": False,
+                "has_filters": False,
+                "heading_hierarchy": [],
+                "catalog": {
+                    "archetype": "listing",
+                    "url_pattern": "/",
+                    "entries": [
+                        {
+                            "selector": "main > div:nth-of-type(2) > button",
+                            "xpath": "/html/body/main/div[2]/button",
+                            "tag": "button",
+                            "label": "Open",
+                            "zone_type": "main_content",
+                            "element_type": "button",
+                        }
+                    ],
+                },
+            }
+        },
+    )
+
+    rows, recommendations = _build_locator_quality_data(result=result)
+    assert len(rows) == 1
+    assert rows[0]["quality_text"] == "Locator Quality: 20% stable"
+    assert recommendations

@@ -49,7 +49,18 @@ def _make_analysis(
     has_search: bool = False,
     has_pagination: bool = False,
     has_filters: bool = False,
+    catalog_entries: list[CatalogEntry] | None = None,
 ) -> PageAnalysis:
+    entries = catalog_entries or [
+        CatalogEntry(
+            selector="a.item",
+            tag="a",
+            label="Item link",
+            zone_type=ZoneType.MAIN_CONTENT,
+            element_type="link",
+            semantic_name="item_link",
+        ),
+    ]
     return PageAnalysis(
         archetype=archetype,
         archetype_confidence=0.8,
@@ -60,16 +71,7 @@ def _make_analysis(
         catalog=PageCatalog(
             archetype=archetype,
             url_pattern="",
-            entries=[
-                CatalogEntry(
-                    selector="a.item",
-                    tag="a",
-                    label="Item link",
-                    zone_type=ZoneType.MAIN_CONTENT,
-                    element_type="link",
-                    semantic_name="item_link",
-                ),
-            ],
+            entries=entries,
         ),
     )
 
@@ -163,6 +165,42 @@ class TestPageTypeGrouping:
         model = builder.build(result, None)
 
         assert len(model.page_types) == 2
+
+    def test_locator_quality_is_scored_and_xpath_is_preferred_when_fragile(
+        self,
+    ) -> None:
+        s1 = _make_state("s1", url="https://example.com/products")
+        analyses = {
+            "s1": _make_analysis(
+                PageArchetype.LISTING,
+                "sig_a",
+                catalog_entries=[
+                    CatalogEntry(
+                        selector="main > div:nth-of-type(2) > button",
+                        xpath="/html/body/main/div[2]/button",
+                        tag="button",
+                        label="Open",
+                        zone_type=ZoneType.MAIN_CONTENT,
+                        element_type="button",
+                        semantic_name="open",
+                    )
+                ],
+            )
+        }
+
+        result = _make_result(states={"s1": s1})
+        model = SiteModelBuilder().build(result, analyses)
+
+        page_type = model.page_types[0]
+        assert page_type.locator_quality_score == 20.0
+        scored_entry = page_type.catalog.entries[0]
+        assert scored_entry.locator_score == 20.0
+        assert scored_entry.preferred_strategy == "xpath"
+        assert scored_entry.preferred_selector.startswith("xpath=")
+        assert any(
+            "prefer XPath fallback" in recommendation
+            for recommendation in model.locator_recommendations
+        )
 
 
 # ---------------------------------------------------------------------------

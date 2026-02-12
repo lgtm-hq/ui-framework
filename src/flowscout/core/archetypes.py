@@ -80,6 +80,7 @@ class CatalogEntry(BaseModel):
     """A single element in the page catalog."""
 
     selector: str
+    xpath: str | None = None
     dom_id: str = ""
     tag: str
     label: str
@@ -90,6 +91,10 @@ class CatalogEntry(BaseModel):
     is_visible: bool = True
     semantic_name: str = ""
     bounding_box: dict[str, float] | None = None
+    locator_score: float = 0.0
+    locator_stability: str = "medium"
+    preferred_selector: str = ""
+    preferred_strategy: str = "css"
 
 
 class PageCatalog(BaseModel):
@@ -369,6 +374,7 @@ def build_page_analysis(raw: dict[str, Any]) -> PageAnalysis:
         catalog_entries.append(
             CatalogEntry(
                 selector=entry.get("selector", ""),
+                xpath=entry.get("xpath"),
                 dom_id=entry.get("dom_id", ""),
                 tag=entry.get("tag", ""),
                 label=entry.get("label", ""),
@@ -379,6 +385,7 @@ def build_page_analysis(raw: dict[str, Any]) -> PageAnalysis:
                 is_visible=entry.get("is_visible", True),
                 semantic_name=semantic,
                 bounding_box=entry.get("bounding_box"),
+                preferred_selector=entry.get("selector", ""),
             )
         )
 

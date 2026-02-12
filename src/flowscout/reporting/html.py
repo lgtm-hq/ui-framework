@@ -17,6 +17,7 @@ from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.text_utils import strip_css_blocks
 from flowscout.discovery.actions import ActionResult, OutcomeType
 from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
+from flowscout.modeling.site_model import SiteModel
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
@@ -141,6 +142,9 @@ class ReportDataBuilder:
             result=result,
             action_metadata=action_metadata,
         )
+        locator_quality_rows, locator_recommendations = _build_locator_quality_data(
+            result=result,
+        )
 
         return {
             "start_url": result.config.get("start_url", "unknown"),
@@ -178,6 +182,8 @@ class ReportDataBuilder:
             "orphan_execution_rows": orphan_execution_rows,
             "execution_step_map": execution_step_map,
             "input_provenance": input_provenance,
+            "locator_quality_rows": locator_quality_rows,
+            "locator_recommendations": locator_recommendations,
         }
 
 
@@ -344,6 +350,34 @@ def _clean_catalog_label(value: Any) -> str:
     if len(text) > 120:
         return f"{text[:117].rstrip()}..."
     return text
+
+
+def _build_locator_quality_data(
+    *,
+    result: ExplorationResult,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Build per-page locator quality metrics from the Layer-2 site model."""
+    try:
+        model = SiteModel.from_exploration_result(result=result)
+    except ValueError:
+        return [], []
+
+    rows: list[dict[str, Any]] = []
+    for page_type in model.page_types:
+        rounded = int(round(page_type.locator_quality_score))
+        rows.append(
+            {
+                "name": page_type.name,
+                "page_type_id": page_type.page_type_id,
+                "instance_count": page_type.instance_count,
+                "selector_count": len(page_type.catalog.entries),
+                "quality_score": rounded,
+                "quality_text": f"Locator Quality: {rounded}% stable",
+            }
+        )
+
+    rows.sort(key=lambda row: (-int(row["quality_score"]), str(row["name"])))
+    return rows, model.locator_recommendations
 
 
 def _extract_dom_id_from_selector(selector: str) -> str:

@@ -19,6 +19,12 @@ from flowscout.modeling.archetype import (
 )
 from flowscout.modeling.components import SharedComponent, extract_shared_components
 from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
+from flowscout.modeling.locators import (
+    choose_preferred_locator,
+    recommend_locator_improvements,
+    score_locator,
+    score_page_type,
+)
 
 if TYPE_CHECKING:
     from flowscout.analysis.graph import ExplorationResult
@@ -48,6 +54,7 @@ class PageType(BaseModel):
     catalog: PageCatalog = Field(default_factory=PageCatalog)
     features: set[str] = Field(default_factory=set)
     instance_urls: list[str] = Field(default_factory=list)
+    locator_quality_score: float = 0.0
 
 
 class NavigationEdge(BaseModel):
@@ -81,6 +88,7 @@ class SiteModel(BaseModel):
     navigation_edges: list[NavigationEdge] = Field(default_factory=list)
     flow_templates: list[FlowTemplate] = Field(default_factory=list)
     shared_components: list[SharedComponent] = Field(default_factory=list)
+    locator_recommendations: list[str] = Field(default_factory=list)
     test_scenarios: list[Any] = Field(default_factory=list)
     summary: SiteModelSummary = Field(default_factory=SiteModelSummary)
 
@@ -178,6 +186,7 @@ class SiteModelBuilder:
             actions_by_id=result.actions,
             page_type_names=page_type_names,
         )
+        locator_recommendations = self._apply_locator_quality(page_types)
 
         # Scenario synthesis (imported lazily to avoid circular deps)
         from flowscout.modeling.scenarios import ScenarioSynthesizer
@@ -192,6 +201,7 @@ class SiteModelBuilder:
             navigation_edges=nav_edges,
             flow_templates=flow_templates,
             shared_components=shared_components,
+            locator_recommendations=locator_recommendations,
             test_scenarios=scenarios,
             summary=summary,
         )
@@ -412,6 +422,46 @@ class SiteModelBuilder:
         return edges
 
     # -- Step 4: summary ----------------------------------------------------
+
+    def _apply_locator_quality(self, page_types: list[PageType]) -> list[str]:
+        """Score selectors and choose preferred locator strategies."""
+        recommendations: list[str] = []
+
+        for page_type in page_types:
+            if not page_type.catalog.entries:
+                page_type.locator_quality_score = 0.0
+                continue
+
+            updated_entries = []
+            for entry in page_type.catalog.entries:
+                score = score_locator(entry.selector)
+                preferred = choose_preferred_locator(
+                    css_selector=entry.selector,
+                    xpath_selector=entry.xpath,
+                )
+                updated_entries.append(
+                    entry.model_copy(
+                        update={
+                            "locator_score": float(score.score),
+                            "locator_stability": score.stability.value,
+                            "preferred_selector": preferred.selector,
+                            "preferred_strategy": preferred.strategy,
+                        }
+                    )
+                )
+
+            page_type.catalog = page_type.catalog.model_copy(
+                update={"entries": updated_entries}
+            )
+            page_type.locator_quality_score = score_page_type(updated_entries)
+            recommendations.extend(
+                recommend_locator_improvements(
+                    page_type_name=page_type.name,
+                    entries=updated_entries,
+                )
+            )
+
+        return sorted(set(recommendations))
 
     def _build_summary(
         self,

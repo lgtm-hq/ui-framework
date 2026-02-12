@@ -2168,6 +2168,46 @@
             </div>
         </div>
 
+        {% if locator_quality_rows %}
+        <section id="locator-quality" class="section animate-in delay-2" data-report-page="overview">
+            <div class="section-header">
+                <h2>Locator Quality</h2>
+                <div class="section-count">{{ locator_quality_rows|length }} page types</div>
+                <div class="section-line"></div>
+            </div>
+            <div class="coverage-table-wrap">
+                <table>
+                    <caption class="sr-only">Locator quality by page type</caption>
+                    <thead>
+                        <tr>
+                            <th>Page Type</th>
+                            <th>Quality</th>
+                            <th>Selectors</th>
+                            <th>Instances</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in locator_quality_rows %}
+                        <tr>
+                            <td>{{ row.name }}</td>
+                            <td>{{ row.quality_text }}</td>
+                            <td>{{ row.selector_count }}</td>
+                            <td>{{ row.instance_count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if locator_recommendations %}
+            <div class="diag-reason-list" style="margin-top: 0.75rem;">
+                {% for recommendation in locator_recommendations %}
+                <span class="diag-chip">{{ recommendation }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </section>
+        {% endif %}
+
         <!-- ============================================================
              SECTION G: DEFECTS (shown above test suites if failures exist)
              ============================================================ -->

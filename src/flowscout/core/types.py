@@ -22,6 +22,7 @@ class RawElement(TypedDict, total=False):
     """
 
     selector: str
+    xpath: str | None
     dom_id: str | None
     tag: str
     input_type: str | None
@@ -80,6 +81,7 @@ class CatalogElement(TypedDict, total=False):
     """An element entry in the element_catalog array (page_analysis.js)."""
 
     selector: str
+    xpath: str
     dom_id: str
     tag: str
     label: str
@@ -89,6 +91,10 @@ class CatalogElement(TypedDict, total=False):
     input_type: str
     is_visible: bool
     bounding_box: BoundingBox | None
+    locator_score: float
+    locator_stability: str
+    preferred_selector: str
+    preferred_strategy: str
 
 
 class PageAnalysis(TypedDict):
