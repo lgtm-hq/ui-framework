@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from flowscout.analysis.archetype import PageAnalysis
+    from flowscout.modeling.archetype import PageAnalysis
 
 
 class ContextStore:
@@ -23,7 +23,7 @@ class ContextStore:
 
     def extract_from(self, analysis: PageAnalysis) -> None:
         """Pull entities from a page analysis result."""
-        from flowscout.analysis.archetype import PageArchetype
+        from flowscout.modeling.archetype import PageArchetype
 
         for entity in analysis.extracted_entities:
             normalized = entity.strip()

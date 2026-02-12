@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
-from flowscout.analysis.archetype import (
+from flowscout.modeling.archetype import (
     ArchetypeRegistry,
     PageAnalysis,
     PageArchetype,
