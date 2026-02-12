@@ -6,9 +6,9 @@ from collections import defaultdict
 
 from pydantic import BaseModel, Field
 
+from flowscout.core.action_types import ActionType
 from flowscout.modeling.archetype import PageArchetype, ZoneType
 from flowscout.modeling.site_model import NavigationEdge, PageType
-from flowscout.discovery.actions import ActionType
 
 # ---------------------------------------------------------------------------
 # Models

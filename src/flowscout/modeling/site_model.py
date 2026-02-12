@@ -11,12 +11,12 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError
 
+from flowscout.core.action_types import ActionType, OutcomeType
 from flowscout.modeling.archetype import (
     PageAnalysis,
     PageArchetype,
     PageCatalog,
 )
-from flowscout.discovery.actions import ActionType, OutcomeType
 
 if TYPE_CHECKING:
     from flowscout.analysis.graph import ExplorationResult
