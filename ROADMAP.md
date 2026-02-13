@@ -911,6 +911,8 @@ produce fragile nth-of-type paths.
 
 ## Phase 3: Model-Based Testing
 
+**Status**: COMPLETE
+
 **Goal**: Turn the site model into a real MBT engine with graph
 walking, coverage metrics, and standard exports. All work lives in
 **Layer 3 (Generation)** — consuming the `SiteModel` from Layer 2.
@@ -980,15 +982,15 @@ MBT tool — it works from the model, not from observed behavior.
 
 **Acceptance criteria**:
 
-- [ ] `walk_edge_coverage()` returns scenarios that collectively
+- [x] `walk_edge_coverage()` returns scenarios that collectively
       touch every `NavigationEdge`
-- [ ] `walk_state_coverage()` returns scenarios visiting every
+- [x] `walk_state_coverage()` returns scenarios visiting every
       `PageType`
-- [ ] Coverage is verified: all edges/states accounted for
-- [ ] Generated scenarios are valid `FlowScenario` objects
-- [ ] Walker reads only from `SiteModel` (no `ExplorationResult`
+- [x] Coverage is verified: all edges/states accounted for
+- [x] Generated scenarios are valid `FlowScenario` objects
+- [x] Walker reads only from `SiteModel` (no `ExplorationResult`
       imports)
-- [ ] Tests for walker correctness on known graphs
+- [x] Tests for walker correctness on known graphs
 
 ### 3.2 Coverage metrics and reporting
 
@@ -1100,6 +1102,8 @@ inferred_from: str = ""            # How the guard was detected
 
 ## Phase 4: Dashboard Restructuring
 
+**Status**: COMPLETE
+
 **Goal**: Reshape the report from "exploration results viewer" to
 "test automation accelerator." All work in **Layer 3 (Generation)**
 — the dashboard reads from `SiteModel`.
@@ -1129,10 +1133,10 @@ individual action results). This matches the layer architecture.
 
 **Acceptance criteria**:
 
-- [ ] Tab names updated
-- [ ] Navigation reflects new structure
-- [ ] Report reads from `SiteModel` for structure data
-- [ ] All existing data still accessible (nothing lost)
+- [x] Tab names updated
+- [x] Navigation reflects new structure
+- [x] Report reads from `SiteModel` for structure data
+- [x] All existing data still accessible (nothing lost)
 
 ### 4.2 Page Objects tab
 
@@ -1159,10 +1163,10 @@ New tab showing POM previews for each page type.
 
 **Acceptance criteria**:
 
-- [ ] Each page type shown as a card with key metrics
-- [ ] Locator table with stability scoring
-- [ ] Code preview toggleable (Python/TypeScript)
-- [ ] Recommendations for improving locator quality
+- [x] Each page type shown as a card with key metrics
+- [x] Locator table with stability scoring
+- [x] Code preview toggleable (Python/TypeScript)
+- [x] Recommendations for improving locator quality
 
 ### 4.3 Site Map tab with MBT visualization
 
@@ -1188,10 +1192,10 @@ Replace raw exploration graph with PageType-level state machine.
 
 **Acceptance criteria**:
 
-- [ ] Graph shows PageTypes as nodes (not raw states)
-- [ ] Edge labels show action + count
-- [ ] Coverage overlay toggle works
-- [ ] Clicking nodes/edges navigates to relevant detail
+- [x] Graph shows PageTypes as nodes (not raw states)
+- [x] Edge labels show action + count
+- [x] Coverage overlay toggle works
+- [x] Clicking nodes/edges navigates to relevant detail
 
 ### 4.4 Flow Templates in Test Flows tab
 
@@ -1211,10 +1215,10 @@ Replace raw flow list with deduplicated flow templates.
 
 **Acceptance criteria**:
 
-- [ ] Flow templates shown with occurrence counts
-- [ ] Representative flow expandable with full details
-- [ ] Individual instances accessible via toggle
-- [ ] Filtering works by template/stability/tags
+- [x] Flow templates shown with occurrence counts
+- [x] Representative flow expandable with full details
+- [x] Individual instances accessible via toggle
+- [x] Filtering works by template/stability/tags
 
 ### 4.5 Quality tab with actionable recommendations
 
@@ -1235,10 +1239,10 @@ Merge diagnostics with locator health and provide actionable items.
 
 **Acceptance criteria**:
 
-- [ ] Locator health visible per page type
-- [ ] Recommendations are actionable
-- [ ] Flaky and low-stability items surfaced prominently
-- [ ] Items link to relevant page object / flow detail
+- [x] Locator health visible per page type
+- [x] Recommendations are actionable
+- [x] Flaky and low-stability items surfaced prominently
+- [x] Items link to relevant page object / flow detail
 
 ### 4.6 Dashboard refinements
 
@@ -1258,14 +1262,16 @@ Surface top issues directly on the landing page.
 
 **Acceptance criteria**:
 
-- [ ] Top issues visible on dashboard without clicking into tabs
-- [ ] Site structure summary shows page type count, edge count,
+- [x] Top issues visible on dashboard without clicking into tabs
+- [x] Site structure summary shows page type count, edge count,
       template count
-- [ ] Click-through to relevant tabs works
+- [x] Click-through to relevant tabs works
 
 ---
 
 ## Phase 5: Polish and Validation
+
+**Status**: COMPLETE
 
 **Goal**: Ensure generated output is correct and the framework is
 production-ready.
@@ -1284,10 +1290,10 @@ importable.
 
 **Acceptance criteria**:
 
-- [ ] Generated Python code passes `py_compile`
-- [ ] Generated TypeScript code passes `tsc --noEmit`
-- [ ] POM imports in scenario tests resolve correctly
-- [ ] Locator API usage matches Playwright's actual API
+- [x] Generated Python code passes `py_compile`
+- [x] Generated TypeScript code passes `tsc --noEmit`
+- [x] POM imports in scenario tests resolve correctly
+- [x] Locator API usage matches Playwright's actual API
 
 ### 5.2 Merge element catalogs across page type instances
 
@@ -1303,9 +1309,9 @@ type, not just the representative.
 
 **Acceptance criteria**:
 
-- [ ] POM classes include locators found on any instance
-- [ ] No duplicate locators
-- [ ] Element count reflects union across instances
+- [x] POM classes include locators found on any instance
+- [x] No duplicate locators
+- [x] Element count reflects union across instances
 
 ### 5.3 Cross-run comparison in reports
 
@@ -1320,10 +1326,10 @@ Enable comparison between exploration runs to detect regressions.
 
 **Acceptance criteria**:
 
-- [ ] Dashboard shows "3 new pages, 1 disappeared, 2 changed
+- [x] Dashboard shows "3 new pages, 1 disappeared, 2 changed
       locators"
-- [ ] Changed items highlighted in relevant tabs
-- [ ] Works when previous run exists in database
+- [x] Changed items highlighted in relevant tabs
+- [x] Works when previous run exists in database
 
 ### 5.4 Parametric test generation
 
@@ -1337,14 +1343,14 @@ generate parameterized tests.
 
 - `src/flowscout/modeling/flows.py` — extract data variants from
   flow template instances (Layer 2)
-- `src/flowscout/codegen/tests.py` — generate
+- `src/flowscout/codegen/scenario_tests.py` — generate
   `@pytest.mark.parametrize` (Layer 3)
 
 **Acceptance criteria**:
 
-- [ ] 10 movie detail flows → 1 parametrized test with 10 data sets
-- [ ] Parameters include URL, content identifiers
-- [ ] Generated tests are syntactically valid
+- [x] 10 movie detail flows → 1 parametrized test with 10 data sets
+- [x] Parameters include URL, content identifiers
+- [x] Generated tests are syntactically valid
 
 ---
 
@@ -1367,20 +1373,20 @@ generate parameterized tests.
 | 2     | 2.4  | Interaction patterns       | L2+L3  | Domain-specific methods           | 2.2        | DONE   |
 | 2     | 2.5  | Locator scoring            | L2     | Stability tiers + scores          | 1.4        | DONE   |
 | 2     | 2.6  | XPath fallback             | L1+L2  | Alternative selectors             | 2.5        | DONE   |
-| 3     | 3.1  | Graph walker               | L3     | MBT coverage strategies           | 2.1        | —      |
-| 3     | 3.2  | Coverage metrics           | L3     | State/edge/path coverage          | 3.1        | —      |
-| 3     | 3.3  | MBT export                 | L3     | GraphWalker, DOT, Mermaid         | 3.1        | —      |
-| 3     | 3.4  | Guard conditions           | L2+L3  | Inferred preconditions            | 3.1        | —      |
-| 4     | 4.1  | Tab restructure            | L3     | New IA                            | 2.x        | —      |
-| 4     | 4.2  | Page Objects tab           | L3     | POM preview + quality             | 2.3, 2.5   | —      |
-| 4     | 4.3  | Site Map tab               | L3     | MBT state machine viz             | 3.2        | —      |
-| 4     | 4.4  | Flow Templates tab         | L3     | Deduplicated flow display         | 2.1        | —      |
-| 4     | 4.5  | Quality tab                | L3     | Actionable recommendations        | 2.5        | —      |
-| 4     | 4.6  | Dashboard refinements      | L3     | Top issues on landing             | 4.5        | —      |
-| 5     | 5.1  | Codegen validation         | L3     | Round-trip verification           | 2.3        | —      |
-| 5     | 5.2  | Catalog merging            | L2     | Union of locators                 | 2.2        | —      |
-| 5     | 5.3  | Cross-run comparison       | L3     | Regression detection              | 3.2        | —      |
-| 5     | 5.4  | Parametric tests           | L2+L3  | Data-driven generation            | 2.1        | —      |
+| 3     | 3.1  | Graph walker               | L3     | MBT coverage strategies           | 2.1        | DONE   |
+| 3     | 3.2  | Coverage metrics           | L3     | State/edge/path coverage          | 3.1        | DONE   |
+| 3     | 3.3  | MBT export                 | L3     | GraphWalker, DOT, Mermaid         | 3.1        | DONE   |
+| 3     | 3.4  | Guard conditions           | L2+L3  | Inferred preconditions            | 3.1        | DONE   |
+| 4     | 4.1  | Tab restructure            | L3     | New IA                            | 2.x        | DONE   |
+| 4     | 4.2  | Page Objects tab           | L3     | POM preview + quality             | 2.3, 2.5   | DONE   |
+| 4     | 4.3  | Site Map tab               | L3     | MBT state machine viz             | 3.2        | DONE   |
+| 4     | 4.4  | Flow Templates tab         | L3     | Deduplicated flow display         | 2.1        | DONE   |
+| 4     | 4.5  | Quality tab                | L3     | Actionable recommendations        | 2.5        | DONE   |
+| 4     | 4.6  | Dashboard refinements      | L3     | Top issues on landing             | 4.5        | DONE   |
+| 5     | 5.1  | Codegen validation         | L3     | Round-trip verification           | 2.3        | DONE   |
+| 5     | 5.2  | Catalog merging            | L2     | Union of locators                 | 2.2        | DONE   |
+| 5     | 5.3  | Cross-run comparison       | L3     | Regression detection              | 3.2        | DONE   |
+| 5     | 5.4  | Parametric tests           | L2+L3  | Data-driven generation            | 2.1        | DONE   |
 
 ---
 
