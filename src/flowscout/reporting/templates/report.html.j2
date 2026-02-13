@@ -2018,16 +2018,16 @@
 
     <main id="main-content" class="report-container" role="main">
         <nav class="page-nav animate-in" role="navigation" aria-label="Report sections">
-            <button class="page-btn active" data-page="overview" onclick="setReportPage('overview', this)">Overview</button>
-            <button class="page-btn" data-page="diagnostics" onclick="setReportPage('diagnostics', this)">Diagnostics</button>
-            <button class="page-btn" data-page="suites" onclick="setReportPage('suites', this)">Test Suites</button>
-            <button class="page-btn" data-page="elements" onclick="setReportPage('elements', this)">Elements</button>
-            <button class="page-btn" data-page="model" onclick="setReportPage('model', this)">Model</button>
-            <button class="page-btn" data-page="log" onclick="setReportPage('log', this)">All Actions</button>
+            <button class="page-btn active" data-page="dashboard" onclick="setReportPage('dashboard', this)">Dashboard</button>
+            <button class="page-btn" data-page="quality" onclick="setReportPage('quality', this)">Quality</button>
+            <button class="page-btn" data-page="test-flows" onclick="setReportPage('test-flows', this)">Test Flows</button>
+            <button class="page-btn" data-page="page-objects" onclick="setReportPage('page-objects', this)">Page Objects</button>
+            <button class="page-btn" data-page="site-map" onclick="setReportPage('site-map', this)">Site Map</button>
+            <button class="page-btn" data-page="execution-log" onclick="setReportPage('execution-log', this)">Execution Log</button>
         </nav>
 
         <!-- Target URL -->
-        <div class="target-banner animate-in" data-report-page="overview">
+        <div class="target-banner animate-in" data-report-page="dashboard">
             <div>
                 <div class="target-label">target</div>
                 <div class="target-url">{{ start_url }}</div>
@@ -2042,7 +2042,7 @@
         {% set warn_pct = (flow_counts.warn / [flows|length, 1]|max * 100)|round|int %}
         {% set inventory_total = element_inventory.total_elements if element_inventory else 0 %}
 
-        <div class="dashboard animate-in delay-1" data-report-page="overview">
+        <div class="dashboard animate-in delay-1" data-report-page="dashboard">
             <!-- Pass rate donut -->
             <div class="pass-rate-ring" style="background: conic-gradient(
                 var(--accent-green) 0deg {{ (pass_pct * 3.6)|round|int }}deg,
@@ -2169,7 +2169,7 @@
         </div>
 
         {% if locator_quality_rows %}
-        <section id="locator-quality" class="section animate-in delay-2" data-report-page="overview">
+        <section id="locator-quality" class="section animate-in delay-2" data-report-page="dashboard">
             <div class="section-header">
                 <h2>Locator Quality</h2>
                 <div class="section-count">{{ locator_quality_rows|length }} page types</div>
@@ -2212,7 +2212,7 @@
              SECTION G: DEFECTS (shown above test suites if failures exist)
              ============================================================ -->
         {% if defects.failures or defects.warnings %}
-        <section id="defects" class="section animate-in delay-2" data-report-page="overview">
+        <section id="defects" class="section animate-in delay-2" data-report-page="dashboard">
             <div class="section-header">
                 <h2 style="color: var(--accent-red);">Defects</h2>
                 <div class="section-count" style="color: var(--accent-red); border-color: var(--accent-red-dim);">{{ defects.failures|length + defects.warnings|length }}</div>
@@ -2257,7 +2257,7 @@
         <!-- ============================================================
              SECTION H: DIAGNOSTICS
              ============================================================ -->
-        <section id="diagnostics-section" class="section section-collapsible collapsed animate-in delay-2" data-report-page="diagnostics">
+        <section id="diagnostics-section" class="section section-collapsible collapsed animate-in delay-2" data-report-page="quality">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Exploration Diagnostics</h2>
@@ -2391,7 +2391,7 @@
         <!-- ============================================================
              SECTION C: TEST SUITES (primary view)
              ============================================================ -->
-        <section id="test-suites" class="section animate-in delay-2" data-report-page="suites">
+        <section id="test-suites" class="section animate-in delay-2" data-report-page="test-flows">
             <div class="section-header">
                 <h2>Test Suites</h2>
                 <div class="section-count">{{ flows|length }} cases in {{ flow_groups|length }} suites</div>
@@ -2582,7 +2582,7 @@
         <!-- ============================================================
              SECTION D: ELEMENT DISCOVERY
              ============================================================ -->
-        <section id="elements-section" class="section animate-in delay-3" data-report-page="elements">
+        <section id="elements-section" class="section animate-in delay-3" data-report-page="page-objects">
             <div class="section-header">
                 <h2>Discovered Elements</h2>
                 <div class="section-count">{{ element_inventory.total_elements if element_inventory else 0 }}</div>
@@ -2772,7 +2772,7 @@
              SECTION E: COVERAGE ANALYSIS
              ============================================================ -->
         {% if states|length >= 3 %}
-        <section id="coverage-analysis" class="section section-collapsible collapsed animate-in delay-3" data-report-page="model">
+        <section id="coverage-analysis" class="section section-collapsible collapsed animate-in delay-3" data-report-page="site-map">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Coverage Analysis</h2>
@@ -2822,7 +2822,7 @@
         {% endif %}
 
         {% if mbt_coverage %}
-        <section id="mbt-coverage" class="section section-collapsible collapsed animate-in delay-3" data-report-page="model">
+        <section id="mbt-coverage" class="section section-collapsible collapsed animate-in delay-3" data-report-page="site-map">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>MBT Coverage Matrix</h2>
@@ -2921,7 +2921,7 @@
         <!-- ============================================================
              SECTION E: EXPLORATION MODEL (graph + pages)
              ============================================================ -->
-        <section class="section section-collapsible collapsed animate-in delay-3" id="exploration-model" data-report-page="model">
+        <section class="section section-collapsible collapsed animate-in delay-3" id="exploration-model" data-report-page="site-map">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Exploration Model</h2>
@@ -2969,7 +2969,7 @@
         <!-- ============================================================
              SECTION F: ALL ACTIONS (ADVANCED)
              ============================================================ -->
-        <section id="execution-log" class="section section-collapsible collapsed animate-in delay-4" data-report-page="log">
+        <section id="execution-log" class="section section-collapsible collapsed animate-in delay-4" data-report-page="execution-log">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>All Actions (Advanced)</h2>
@@ -3233,7 +3233,7 @@
                 btnEl.classList.add('active');
             }
 
-            if (page === 'diagnostics') {
+            if (page === 'quality') {
                 const diagnostics = document.getElementById('diagnostics-section');
                 if (diagnostics && diagnostics.classList.contains('collapsed')) {
                     diagnostics.classList.remove('collapsed');
@@ -3242,7 +3242,7 @@
                 }
             }
 
-            if (page === 'model') {
+            if (page === 'site-map') {
                 const model = document.getElementById('exploration-model');
                 if (model && model.classList.contains('collapsed')) {
                     model.classList.remove('collapsed');
@@ -3252,7 +3252,7 @@
                 initGraph();
             }
 
-            if (page === 'log') {
+            if (page === 'execution-log') {
                 const log = document.getElementById('execution-log');
                 if (log && log.classList.contains('collapsed')) {
                     log.classList.remove('collapsed');
@@ -3309,7 +3309,7 @@
         }
 
         function jumpToTestCases(verdict) {
-            setReportPage('suites');
+            setReportPage('test-flows');
             const section = document.getElementById('test-suites');
             filterTestCases(verdict, null);
             if (section) {
@@ -3344,7 +3344,7 @@
 
         /* --- Expand specific test case from defects section --- */
         function expandTestCase(flowId) {
-            setReportPage('suites');
+            setReportPage('test-flows');
             const el = document.querySelector('.test-case[data-flow-id="' + flowId + '"]');
             if (!el) return;
             /* Ensure parent suite is not collapsed */
@@ -3361,7 +3361,7 @@
             const rowId = mapped ? 'flow-step-' + stepIndex : 'execution-step-' + stepIndex;
 
             if (mapped && mapped.flow_id) {
-                setReportPage('suites');
+                setReportPage('test-flows');
                 const flowCase = document.querySelector('.test-case[data-flow-id="' + mapped.flow_id + '"]');
                 if (flowCase) {
                     const suite = flowCase.closest('.test-suite');
@@ -3371,7 +3371,7 @@
                     flowCase.open = true;
                 }
             } else {
-                setReportPage('log');
+                setReportPage('execution-log');
                 const section = document.getElementById('execution-log');
                 if (section && section.classList.contains('collapsed')) {
                     section.classList.remove('collapsed');
@@ -3683,7 +3683,7 @@
                     }
                 });
             }
-            setReportPage('overview');
+            setReportPage('dashboard');
         });
 
         document.addEventListener('keydown', (event) => {

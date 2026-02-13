@@ -41,6 +41,7 @@ class ReportDataBuilder:
         result = self.result
         report_dir = self.report_dir
 
+        site_model = _build_site_model(result=result)
         graph_data = _build_graph_data(result)
         error_results = [
             r
@@ -61,7 +62,10 @@ class ReportDataBuilder:
             aid: dict(a.metadata or {}) for aid, a in result.actions.items()
         }
 
-        flow_templates, flow_groups = _build_template_flow_groups(result=result)
+        flow_templates, flow_groups = _build_template_flow_groups(
+            result=result,
+            site_model=site_model,
+        )
 
         group_summaries: dict[str, dict[str, int]] = {}
         for cat, group_flows in flow_groups.items():
@@ -144,8 +148,12 @@ class ReportDataBuilder:
         )
         locator_quality_rows, locator_recommendations = _build_locator_quality_data(
             result=result,
+            site_model=site_model,
         )
-        mbt_coverage = _build_mbt_coverage_data(result=result)
+        mbt_coverage = _build_mbt_coverage_data(
+            result=result,
+            site_model=site_model,
+        )
 
         return {
             "start_url": result.config.get("start_url", "unknown"),
@@ -186,6 +194,10 @@ class ReportDataBuilder:
             "locator_quality_rows": locator_quality_rows,
             "locator_recommendations": locator_recommendations,
             "mbt_coverage": mbt_coverage,
+            "site_model_available": bool(site_model),
+            "site_model_summary": (
+                site_model.summary.model_dump() if site_model is not None else {}
+            ),
         }
 
 
@@ -269,20 +281,33 @@ def _build_graph_data(result: ExplorationResult) -> dict[str, Any]:
     return {"nodes": nodes, "edges": edges}
 
 
+def _build_site_model(*, result: ExplorationResult) -> SiteModel | None:
+    """Build SiteModel once for report structure data, falling back gracefully."""
+    try:
+        return SiteModel.from_exploration_result(result=result)
+    except ValueError:
+        return None
+
+
 def _build_template_flow_groups(
     *,
     result: ExplorationResult,
+    site_model: SiteModel | None = None,
 ) -> tuple[list[FlowTemplate], dict[str, list[Flow]]]:
     """Group flows by deduplicated page-type sequences for report suites."""
     if not result.flows:
         return [], {}
 
-    state_to_page_type = _build_state_to_page_type_lookup(result=result)
-    templates = deduplicate_flows(
-        flows=result.flows,
-        state_to_page_type=state_to_page_type,
-        actions_by_id=result.actions,
-    )
+    templates: list[FlowTemplate] = []
+    if site_model is not None and site_model.flow_templates:
+        templates = list(site_model.flow_templates)
+    else:
+        state_to_page_type = _build_state_to_page_type_lookup(result=result)
+        templates = deduplicate_flows(
+            flows=result.flows,
+            state_to_page_type=state_to_page_type,
+            actions_by_id=result.actions,
+        )
 
     flow_lookup = {flow.flow_id: flow for flow in result.flows}
     grouped: dict[str, list[Flow]] = {}
@@ -357,11 +382,11 @@ def _clean_catalog_label(value: Any) -> str:
 def _build_locator_quality_data(
     *,
     result: ExplorationResult,
+    site_model: SiteModel | None = None,
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """Build per-page locator quality metrics from the Layer-2 site model."""
-    try:
-        model = SiteModel.from_exploration_result(result=result)
-    except ValueError:
+    model = site_model or _build_site_model(result=result)
+    if model is None:
         return [], []
 
     rows: list[dict[str, Any]] = []
@@ -385,11 +410,11 @@ def _build_locator_quality_data(
 def _build_mbt_coverage_data(
     *,
     result: ExplorationResult,
+    site_model: SiteModel | None = None,
 ) -> dict[str, Any]:
     """Build MBT coverage metrics and matrix from the Layer-2 SiteModel."""
-    try:
-        model = SiteModel.from_exploration_result(result=result)
-    except ValueError:
+    model = site_model or _build_site_model(result=result)
+    if model is None:
         return {}
 
     from flowscout.mbt.coverage import compute_model_coverage
