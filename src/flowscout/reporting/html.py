@@ -14,6 +14,7 @@ from flowscout.analysis.element_inventory import (
     summarize_element_inventory,
 )
 from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.codegen.page_objects import generate_page_object_previews
 from flowscout.core.text_utils import strip_css_blocks
 from flowscout.discovery.actions import ActionResult, OutcomeType
 from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
@@ -154,6 +155,10 @@ class ReportDataBuilder:
             result=result,
             site_model=site_model,
         )
+        page_object_cards = _build_page_object_cards(
+            result=result,
+            site_model=site_model,
+        )
 
         return {
             "start_url": result.config.get("start_url", "unknown"),
@@ -194,6 +199,7 @@ class ReportDataBuilder:
             "locator_quality_rows": locator_quality_rows,
             "locator_recommendations": locator_recommendations,
             "mbt_coverage": mbt_coverage,
+            "page_object_cards": page_object_cards,
             "site_model_available": bool(site_model),
             "site_model_summary": (
                 site_model.summary.model_dump() if site_model is not None else {}
@@ -407,6 +413,109 @@ def _build_locator_quality_data(
     return rows, model.locator_recommendations
 
 
+def _build_page_object_cards(
+    *,
+    result: ExplorationResult,
+    site_model: SiteModel | None,
+) -> list[dict[str, Any]]:
+    """Build per-page object cards with locator tables and code previews."""
+    if site_model is None:
+        return []
+
+    exercised_selectors = {
+        str(action.target_selector).strip()
+        for action in result.actions.values()
+        if str(action.target_selector).strip()
+    }
+    code_previews = generate_page_object_previews(
+        page_types=site_model.page_types,
+        shared_components=site_model.shared_components,
+        base_url=str(result.config.get("start_url", "")),
+    )
+
+    cards: list[dict[str, Any]] = []
+    for page_type in site_model.page_types:
+        preview = code_previews.get(page_type.page_type_id, {})
+        class_name = str(preview.get("class_name") or page_type.name or "PageObject")
+
+        locator_rows: list[dict[str, Any]] = []
+        weak_selector_count = 0
+        for entry in page_type.catalog.entries:
+            selector = str(entry.preferred_selector or entry.selector).strip()
+            stability = str(entry.locator_stability or "medium").strip().lower()
+            is_exercised = bool(selector and selector in exercised_selectors) or bool(
+                entry.selector and entry.selector in exercised_selectors
+            )
+            if stability in {"low", "fragile"}:
+                weak_selector_count += 1
+
+            locator_rows.append(
+                {
+                    "selector": selector or str(entry.selector or ""),
+                    "raw_selector": str(entry.selector or ""),
+                    "stability": stability or "medium",
+                    "zone": str(entry.zone_type.value),
+                    "exercised": is_exercised,
+                }
+            )
+
+        locator_rows.sort(
+            key=lambda row: (
+                {"low": 0, "medium": 1, "high": 2}.get(
+                    str(row["stability"]).lower(),
+                    1,
+                ),
+                str(row["zone"]),
+                str(row["selector"]),
+            )
+        )
+
+        quality_score = int(round(float(page_type.locator_quality_score or 0.0)))
+        quality_tone = "good" if quality_score >= 80 else "warn"
+        if quality_score < 50:
+            quality_tone = "bad"
+
+        recommendations: list[str] = []
+        if weak_selector_count > 0:
+            noun = "element" if weak_selector_count == 1 else "elements"
+            recommendations.append(
+                f"Add data-testid to {weak_selector_count} fragile {noun}.",
+            )
+        if not locator_rows:
+            recommendations.append("No locators captured for this page type yet.")
+        if not recommendations:
+            recommendations.append("Locator strategy looks healthy on this page type.")
+
+        cards.append(
+            {
+                "page_type_id": page_type.page_type_id,
+                "anchor_id": _slugify_token(page_type.page_type_id),
+                "name": page_type.name,
+                "class_name": class_name,
+                "archetype": str(page_type.archetype.value).upper(),
+                "url_pattern": page_type.url_pattern or page_type.representative_url,
+                "instance_count": page_type.instance_count,
+                "quality_score": quality_score,
+                "quality_tone": quality_tone,
+                "locator_rows": locator_rows,
+                "recommendations": recommendations,
+                "code_preview": {
+                    "python": str(preview.get("python", "")).strip(),
+                    "typescript": str(preview.get("typescript", "")).strip(),
+                },
+            }
+        )
+
+    cards.sort(
+        key=lambda row: (
+            int(row["quality_score"]),
+            -int(row["instance_count"]),
+            str(row["name"]).lower(),
+        )
+    )
+    return cards
+
+
 def _build_mbt_coverage_data(
     *,
     result: ExplorationResult,
@@ -487,6 +596,15 @@ def _build_mbt_coverage_data(
         "actions": action_names,
         "matrix_rows": matrix_rows,
     }
+
+
+def _slugify_token(value: str) -> str:
+    """Convert arbitrary identifiers to safe DOM id fragments."""
+    token = "".join(
+        char if (char.isalnum() or char in {"-", "_"}) else "-" for char in str(value)
+    ).strip("-")
+    token = token.lower()
+    return token or "page-type"
 
 
 def _build_uncovered_edge_row(

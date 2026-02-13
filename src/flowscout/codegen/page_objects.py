@@ -101,7 +101,7 @@ def generate_page_objects(
             catalog=catalog,
             components_for_page=all_components_for_page,
         )
-        if not filtered_catalog.entries and not components_for_page:
+        if not filtered_catalog.entries and not all_components_for_page:
             continue
 
         class_name = _catalog_to_class_name(catalog)
@@ -129,6 +129,81 @@ def generate_page_objects(
         generated.append(str(path))
 
     return generated
+
+
+def generate_page_object_previews(
+    page_types: list[Any],
+    *,
+    shared_components: list[Any] | None = None,
+    base_url: str = "",
+) -> dict[str, dict[str, str]]:
+    """Generate per-page type POM code previews for report embedding.
+
+    Args:
+        page_types: SiteModel page type objects/dicts.
+        shared_components: Optional shared components from SiteModel.
+        base_url: Base URL for generated navigate methods.
+
+    Returns:
+        Mapping of page_type_id -> preview payload with class name and
+        Python/TypeScript source.
+    """
+    parsed_components = [
+        _parse_shared_component(component_data)
+        for component_data in (shared_components or [])
+    ]
+    parsed_components = [
+        component for component in parsed_components if component.entries
+    ]
+    base_components, page_scoped_components = _partition_components(
+        parsed_components=parsed_components,
+    )
+    page_components = _build_page_component_map(
+        parsed_components=page_scoped_components,
+    )
+
+    previews: dict[str, dict[str, str]] = {}
+    for page_type in page_types:
+        if isinstance(page_type, dict):
+            page_type_id = str(page_type.get("page_type_id", "")).strip()
+            catalog_data = page_type.get("catalog", {})
+        else:
+            page_type_id = str(getattr(page_type, "page_type_id", "")).strip()
+            catalog_data = getattr(page_type, "catalog", {})
+
+        if not page_type_id:
+            continue
+
+        catalog = _parse_catalog(catalog_data)
+        components_for_page = page_components.get(page_type_id, [])
+        all_components_for_page = [*base_components, *components_for_page]
+        filtered_catalog = _strip_component_entries(
+            catalog=catalog,
+            components_for_page=all_components_for_page,
+        )
+        if not filtered_catalog.entries and not all_components_for_page:
+            continue
+
+        class_name = _catalog_to_class_name(catalog)
+        previews[page_type_id] = {
+            "class_name": class_name,
+            "python": _generate_python_pom(
+                filtered_catalog,
+                class_name,
+                base_url,
+                has_base_page=True,
+                page_components=components_for_page,
+            ),
+            "typescript": _generate_typescript_pom(
+                filtered_catalog,
+                class_name,
+                base_url,
+                has_base_page=True,
+                page_components=components_for_page,
+            ),
+        }
+
+    return previews
 
 
 def _parse_catalog(data: Any) -> PageCatalog:

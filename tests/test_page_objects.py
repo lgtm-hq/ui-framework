@@ -18,6 +18,7 @@ from flowscout.codegen.page_objects import (
     _generate_typescript_pom,
     _selector_to_property_name,
     generate_page_objects,
+    generate_page_object_previews,
 )
 from flowscout.modeling.components import InteractionPattern, SharedComponent
 
@@ -480,3 +481,29 @@ class TestFileGeneration:
             assert "def close(self)" in component_content
             assert "def select(self, value: str)" in component_content
             assert any(path.endswith("_page.py") for path in paths)
+
+
+class TestPreviewGeneration:
+    """In-memory POM preview generation for reporting."""
+
+    def test_generate_page_object_previews_returns_python_and_typescript(
+        self,
+    ) -> None:
+        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        previews = generate_page_object_previews(
+            page_types=[
+                {
+                    "page_type_id": "listing_sig",
+                    "catalog": catalog.model_dump(),
+                }
+            ],
+            base_url="https://example.com",
+        )
+
+        assert "listing_sig" in previews
+        preview = previews["listing_sig"]
+        assert preview["class_name"].endswith("Page")
+        assert "class " in preview["python"]
+        assert "def __init__(self, page: Page)" in preview["python"]
+        assert "export class " in preview["typescript"]
+        assert "constructor(public readonly page: Page)" in preview["typescript"]

@@ -1490,6 +1490,157 @@
             background: rgba(239, 68, 68, 0.12);
         }
 
+        .page-object-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 0.85rem;
+        }
+
+        .pom-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 0.9rem 1rem;
+        }
+
+        .pom-card-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin-bottom: 0.55rem;
+        }
+
+        .pom-class-name {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--accent-cyan);
+            margin-bottom: 0.15rem;
+        }
+
+        .pom-page-name {
+            font-size: 0.93rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.3rem;
+        }
+
+        .pom-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+
+        .pom-badge {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            border-radius: 999px;
+            padding: 0.16rem 0.5rem;
+            border: 1px solid var(--border-dim);
+            color: var(--text-muted);
+            background: var(--bg-overlay);
+        }
+
+        .pom-quality {
+            min-width: 74px;
+            text-align: center;
+            border-radius: 8px;
+            border: 1px solid var(--border-dim);
+            padding: 0.35rem 0.45rem;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            background: var(--bg-overlay);
+        }
+
+        .pom-quality.good {
+            color: var(--accent-green);
+            border-color: rgba(16, 185, 129, 0.35);
+            background: rgba(16, 185, 129, 0.09);
+        }
+
+        .pom-quality.warn {
+            color: var(--accent-amber);
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .pom-quality.bad {
+            color: var(--accent-red);
+            border-color: rgba(239, 68, 68, 0.35);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .pom-submeta {
+            margin-bottom: 0.65rem;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .pom-card-details summary {
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.6rem;
+        }
+
+        .pom-stability {
+            font-family: var(--font-mono);
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .pom-stability.high { color: var(--accent-green); }
+        .pom-stability.medium { color: var(--accent-amber); }
+        .pom-stability.low { color: var(--accent-red); }
+
+        .pom-code-tools {
+            margin-top: 0.7rem;
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .pom-lang-btn {
+            font-family: var(--font-mono);
+            font-size: 0.64rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-dim);
+            background: var(--bg-overlay);
+            color: var(--text-muted);
+            padding: 0.2rem 0.45rem;
+            cursor: pointer;
+        }
+
+        .pom-lang-btn.active {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan-dim);
+            background: rgba(34, 211, 238, 0.08);
+        }
+
+        .pom-code-block {
+            margin: 0.6rem 0 0;
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            background: var(--bg-raised);
+            padding: 0.7rem 0.75rem;
+            max-height: 340px;
+            overflow: auto;
+            display: none;
+            font-family: var(--font-mono);
+            font-size: 0.67rem;
+            line-height: 1.45;
+            color: var(--text-secondary);
+        }
+
+        .pom-code-block.active {
+            display: block;
+        }
+
         .execution-modal {
             position: fixed;
             inset: 0;
@@ -2582,9 +2733,102 @@
         <!-- ============================================================
              SECTION D: ELEMENT DISCOVERY
              ============================================================ -->
+        <section id="page-objects-section" class="section animate-in delay-3" data-report-page="page-objects">
+            <div class="section-header">
+                <h2>Page Object Preview</h2>
+                <div class="section-count">{{ page_object_cards|length }} page types</div>
+                <div class="section-line"></div>
+            </div>
+            {% if page_object_cards %}
+            <div class="page-object-grid">
+                {% for card in page_object_cards %}
+                <article
+                    class="pom-card"
+                    id="page-object-{{ card.anchor_id }}"
+                    data-page-type-id="{{ card.page_type_id }}"
+                >
+                    <div class="pom-card-header">
+                        <div>
+                            <div class="pom-class-name">{{ card.class_name }}</div>
+                            <div class="pom-page-name">{{ card.name }}</div>
+                            <div class="pom-badges">
+                                <span class="pom-badge">{{ card.archetype }}</span>
+                                <span class="pom-badge">seen {{ card.instance_count }} times</span>
+                            </div>
+                        </div>
+                        <div class="pom-quality {{ card.quality_tone }}">
+                            {{ card.quality_score }}%
+                        </div>
+                    </div>
+                    <div class="pom-submeta">{{ card.url_pattern or "unknown pattern" }}</div>
+
+                    <details class="pom-card-details">
+                        <summary>Open locator table and code preview</summary>
+                        <div class="data-table-wrap">
+                            <div class="table-scroll">
+                                <table class="data-table">
+                                    <caption class="sr-only">Locator table for {{ card.name }}</caption>
+                                    <thead>
+                                        <tr>
+                                            <th>Selector</th>
+                                            <th>Stability</th>
+                                            <th>Zone</th>
+                                            <th class="right">Exercised</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in card.locator_rows %}
+                                        <tr>
+                                            <td class="cell-url" title="{{ row.raw_selector }}">{{ row.selector }}</td>
+                                            <td><span class="pom-stability {{ row.stability }}">{{ row.stability }}</span></td>
+                                            <td class="cell-dim">{{ row.zone }}</td>
+                                            <td class="cell-right">{{ "yes" if row.exercised else "no" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {% if card.code_preview.python or card.code_preview.typescript %}
+                        <div class="pom-code-tools">
+                            {% if card.code_preview.python %}
+                            <button class="pom-lang-btn active" onclick="togglePomCode('{{ card.anchor_id }}', 'python', this)">Python</button>
+                            {% endif %}
+                            {% if card.code_preview.typescript %}
+                            <button class="pom-lang-btn {% if not card.code_preview.python %}active{% endif %}" onclick="togglePomCode('{{ card.anchor_id }}', 'typescript', this)">TypeScript</button>
+                            {% endif %}
+                        </div>
+                        {% if card.code_preview.python %}
+                        <pre class="pom-code-block active" data-lang="python"><code>{{ card.code_preview.python }}</code></pre>
+                        {% endif %}
+                        {% if card.code_preview.typescript %}
+                        <pre class="pom-code-block {% if not card.code_preview.python %}active{% endif %}" data-lang="typescript"><code>{{ card.code_preview.typescript }}</code></pre>
+                        {% endif %}
+                        {% endif %}
+                    </details>
+
+                    {% if card.recommendations %}
+                    <div class="diag-reason-list">
+                        {% for recommendation in card.recommendations %}
+                        <span class="diag-chip">{{ recommendation }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="untested-callout">
+                <span class="callout-icon">&#9432;</span>
+                <span>No page object previews available for this run.</span>
+            </div>
+            {% endif %}
+        </section>
+
         <section id="elements-section" class="section animate-in delay-3" data-report-page="page-objects">
             <div class="section-header">
-                <h2>Discovered Elements</h2>
+                <h2>Discovered Elements (Advanced)</h2>
                 <div class="section-count">{{ element_inventory.total_elements if element_inventory else 0 }}</div>
                 <div class="section-line"></div>
             </div>
@@ -3260,6 +3504,26 @@
                     if (header) header.setAttribute('aria-expanded', 'true');
                 }
             }
+        }
+
+        function togglePomCode(anchorId, language, btnEl) {
+            const card = document.getElementById('page-object-' + anchorId);
+            if (!card) return;
+            card.querySelectorAll('.pom-code-block').forEach((block) => {
+                block.classList.toggle('active', block.dataset.lang === language);
+            });
+            card.querySelectorAll('.pom-lang-btn').forEach((button) => {
+                button.classList.toggle('active', button === btnEl);
+            });
+        }
+
+        function openPageObjectCard(anchorId) {
+            setReportPage('page-objects');
+            const card = document.getElementById('page-object-' + anchorId);
+            if (!card) return;
+            const details = card.querySelector('details');
+            if (details) details.open = true;
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         /* --- Toggle collapsible section --- */

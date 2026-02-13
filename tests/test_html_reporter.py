@@ -7,6 +7,8 @@ from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import (
+    _build_page_object_cards,
+    _build_site_model,
     _build_execution_rows,
     _build_flow_execution_map,
     _build_locator_quality_data,
@@ -277,3 +279,75 @@ def test_build_mbt_coverage_data_builds_matrix_and_uncovered_edges() -> None:
     assert data["edge"]["uncovered"][0]["to_name"] != ""
     assert "guards" in data["edge"]["uncovered"][0]
     assert "inferred_from" in data["edge"]["uncovered"][0]
+
+
+def test_build_page_object_cards_includes_code_preview_and_locator_rows() -> None:
+    state_home = PageState(
+        state_id="state-home",
+        url="https://example.com/",
+        title="Home",
+        fingerprint="f" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+    )
+    action_open = Action(
+        action_id="action-open",
+        action_type=ActionType.CLICK,
+        target_selector="#open-card",
+        label="Open card",
+    )
+    result = ExplorationResult(
+        config={"start_url": "https://example.com"},
+        states={"state-home": state_home},
+        actions={"action-open": action_open},
+        smart_analyses={
+            "state-home": {
+                "archetype": "listing",
+                "archetype_confidence": 0.9,
+                "structural_signature": "sig-home",
+                "zones": [],
+                "repeated_structures": [],
+                "content_density": {
+                    "total_text_length": 0,
+                    "heading_count": 0,
+                    "image_count": 0,
+                    "link_count": 0,
+                    "form_input_count": 0,
+                    "interactive_count": 0,
+                    "text_to_interactive_ratio": 0.0,
+                },
+                "extracted_entities": [],
+                "has_search": False,
+                "has_pagination": False,
+                "has_filters": False,
+                "heading_hierarchy": [],
+                "catalog": {
+                    "archetype": "listing",
+                    "url_pattern": "/",
+                    "entries": [
+                        {
+                            "selector": "#open-card",
+                            "tag": "button",
+                            "label": "Open",
+                            "zone_type": "main_content",
+                            "element_type": "button",
+                        }
+                    ],
+                },
+            }
+        },
+    )
+
+    site_model = _build_site_model(result=result)
+    assert site_model is not None
+
+    cards = _build_page_object_cards(result=result, site_model=site_model)
+
+    assert len(cards) == 1
+    assert cards[0]["class_name"].endswith("Page")
+    assert cards[0]["locator_rows"][0]["selector"] == "#open-card"
+    assert cards[0]["locator_rows"][0]["exercised"] is True
+    assert "class " in cards[0]["code_preview"]["python"]
+    assert "export class " in cards[0]["code_preview"]["typescript"]
