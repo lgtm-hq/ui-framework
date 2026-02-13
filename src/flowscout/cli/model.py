@@ -13,7 +13,7 @@ from flowscout.modeling.site_model import SiteModel
 from flowscout.reporting.terminal import TerminalReporter
 
 
-@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
+@main.command()
 @click.argument("result_path", type=click.Path(exists=True))
 @click.option(
     "--output",

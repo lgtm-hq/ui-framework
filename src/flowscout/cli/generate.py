@@ -39,12 +39,23 @@ from flowscout.modeling.site_model import SiteModel
         " Deprecated: SiteModel JSON input is auto-detected."
     ),
 )
+@click.option(
+    "--mbt",
+    "mbt_strategy",
+    type=click.Choice(["edge", "state", "random", "all_paths"]),
+    default=None,
+    help=(
+        "Use MBT model walking strategy for SiteModel generation "
+        "(edge, state, random, all_paths)."
+    ),
+)
 def generate(
     json_path: str,
     output: str | None,
     framework: str,
     export_format: str,
     site_model: bool,
+    mbt_strategy: str | None,
 ) -> None:
     """Generate artifacts from JSON input.
 
@@ -54,11 +65,20 @@ def generate(
         framework: Target framework.
         export_format: Export format.
         site_model: Force building a SiteModel from ExplorationResult input.
+        mbt_strategy: Optional MBT walking strategy for SiteModel scenarios.
     """
     data = json.loads(Path(json_path).read_text())
     if site_model and framework == "bdd":
         raise click.ClickException(
             "--site-model does not support framework 'bdd'. Use pytest or playwright.",
+        )
+    if mbt_strategy and framework == "bdd":
+        raise click.ClickException(
+            "--mbt does not support framework 'bdd'. Use pytest or playwright.",
+        )
+    if mbt_strategy and export_format != "tests":
+        raise click.ClickException(
+            "--mbt supports only '--format tests'.",
         )
 
     # SiteModel input is auto-detected for Layer 3 generation.
@@ -70,6 +90,7 @@ def generate(
             output=output,
             framework=framework,
             export_format=export_format,
+            mbt_strategy=mbt_strategy,
         )
         return
 
@@ -101,6 +122,20 @@ def generate(
             framework=framework,
             export_format=export_format,
             base_url=result.config.get("start_url", ""),
+            mbt_strategy=mbt_strategy,
+        )
+        return
+
+    if mbt_strategy:
+        model = SiteModel.from_exploration_result(result=result)
+        _generate_from_site_model(
+            model=model,
+            json_path=json_path,
+            output=output,
+            framework=framework,
+            export_format=export_format,
+            base_url=result.config.get("start_url", ""),
+            mbt_strategy=mbt_strategy,
         )
         return
 
@@ -173,6 +208,7 @@ def _generate_from_site_model(
     framework: str,
     export_format: str,
     base_url: str = "",
+    mbt_strategy: str | None = None,
 ) -> None:
     """Generate Layer 3 artifacts from a SiteModel."""
     if export_format != "tests":
@@ -196,6 +232,12 @@ def _generate_from_site_model(
     pom_dir.mkdir(parents=True, exist_ok=True)
 
     model_base_url = base_url or _infer_model_base_url(model=model)
+    if mbt_strategy:
+        model = _apply_mbt_strategy(
+            model=model,
+            strategy=mbt_strategy,
+        )
+
     catalogs = {
         page_type.page_type_id: page_type.catalog
         for page_type in model.page_types
@@ -225,3 +267,35 @@ def _generate_from_site_model(
 
     terminal = TerminalReporter()
     terminal.print_site_model_summary(model)
+
+
+def _apply_mbt_strategy(
+    *,
+    model: SiteModel,
+    strategy: str,
+) -> SiteModel:
+    """Replace model scenarios with paths produced by the MBT walker."""
+    from flowscout.mbt import ModelWalker
+
+    walker = ModelWalker()
+
+    if strategy == "edge":
+        scenarios = walker.walk_edge_coverage(model=model)
+    elif strategy == "state":
+        scenarios = walker.walk_state_coverage(model=model)
+    elif strategy == "random":
+        scenarios = [walker.walk_random(model=model)]
+    elif strategy == "all_paths":
+        scenarios = walker.walk_all_paths(model=model)
+    else:
+        raise click.ClickException(f"Unsupported MBT strategy: {strategy}")
+
+    updated_model = model.model_copy(deep=True)
+    updated_model.test_scenarios = scenarios
+    updated_model.summary.total_scenarios = len(scenarios)
+
+    console.print(
+        "  [green]MBT scenarios generated:[/green]"
+        f" {len(scenarios)} scenario(s) using '{strategy}' strategy",
+    )
+    return updated_model

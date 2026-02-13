@@ -20,6 +20,15 @@ from flowscout.discovery.intent import ActionIntent, IntentClass, infer_intent
 if TYPE_CHECKING:
     from flowscout.core.metadata import ActionMetadata
 
+__all__ = [
+    "Action",
+    "ActionResult",
+    "ActionType",
+    "OutcomeType",
+    "build_action_id",
+    "generate_actions",
+]
+
 
 class Action(BaseModel):
     """A concrete action to perform on an element."""

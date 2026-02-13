@@ -30,7 +30,7 @@ tangled coupling that requires painful refactoring later.
 
 ### The Three Layers
 
-```
+````text
 ┌─────────────────────────────────────────────────────┐
 │  LAYER 1: DISCOVERY                                 │
 │  "What exists on this site?"                        │
@@ -81,7 +81,7 @@ tangled coupling that requires painful refactoring later.
 │  Modules: codegen/page_objects, codegen/scenarios,   │
 │           mbt/walker, mbt/exporters, reporting/      │
 └─────────────────────────────────────────────────────┘
-```
+```text
 
 ### Pipeline Rules
 
@@ -121,20 +121,20 @@ uv run flowscout generate model.json --tests           # Scenario tests
 uv run flowscout generate model.json --report          # HTML dashboard
 uv run flowscout generate model.json --export dot      # MBT export
 uv run flowscout generate model.json --mbt edge        # MBT walk + tests
-```
+```text
 
 ### Current State vs. Target
 
-| Concern | Currently Lives In | Should Live In | Migration |
-|---|---|---|---|
-| Flow extraction | `analysis/graph.py` (Layer 1) | `analysis/graph.py` (Layer 1 — raw flows) + `modeling/flows.py` (Layer 2 — dedup) | Split in Phase 2.1 |
-| Scenario synthesis | `modeling/scenarios.py` (Layer 2) | `modeling/scenarios.py` (Layer 2) | Done (Phase 1.4) |
-| Page analysis | `smart/planner.py` (Layer 1 — during crawl) | Keep in Layer 1, shared types in `core/archetypes.py` | Done (Phase 1.4) |
-| POM generation | `codegen/page_objects.py` (Layer 3) | `codegen/page_objects.py` (Layer 3) | No change needed |
-| Report building | `reporting/html.py` (Layer 3) | `reporting/html.py` (Layer 3) | Feed from SiteModel in Phase 4 |
-| Test codegen | `codegen/scenario_tests.py` (primary) + `codegen/playwright_tests.py` (legacy) | `codegen/scenario_tests.py` (Layer 3) | Done (Phase 1.3) |
-| Site model | `modeling/site_model.py` (Layer 2) | `modeling/site_model.py` (Layer 2) | Done (Phase 1.4) |
-| MBT walking | Does not exist | `mbt/walker.py` (Layer 3) | Create in Phase 3.1 |
+| Concern            | Currently Lives In                                                             | Should Live In                                                                    | Migration                      |
+| ------------------ | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------ |
+| Flow extraction    | `analysis/graph.py` (Layer 1)                                                  | `analysis/graph.py` (Layer 1 — raw flows) + `modeling/flows.py` (Layer 2 — dedup) | Split in Phase 2.1             |
+| Scenario synthesis | `modeling/scenarios.py` (Layer 2)                                              | `modeling/scenarios.py` (Layer 2)                                                 | Done (Phase 1.4)               |
+| Page analysis      | `smart/planner.py` (Layer 1 — during crawl)                                    | Keep in Layer 1, shared types in `core/archetypes.py`                             | Done (Phase 1.4)               |
+| POM generation     | `codegen/page_objects.py` (Layer 3)                                            | `codegen/page_objects.py` (Layer 3)                                               | No change needed               |
+| Report building    | `reporting/html.py` (Layer 3)                                                  | `reporting/html.py` (Layer 3)                                                     | Feed from SiteModel in Phase 4 |
+| Test codegen       | `codegen/scenario_tests.py` (primary) + `codegen/playwright_tests.py` (legacy) | `codegen/scenario_tests.py` (Layer 3)                                             | Done (Phase 1.3)               |
+| Site model         | `modeling/site_model.py` (Layer 2)                                             | `modeling/site_model.py` (Layer 2)                                                | Done (Phase 1.4)               |
+| MBT walking        | Does not exist                                                                 | `mbt/walker.py` (Layer 3)                                                         | Create in Phase 3.1            |
 
 ---
 
@@ -251,7 +251,7 @@ Generation pipeline has clean, enforced boundaries.
 
 **Directory structure (target)**:
 
-```
+```text
 src/flowscout/
   # Layer 1: Discovery
   core/
@@ -305,7 +305,7 @@ src/flowscout/
     explore.py          # explore command
     model.py            # model command (new)
     generate.py         # generate command (new)
-```
+````
 
 **Migration steps**:
 
@@ -329,14 +329,14 @@ src/flowscout/
 
 **Import rules to enforce** (add to CLAUDE.md):
 
-```
+````text
 # Layer 1 (discovery/) may import from: core/, discovery/, analysis/
 # Layer 2 (modeling/)   may import from: core/ (models only), modeling/
 # Layer 3 (codegen/, mbt/, reporting/) may import from:
 #          core/ (models only), modeling/
 # CLI (cli/) may import from: all layers
 # Storage (storage/) may import from: core/ (models only)
-```
+```text
 
 **Acceptance criteria**:
 
@@ -410,15 +410,15 @@ these situations and surface them clearly.
 
 **Detection signals**:
 
-| Signal | Detected Via | Classification |
-|---|---|---|
-| HTTP 401/403 | Response status code | `ACCESS_DENIED` |
-| "Access Denied" text | DOM content scan | `ACCESS_DENIED` |
-| CAPTCHA iframe | reCAPTCHA/hCaptcha/Turnstile element detection | `CAPTCHA` |
-| "Verify you're human" | DOM content scan | `CAPTCHA` |
-| Cookie consent modal | Common consent framework selectors | `CONSENT_WALL` |
-| Cloudflare challenge | `cf-challenge` page markers | `WAF_CHALLENGE` |
-| 0 elements + error text | Heuristic fallback | `BLOCKED_UNKNOWN` |
+| Signal                  | Detected Via                                   | Classification    |
+| ----------------------- | ---------------------------------------------- | ----------------- |
+| HTTP 401/403            | Response status code                           | `ACCESS_DENIED`   |
+| "Access Denied" text    | DOM content scan                               | `ACCESS_DENIED`   |
+| CAPTCHA iframe          | reCAPTCHA/hCaptcha/Turnstile element detection | `CAPTCHA`         |
+| "Verify you're human"   | DOM content scan                               | `CAPTCHA`         |
+| Cookie consent modal    | Common consent framework selectors             | `CONSENT_WALL`    |
+| Cloudflare challenge    | `cf-challenge` page markers                    | `WAF_CHALLENGE`   |
+| 0 elements + error text | Heuristic fallback                             | `BLOCKED_UNKNOWN` |
 
 **Design**:
 
@@ -435,7 +435,7 @@ class PageBlockReason(StrEnum):
 # On PageState
 block_reason: PageBlockReason = PageBlockReason.NONE
 block_detail: str = ""   # Human-readable description
-```
+````
 
 **Behavior when blocked**:
 
@@ -523,7 +523,7 @@ sessionStorage) between runs. This enables:
 
 **Design**:
 
-```bash
+````bash
 # Save browser state after exploration
 uv run flowscout explore <url> --save-context ./ctx/mysite.json
 
@@ -532,7 +532,7 @@ uv run flowscout explore <url> --load-context ./ctx/mysite.json
 
 # Combined: load existing context, save updated context after
 uv run flowscout explore <url> --context ./ctx/mysite.json
-```
+```text
 
 **Implementation**:
 
@@ -583,7 +583,7 @@ google-chrome --remote-debugging-port=9222
 
 # Flowscout connects and explores
 uv run flowscout explore <url> --cdp-endpoint ws://localhost:9222
-```
+````
 
 **Implementation**:
 
@@ -717,7 +717,7 @@ class SharedComponent(BaseModel):
 
 **Generated output structure**:
 
-```
+```text
 pages/
   components/
     navigation_component.py
@@ -800,25 +800,25 @@ just `click()` calls.
 
 **Patterns to detect** (Layer 2 — `modeling/components.py`):
 
-| Interaction Pattern | Detected Via | Stored As |
-|---|---|---|
-| Dropdown open/close | `DROPDOWN_TRIGGER` + `DROPDOWN_OPTION` | `InteractionPattern.DROPDOWN` |
-| Tab switching | `TAB` element type + DOM_CHANGE outcome | `InteractionPattern.TABS` |
-| Search submit | `is_search` metadata + FILL + PRESS_KEY | `InteractionPattern.SEARCH` |
-| Form fill + submit | `SUBMIT_FORM` with field_values | `InteractionPattern.FORM` |
-| Pagination | Pagination zone elements | `InteractionPattern.PAGINATION` |
-| Toggle | CHECK/UNCHECK actions | `InteractionPattern.TOGGLE` |
+| Interaction Pattern | Detected Via                            | Stored As                       |
+| ------------------- | --------------------------------------- | ------------------------------- |
+| Dropdown open/close | `DROPDOWN_TRIGGER` + `DROPDOWN_OPTION`  | `InteractionPattern.DROPDOWN`   |
+| Tab switching       | `TAB` element type + DOM_CHANGE outcome | `InteractionPattern.TABS`       |
+| Search submit       | `is_search` metadata + FILL + PRESS_KEY | `InteractionPattern.SEARCH`     |
+| Form fill + submit  | `SUBMIT_FORM` with field_values         | `InteractionPattern.FORM`       |
+| Pagination          | Pagination zone elements                | `InteractionPattern.PAGINATION` |
+| Toggle              | CHECK/UNCHECK actions                   | `InteractionPattern.TOGGLE`     |
 
 **Methods generated** (Layer 3 — `codegen/page_objects.py`):
 
-| Pattern | Generated Methods |
-|---|---|
-| DROPDOWN | `open()`, `close()`, `select(value)` |
-| TABS | `switch_to(tab_name)` |
-| SEARCH | `search(query)` |
-| FORM | `fill_and_submit(**fields)` |
-| PAGINATION | `next_page()`, `previous_page()` |
-| TOGGLE | `toggle(name)`, `is_checked(name)` |
+| Pattern    | Generated Methods                    |
+| ---------- | ------------------------------------ |
+| DROPDOWN   | `open()`, `close()`, `select(value)` |
+| TABS       | `switch_to(tab_name)`                |
+| SEARCH     | `search(query)`                      |
+| FORM       | `fill_and_submit(**fields)`          |
+| PAGINATION | `next_page()`, `previous_page()`     |
+| TOGGLE     | `toggle(name)`, `is_checked(name)`   |
 
 **Files to create/modify**:
 
@@ -846,16 +846,16 @@ Score each locator by its stability tier and surface this in reports.
 
 **Scoring**:
 
-| Tier | Selector Pattern | Score |
-|---|---|---|
-| 1 | `#id` | 100 |
-| 2 | `[data-testid]`, `[data-tab]` | 95 |
-| 3 | `a[href]` | 85 |
-| 4 | `[aria-label]` | 80 |
-| 5 | `[role]` | 70 |
-| 6 | `[name]` | 65 |
-| 7 | `input[type]` | 50 |
-| 8 | `tag:nth-of-type(n)` | 20 |
+| Tier | Selector Pattern              | Score |
+| ---- | ----------------------------- | ----- |
+| 1    | `#id`                         | 100   |
+| 2    | `[data-testid]`, `[data-tab]` | 95    |
+| 3    | `a[href]`                     | 85    |
+| 4    | `[aria-label]`                | 80    |
+| 5    | `[role]`                      | 70    |
+| 6    | `[name]`                      | 65    |
+| 7    | `input[type]`                 | 50    |
+| 8    | `tag:nth-of-type(n)`          | 20    |
 
 **Aggregate per page type**: average of all locator scores.
 
@@ -953,6 +953,13 @@ class ModelWalker:
 - Build NetworkX DiGraph from `SiteModel.page_types` (nodes) and
   `SiteModel.navigation_edges` (edges)
 - Edge coverage: Chinese Postman / Eulerian path algorithm
+- **3.1 expansion**: use a directed CPP approximation per weakly
+  connected component:
+  - If component is strongly connected, balance in/out degree
+    imbalances with min-cost shortest-path matching, then run
+    Eulerian traversal.
+  - If CPP preconditions fail, fall back to deterministic
+    shortest-path stitching between uncovered transitions.
 - State coverage: minimum spanning walk
 - Random walk: weighted random selection (weight by
   `occurrence_count`)
@@ -1101,14 +1108,14 @@ inferred_from: str = ""            # How the guard was detected
 
 Replace current 6 tabs with a structure aligned to the vision:
 
-| Current | New | Purpose |
-|---|---|---|
-| Overview | **Dashboard** | Keep — refine with top issues callout |
-| Diagnostics | **Quality** | Merge diagnostics + locator health + recommendations |
-| Test Suites | **Test Flows** | Show flow templates (deduplicated) |
-| Elements | **Page Objects** | POM preview per page type |
-| Model | **Site Map** | PageType-level state machine |
-| All Actions | **Execution Log** | Keep as "Advanced" |
+| Current     | New               | Purpose                                              |
+| ----------- | ----------------- | ---------------------------------------------------- |
+| Overview    | **Dashboard**     | Keep — refine with top issues callout                |
+| Diagnostics | **Quality**       | Merge diagnostics + locator health + recommendations |
+| Test Suites | **Test Flows**    | Show flow templates (deduplicated)                   |
+| Elements    | **Page Objects**  | POM preview per page type                            |
+| Model       | **Site Map**      | PageType-level state machine                         |
+| All Actions | **Execution Log** | Keep as "Advanced"                                   |
 
 **Key design point**: The report reads primarily from `SiteModel`
 for structure (page types, edges, components, flow templates) and
@@ -1343,37 +1350,37 @@ generate parameterized tests.
 
 ## Milestone Summary
 
-| Phase | ID | Milestone | Layer | Key Deliverable | Depends On | Status |
-|---|---|---|---|---|---|---|
-| 1 | 1.1 | Smart default | CLI | `--smart` on by default | — | DONE |
-| 1 | 1.2 | Verdict simplification | L1+L3 | Observation model | — | DONE |
-| 1 | 1.3 | Codegen consolidation | L3 | POM + scenarios primary | — | DONE |
-| 1 | 1.4 | Three-layer boundary | All | `modeling/` package, CLI pipeline | 1.1–1.3 | DONE |
-| 1 | 1.5 | Serialization contracts | L1+L2 | Versioned schemas | 1.4 | DONE |
-| 1b | 1b.1 | Blocked page detection | L1 | Block reason classification | 1.5 | — |
-| 1b | 1b.2 | Browser stealth defaults | L1 | Anti-detection baseline | 1b.1 | — |
-| 1b | 1b.3 | Persistent browser context | L1+CLI | Cookie/storage persistence | 1b.2 | — |
-| 1b | 1b.4 | CDP connection | L1+CLI | Connect to existing browser | 1b.2 | — |
-| 2 | 2.1 | Flow deduplication | L2 | Flow templates | 1.4 | DONE |
-| 2 | 2.2 | Component extraction | L2 | Shared components | 1.4 | DONE |
-| 2 | 2.3 | POM inheritance | L3 | BasePage + subclasses | 2.2 | DONE |
-| 2 | 2.4 | Interaction patterns | L2+L3 | Domain-specific methods | 2.2 | DONE |
-| 2 | 2.5 | Locator scoring | L2 | Stability tiers + scores | 1.4 | DONE |
-| 2 | 2.6 | XPath fallback | L1+L2 | Alternative selectors | 2.5 | DONE |
-| 3 | 3.1 | Graph walker | L3 | MBT coverage strategies | 2.1 | — |
-| 3 | 3.2 | Coverage metrics | L3 | State/edge/path coverage | 3.1 | — |
-| 3 | 3.3 | MBT export | L3 | GraphWalker, DOT, Mermaid | 3.1 | — |
-| 3 | 3.4 | Guard conditions | L2+L3 | Inferred preconditions | 3.1 | — |
-| 4 | 4.1 | Tab restructure | L3 | New IA | 2.x | — |
-| 4 | 4.2 | Page Objects tab | L3 | POM preview + quality | 2.3, 2.5 | — |
-| 4 | 4.3 | Site Map tab | L3 | MBT state machine viz | 3.2 | — |
-| 4 | 4.4 | Flow Templates tab | L3 | Deduplicated flow display | 2.1 | — |
-| 4 | 4.5 | Quality tab | L3 | Actionable recommendations | 2.5 | — |
-| 4 | 4.6 | Dashboard refinements | L3 | Top issues on landing | 4.5 | — |
-| 5 | 5.1 | Codegen validation | L3 | Round-trip verification | 2.3 | — |
-| 5 | 5.2 | Catalog merging | L2 | Union of locators | 2.2 | — |
-| 5 | 5.3 | Cross-run comparison | L3 | Regression detection | 3.2 | — |
-| 5 | 5.4 | Parametric tests | L2+L3 | Data-driven generation | 2.1 | — |
+| Phase | ID   | Milestone                  | Layer  | Key Deliverable                   | Depends On | Status |
+| ----- | ---- | -------------------------- | ------ | --------------------------------- | ---------- | ------ |
+| 1     | 1.1  | Smart default              | CLI    | `--smart` on by default           | —          | DONE   |
+| 1     | 1.2  | Verdict simplification     | L1+L3  | Observation model                 | —          | DONE   |
+| 1     | 1.3  | Codegen consolidation      | L3     | POM + scenarios primary           | —          | DONE   |
+| 1     | 1.4  | Three-layer boundary       | All    | `modeling/` package, CLI pipeline | 1.1–1.3    | DONE   |
+| 1     | 1.5  | Serialization contracts    | L1+L2  | Versioned schemas                 | 1.4        | DONE   |
+| 1b    | 1b.1 | Blocked page detection     | L1     | Block reason classification       | 1.5        | —      |
+| 1b    | 1b.2 | Browser stealth defaults   | L1     | Anti-detection baseline           | 1b.1       | —      |
+| 1b    | 1b.3 | Persistent browser context | L1+CLI | Cookie/storage persistence        | 1b.2       | —      |
+| 1b    | 1b.4 | CDP connection             | L1+CLI | Connect to existing browser       | 1b.2       | —      |
+| 2     | 2.1  | Flow deduplication         | L2     | Flow templates                    | 1.4        | DONE   |
+| 2     | 2.2  | Component extraction       | L2     | Shared components                 | 1.4        | DONE   |
+| 2     | 2.3  | POM inheritance            | L3     | BasePage + subclasses             | 2.2        | DONE   |
+| 2     | 2.4  | Interaction patterns       | L2+L3  | Domain-specific methods           | 2.2        | DONE   |
+| 2     | 2.5  | Locator scoring            | L2     | Stability tiers + scores          | 1.4        | DONE   |
+| 2     | 2.6  | XPath fallback             | L1+L2  | Alternative selectors             | 2.5        | DONE   |
+| 3     | 3.1  | Graph walker               | L3     | MBT coverage strategies           | 2.1        | —      |
+| 3     | 3.2  | Coverage metrics           | L3     | State/edge/path coverage          | 3.1        | —      |
+| 3     | 3.3  | MBT export                 | L3     | GraphWalker, DOT, Mermaid         | 3.1        | —      |
+| 3     | 3.4  | Guard conditions           | L2+L3  | Inferred preconditions            | 3.1        | —      |
+| 4     | 4.1  | Tab restructure            | L3     | New IA                            | 2.x        | —      |
+| 4     | 4.2  | Page Objects tab           | L3     | POM preview + quality             | 2.3, 2.5   | —      |
+| 4     | 4.3  | Site Map tab               | L3     | MBT state machine viz             | 3.2        | —      |
+| 4     | 4.4  | Flow Templates tab         | L3     | Deduplicated flow display         | 2.1        | —      |
+| 4     | 4.5  | Quality tab                | L3     | Actionable recommendations        | 2.5        | —      |
+| 4     | 4.6  | Dashboard refinements      | L3     | Top issues on landing             | 4.5        | —      |
+| 5     | 5.1  | Codegen validation         | L3     | Round-trip verification           | 2.3        | —      |
+| 5     | 5.2  | Catalog merging            | L2     | Union of locators                 | 2.2        | —      |
+| 5     | 5.3  | Cross-run comparison       | L3     | Regression detection              | 3.2        | —      |
+| 5     | 5.4  | Parametric tests           | L2+L3  | Data-driven generation            | 2.1        | —      |
 
 ---
 

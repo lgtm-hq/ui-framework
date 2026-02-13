@@ -1,1 +1,7 @@
-"""Model-based testing package stubs (implemented in Phase 3)."""
+"""Model-based testing primitives."""
+
+from __future__ import annotations
+
+from flowscout.mbt.walker import ModelWalker
+
+__all__ = ["ModelWalker"]

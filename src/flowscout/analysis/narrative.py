@@ -154,7 +154,7 @@ class NarrativeGenerator:
         states: list[PageState | None],
         *,
         intents: list[ActionIntent | None] | None = None,
-        observations: list[ObservationResult | None] | None = None,
+        observations: Sequence[ObservationResult | None] | None = None,
     ) -> FlowNarrative:
         """Generate a complete narrative for a flow."""
         steps: list[NarrativeStep] = []

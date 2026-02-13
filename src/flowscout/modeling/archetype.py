@@ -2,10 +2,34 @@
 
 from __future__ import annotations
 
-from flowscout.core import archetypes as _archetypes_module
+from flowscout.core.archetypes import (
+    ArchetypeInstance,
+    ArchetypeRegistry,
+    CatalogEntry,
+    ContentDensity,
+    ContentZone,
+    PageAnalysis,
+    PageArchetype,
+    PageCatalog,
+    RepeatedStructure,
+    ZoneType,
+    build_page_analysis,
+    classify_archetype,
+    compute_structural_signature,
+)
 
-_EXPORTED_NAMES = [
-    name for name in dir(_archetypes_module) if not name.startswith("__")
+__all__ = [
+    "ArchetypeInstance",
+    "ArchetypeRegistry",
+    "CatalogEntry",
+    "ContentDensity",
+    "ContentZone",
+    "PageAnalysis",
+    "PageArchetype",
+    "PageCatalog",
+    "RepeatedStructure",
+    "ZoneType",
+    "build_page_analysis",
+    "classify_archetype",
+    "compute_structural_signature",
 ]
-__all__ = [name for name in _EXPORTED_NAMES if not name.startswith("_")]
-globals().update({name: getattr(_archetypes_module, name) for name in _EXPORTED_NAMES})
