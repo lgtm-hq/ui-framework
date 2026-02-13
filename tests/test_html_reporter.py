@@ -7,6 +7,7 @@ from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import (
+    _build_graph_data,
     _build_page_object_cards,
     _build_site_model,
     _build_execution_rows,
@@ -351,3 +352,81 @@ def test_build_page_object_cards_includes_code_preview_and_locator_rows() -> Non
     assert cards[0]["locator_rows"][0]["exercised"] is True
     assert "class " in cards[0]["code_preview"]["python"]
     assert "export class " in cards[0]["code_preview"]["typescript"]
+
+
+def test_build_graph_data_uses_site_model_page_types_and_edges() -> None:
+    state_listing = PageState(
+        state_id="state-listing",
+        url="https://example.com/movies",
+        title="Listing",
+        fingerprint="f" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+    )
+    state_detail = PageState(
+        state_id="state-detail",
+        url="https://example.com/movies/1",
+        title="Detail",
+        fingerprint="e" * 64,
+        depth=1,
+        dom_structure_hash="dom2",
+        visible_text_hash="text2",
+        form_state_hash="form2",
+    )
+    action_open = Action(
+        action_id="action-open",
+        action_type=ActionType.CLICK,
+        target_selector="a[href='/movies/1']",
+        label="Open detail",
+    )
+    result = ExplorationResult(
+        config={"start_url": "https://example.com"},
+        states={
+            "state-listing": state_listing,
+            "state-detail": state_detail,
+        },
+        actions={"action-open": action_open},
+        results=[
+            ActionResult(
+                action_id="action-open",
+                source_state_id="state-listing",
+                target_state_id="state-detail",
+                outcome=OutcomeType.NAVIGATION,
+            )
+        ],
+        flows=[
+            Flow(
+                flow_id="flow-1",
+                name="Listing to detail",
+                description="Open detail",
+                state_ids=["state-listing", "state-detail"],
+                action_ids=["action-open"],
+                outcomes=[OutcomeType.NAVIGATION],
+            )
+        ],
+        smart_analyses={
+            "state-listing": {"structural_signature": "listing_sig"},
+            "state-detail": {"structural_signature": "detail_sig"},
+        },
+    )
+    site_model = _build_site_model(result=result)
+    assert site_model is not None
+
+    page_object_cards = _build_page_object_cards(result=result, site_model=site_model)
+    mbt_coverage = _build_mbt_coverage_data(result=result, site_model=site_model)
+    graph = _build_graph_data(
+        result=result,
+        site_model=site_model,
+        mbt_coverage=mbt_coverage,
+        page_object_cards=page_object_cards,
+    )
+
+    assert len(graph["nodes"]) == 2
+    assert graph["nodes"][0]["id"] != ""
+    assert graph["nodes"][0]["anchor_id"] != ""
+    assert len(graph["edges"]) == 1
+    assert graph["edges"][0]["action_label"] == "Open detail"
+    assert graph["edges"][0]["occurrence_count"] == 1
+    assert "uncovered" in graph["edges"][0]

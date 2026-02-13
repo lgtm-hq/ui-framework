@@ -3168,39 +3168,46 @@
         <section class="section section-collapsible collapsed animate-in delay-3" id="exploration-model" data-report-page="site-map">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                <h2>Exploration Model</h2>
-                <div class="section-count">{{ states|length }} pages &middot; {{ results|length }} actions</div>
+                <h2>Site Map</h2>
+                <div class="section-count">{{ site_model_summary.total_page_types or 0 }} page types &middot; {{ site_model_summary.total_navigation_edges or 0 }} paths</div>
                 <div class="section-line"></div>
             </div>
             <div class="section-body">
+                <div class="filter-toolbar" role="toolbar" aria-label="Site map controls">
+                    <label class="theme-picker" for="site-map-coverage-toggle" style="margin: 0;">
+                        <span class="theme-picker-label">Coverage Overlay</span>
+                        <input id="site-map-coverage-toggle" type="checkbox" onchange="toggleSiteMapCoverage(this.checked)">
+                    </label>
+                </div>
                 <div id="graph-container"></div>
                 <div class="graph-legend">
-                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-green);"></div> navigation</div>
-                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-amber);"></div> dom change</div>
-                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-red);"></div> error / timeout</div>
-                    <div class="legend-item"><div class="legend-dot" style="color: var(--text-muted);"></div> no change</div>
+                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-cyan);"></div> node size = instance count</div>
+                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-green);"></div> edge width = transition count</div>
+                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-red);"></div> uncovered edge (overlay)</div>
                 </div>
 
-                <!-- Pages table -->
+                <!-- Page type table -->
                 <div class="data-table-wrap" style="margin-top: 1.5rem;">
                     <div class="table-scroll">
                         <table class="data-table">
-                            <caption class="sr-only">Discovered pages</caption>
+                            <caption class="sr-only">Page types in site model</caption>
                             <thead>
                                 <tr>
-                                    <th>Page</th>
-                                    <th>URL</th>
-                                    <th class="right">Depth</th>
-                                    <th>Signals</th>
+                                    <th>Page Type</th>
+                                    <th>Archetype</th>
+                                    <th>URL Pattern</th>
+                                    <th class="right">Instances</th>
+                                    <th class="right">Locator Quality</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for state in states %}
-                                <tr>
-                                    <td>{{ state.title or state.url }}</td>
-                                    <td class="cell-url">{{ state.url }}</td>
-                                    <td class="cell-right">{{ state.depth }}</td>
-                                    <td class="cell-signals">{{ state.signals|join(', ') }}</td>
+                                {% for card in page_object_cards %}
+                                <tr onclick="openPageObjectCard('{{ card.anchor_id }}')" style="cursor: pointer;">
+                                    <td class="cell-action">{{ card.name }}</td>
+                                    <td class="cell-dim">{{ card.archetype }}</td>
+                                    <td class="cell-url">{{ card.url_pattern }}</td>
+                                    <td class="cell-right">{{ card.instance_count }}</td>
+                                    <td class="cell-right">{{ card.quality_score }}%</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -3336,6 +3343,8 @@
         const turboThemeDefault = 'catppuccin-mocha';
         const turboThemeBaseUrl = 'https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/themes/';
         let graphInitialized = false;
+        let siteMapNetwork = null;
+        let siteMapEdges = null;
 
         function availableTurboThemes() {
             return Array.from(document.querySelectorAll('#theme-picker-select option')).map((opt) => opt.value);
@@ -3360,82 +3369,92 @@
             return chosen;
         }
 
-        /* --- Lazy graph init on first expand of Exploration Model section --- */
+        /* --- Lazy graph init on first expand of Site Map section --- */
         function initGraph() {
             if (graphInitialized) return;
             graphInitialized = true;
 
-            const depthPalette = ['#00e59b', '#4facfe', '#00f5d4', '#ffbe0b', '#ff6b6b', '#c084fc'];
-            const outcomeEdgeColors = {
-                'navigation': '#00e59b',
-                'dom_change': '#ffbe0b',
-                'visual_change': '#4facfe',
-                'no_change': '#4a5f78',
-                'validation_error': '#ff4757',
-                'network_error': '#ff4757',
-                'console_error': '#ff4757',
-                'timeout': '#ff6b6b',
-                'exception': '#ff4757',
+            const archetypeColors = {
+                listing: '#38bdf8',
+                detail: '#22c55e',
+                form: '#f59e0b',
+                search_results: '#a78bfa',
+                landing: '#06b6d4',
+                error: '#ef4444',
+                unknown: '#64748b',
             };
 
-            const nodes = new vis.DataSet(graphData.nodes.map(n => ({
-                id: n.id,
-                label: (n.label || n.url || 'Page').substring(0, 35),
-                title: '<div style="font-family:monospace;font-size:11px;padding:6px 10px;line-height:1.6;max-width:320px;">' +
-                       'URL: ' + n.url + '<br>Depth: ' + n.depth + '<br>' +
-                       'Signals: ' + (n.signals||[]).join(', ') + '</div>',
+            const nodes = new vis.DataSet(graphData.nodes.map((node) => ({
+                id: node.id,
+                label: String(node.label || node.id || 'Page').substring(0, 36),
+                title:
+                    '<div style="font-family:monospace;font-size:11px;padding:6px 10px;line-height:1.6;max-width:340px;">' +
+                    'Page Type: ' + node.label + '<br>' +
+                    'Archetype: ' + String(node.archetype || 'unknown').toUpperCase() + '<br>' +
+                    'Instances: ' + String(node.instance_count || 0) + '<br>' +
+                    'Locator Quality: ' + String(node.quality_score || 0) + '%<br>' +
+                    'Pattern: ' + String(node.url_pattern || '-') +
+                    '</div>',
+                shape: 'dot',
+                size: 16 + Math.min(Number(node.instance_count || 0), 10) * 2.5,
                 color: {
-                    background: '#0f1620',
-                    border: depthPalette[Math.min(n.depth, depthPalette.length - 1)],
-                    highlight: { background: '#1a2636', border: '#00e59b' },
-                    hover: { background: '#141e2b', border: depthPalette[Math.min(n.depth, depthPalette.length - 1)] },
+                    background: '#101827',
+                    border: archetypeColors[String(node.archetype || 'unknown')] || archetypeColors.unknown,
+                    highlight: {
+                        background: '#1f2937',
+                        border: '#06b6d4',
+                    },
+                    hover: {
+                        background: '#111827',
+                        border: archetypeColors[String(node.archetype || 'unknown')] || archetypeColors.unknown,
+                    },
                 },
                 font: {
-                    color: '#c8d6e5',
+                    color: '#dbe4f2',
                     size: 11,
                     face: "'JetBrains Mono', monospace",
                 },
-                shape: 'box',
                 borderWidth: 2,
                 borderWidthSelected: 3,
-                margin: { top: 10, right: 14, bottom: 10, left: 14 },
-                shadow: {
-                    enabled: true,
-                    color: depthPalette[Math.min(n.depth, depthPalette.length - 1)] + '15',
-                    size: 20,
-                    x: 0,
-                    y: 4,
-                },
+                anchor_id: node.anchor_id || '',
             })));
 
-            const edges = new vis.DataSet(graphData.edges.map((e, i) => ({
-                id: i,
-                from: e.source,
-                to: e.target,
-                label: (e.label || '').replace(/^Click:\s*/, '').substring(0, 22),
-                title: '<div style="font-family:monospace;font-size:11px;padding:6px 10px;">' +
-                       'Action: ' + e.label + '<br>Outcome: <strong>' + e.outcome + '</strong></div>',
-                color: {
-                    color: outcomeEdgeColors[e.outcome] || '#4a5f78',
-                    highlight: '#00e59b',
-                    hover: outcomeEdgeColors[e.outcome] || '#7a8fa6',
-                    opacity: 0.7,
-                },
-                arrows: { to: { enabled: true, scaleFactor: 0.6, type: 'arrow' } },
+            siteMapEdges = new vis.DataSet(graphData.edges.map((edge, index) => ({
+                id: index,
+                from: edge.source,
+                to: edge.target,
+                label: (edge.action_label || edge.action_type || 'transition') + ' (' + String(edge.occurrence_count || 0) + ')',
+                title:
+                    '<div style="font-family:monospace;font-size:11px;padding:6px 10px;line-height:1.6;max-width:320px;">' +
+                    'Action: ' + String(edge.action_label || edge.action_type || 'transition') + '<br>' +
+                    'Count: ' + String(edge.occurrence_count || 0) + '<br>' +
+                    'Outcome: ' + String(edge.outcome || 'unknown') + '<br>' +
+                    'Uncovered: ' + (edge.uncovered ? 'yes' : 'no') +
+                    '</div>',
+                arrows: { to: { enabled: true, scaleFactor: 0.65, type: 'arrow' } },
+                smooth: { type: 'curvedCW', roundness: 0.2 },
                 font: {
-                    color: '#7a8fa6',
+                    color: '#94a3b8',
                     size: 9,
                     strokeWidth: 0,
                     face: "'JetBrains Mono', monospace",
                     align: 'top',
                 },
-                smooth: { type: 'curvedCW', roundness: 0.15 },
-                width: 1.5,
-                hoverWidth: 0.5,
+                width: 1.4 + Math.min(Number(edge.occurrence_count || 0), 8) * 0.45,
+                hoverWidth: 1.2,
+                color: {
+                    color: '#16a34a',
+                    highlight: '#22d3ee',
+                    hover: '#22d3ee',
+                    opacity: 0.8,
+                },
+                dashes: false,
+                uncovered: Boolean(edge.uncovered),
+                flow_id: edge.flow_id || '',
             })));
 
             const container = document.getElementById('graph-container');
-            const network = new vis.Network(container, { nodes, edges }, {
+            siteMapNetwork = new vis.Network(container, { nodes, edges: siteMapEdges }, {
                 physics: {
                     solver: 'forceAtlas2Based',
                     forceAtlas2Based: {
@@ -3457,9 +3476,47 @@
                 layout: { improvedLayout: true },
             });
 
-            network.once('stabilizationIterationsDone', () => {
-                network.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+            siteMapNetwork.once('stabilizationIterationsDone', () => {
+                siteMapNetwork.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
             });
+
+            siteMapNetwork.on('click', (params) => {
+                if (params.nodes && params.nodes.length) {
+                    const node = nodes.get(params.nodes[0]);
+                    if (node && node.anchor_id) {
+                        openPageObjectCard(node.anchor_id);
+                    }
+                    return;
+                }
+                if (params.edges && params.edges.length) {
+                    const edge = siteMapEdges.get(params.edges[0]);
+                    if (edge && edge.flow_id) {
+                        openFlowFromSiteMap(edge.flow_id);
+                    }
+                }
+            });
+
+            const toggle = document.getElementById('site-map-coverage-toggle');
+            toggleSiteMapCoverage(Boolean(toggle && toggle.checked));
+        }
+
+        function toggleSiteMapCoverage(enabled) {
+            if (!siteMapEdges) return;
+            siteMapEdges.forEach((edge) => {
+                const isUncovered = Boolean(edge.uncovered);
+                siteMapEdges.update({
+                    id: edge.id,
+                    color: isUncovered && enabled
+                        ? { color: '#ef4444', highlight: '#f87171', hover: '#f87171', opacity: 0.92 }
+                        : { color: '#16a34a', highlight: '#22d3ee', hover: '#22d3ee', opacity: 0.8 },
+                    dashes: Boolean(isUncovered && enabled),
+                });
+            });
+        }
+
+        function openFlowFromSiteMap(flowId) {
+            if (!flowId) return;
+            expandTestCase(flowId);
         }
 
         function setReportPage(page, btnEl = null) {

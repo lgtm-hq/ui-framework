@@ -43,7 +43,6 @@ class ReportDataBuilder:
         report_dir = self.report_dir
 
         site_model = _build_site_model(result=result)
-        graph_data = _build_graph_data(result)
         error_results = [
             r
             for r in result.results
@@ -159,6 +158,12 @@ class ReportDataBuilder:
             result=result,
             site_model=site_model,
         )
+        graph_data = _build_graph_data(
+            result=result,
+            site_model=site_model,
+            mbt_coverage=mbt_coverage,
+            page_object_cards=page_object_cards,
+        )
 
         return {
             "start_url": result.config.get("start_url", "unknown"),
@@ -258,29 +263,81 @@ def _to_report_asset_href(path: str | None, *, report_dir: Path) -> str | None:
         return str(raw)
 
 
-def _build_graph_data(result: ExplorationResult) -> dict[str, Any]:
-    """Build vis.js-compatible graph data."""
-    nodes = []
-    for sid, state in result.states.items():
-        nodes.append(
-            {
-                "id": sid,
-                "label": state.title or state.url,
-                "url": state.url,
-                "depth": state.depth,
-                "signals": state.signals,
-            }
-        )
+def _build_graph_data(
+    *,
+    result: ExplorationResult,
+    site_model: SiteModel | None,
+    mbt_coverage: dict[str, Any],
+    page_object_cards: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build vis.js-compatible site-map graph data from SiteModel."""
+    if site_model is None:
+        return {"nodes": [], "edges": []}
 
-    edges = []
-    for r in result.results:
-        action = result.actions.get(r.action_id)
+    anchor_by_page_type = {
+        str(card["page_type_id"]): str(card["anchor_id"]) for card in page_object_cards
+    }
+    flow_lookup = {flow.flow_id: flow for flow in result.flows}
+
+    edge_to_flow_id: dict[tuple[str, str], str] = {}
+    for template in site_model.flow_templates:
+        rep = flow_lookup.get(template.representative_flow_id)
+        flow_id = template.representative_flow_id or ""
+        if rep is not None and rep.flow_id:
+            flow_id = rep.flow_id
+        for index in range(max(len(template.page_type_sequence) - 1, 0)):
+            key = (
+                template.page_type_sequence[index],
+                template.page_type_sequence[index + 1],
+            )
+            if key not in edge_to_flow_id:
+                edge_to_flow_id[key] = flow_id
+
+    uncovered_edge_keys = {
+        (
+            str(edge.get("from_page_type", "")),
+            str(edge.get("to_page_type", "")),
+            str(edge.get("action_type", "")),
+        )
+        for edge in mbt_coverage.get("edge", {}).get("uncovered", [])
+        if isinstance(edge, dict)
+    }
+
+    nodes = [
+        {
+            "id": page_type.page_type_id,
+            "label": page_type.name,
+            "archetype": page_type.archetype.value,
+            "instance_count": page_type.instance_count,
+            "url_pattern": page_type.url_pattern or page_type.representative_url,
+            "quality_score": int(round(float(page_type.locator_quality_score or 0.0))),
+            "anchor_id": anchor_by_page_type.get(
+                page_type.page_type_id,
+                _slugify_token(page_type.page_type_id),
+            ),
+        }
+        for page_type in site_model.page_types
+    ]
+
+    edges: list[dict[str, Any]] = []
+    for edge in site_model.navigation_edges:
+        action_type = edge.action_type.value
+        from_to_key = (edge.from_page_type, edge.to_page_type)
         edges.append(
             {
-                "source": r.source_state_id,
-                "target": r.target_state_id,
-                "label": action.label if action else r.action_id,
-                "outcome": r.outcome.value,
+                "source": edge.from_page_type,
+                "target": edge.to_page_type,
+                "action_type": action_type,
+                "action_label": edge.trigger or action_type,
+                "occurrence_count": edge.occurrence_count,
+                "outcome": edge.outcome.value,
+                "uncovered": (
+                    edge.from_page_type,
+                    edge.to_page_type,
+                    action_type,
+                )
+                in uncovered_edge_keys,
+                "flow_id": edge_to_flow_id.get(from_to_key, ""),
             }
         )
 
