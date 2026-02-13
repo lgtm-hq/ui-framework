@@ -7,12 +7,14 @@ from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import (
+    _build_dashboard_top_issues,
     _build_diagnostics,
     _build_flow_template_cards,
     _build_graph_data,
     _build_page_object_cards,
     _build_quality_insights,
     _build_site_model,
+    _build_site_structure_summary,
     _build_execution_rows,
     _build_flow_execution_map,
     _build_locator_quality_data,
@@ -698,3 +700,127 @@ def test_build_quality_insights_provides_actionable_links() -> None:
     )
     assert any(item["link_kind"] == "flow" for item in insights["recommendations"])
     assert any(item["link_kind"] == "step" for item in insights["recommendations"])
+
+
+def test_build_site_structure_summary_counts_page_types_edges_and_templates() -> None:
+    state_home = PageState(
+        state_id="state-home",
+        url="https://example.com/",
+        title="Home",
+        fingerprint="f" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+    )
+    state_catalog = PageState(
+        state_id="state-catalog",
+        url="https://example.com/catalog",
+        title="Catalog",
+        fingerprint="e" * 64,
+        depth=1,
+        dom_structure_hash="dom2",
+        visible_text_hash="text2",
+        form_state_hash="form2",
+    )
+    action_open = Action(
+        action_id="action-open",
+        action_type=ActionType.CLICK,
+        target_selector="a[href='/catalog']",
+        label="Open catalog",
+    )
+    result = ExplorationResult(
+        states={
+            "state-home": state_home,
+            "state-catalog": state_catalog,
+        },
+        actions={"action-open": action_open},
+        results=[
+            ActionResult(
+                action_id="action-open",
+                source_state_id="state-home",
+                target_state_id="state-catalog",
+                outcome=OutcomeType.NAVIGATION,
+            )
+        ],
+        flows=[
+            Flow(
+                flow_id="flow-1",
+                name="Home to catalog",
+                description="Open catalog",
+                state_ids=["state-home", "state-catalog"],
+                action_ids=["action-open"],
+            )
+        ],
+        smart_analyses={
+            "state-home": {"structural_signature": "home_sig"},
+            "state-catalog": {"structural_signature": "catalog_sig"},
+        },
+    )
+    site_model = _build_site_model(result=result)
+    assert site_model is not None
+
+    summary = _build_site_structure_summary(
+        site_model=site_model,
+        flow_templates=site_model.flow_templates,
+    )
+
+    assert summary["page_type_count"] == 2
+    assert summary["navigation_path_count"] == 1
+    assert summary["flow_template_count"] == 1
+
+
+def test_build_dashboard_top_issues_limits_and_sorts_by_priority() -> None:
+    top_issues = _build_dashboard_top_issues(
+        quality_insights={
+            "recommendations": [
+                {
+                    "priority": "medium",
+                    "title": "Medium issue",
+                    "detail": "m",
+                    "link_kind": "step",
+                    "link_value": "10",
+                },
+                {
+                    "priority": "high",
+                    "title": "High issue A",
+                    "detail": "a",
+                    "link_kind": "flow",
+                    "link_value": "flow-a",
+                },
+                {
+                    "priority": "low",
+                    "title": "Low issue",
+                    "detail": "l",
+                    "link_kind": "page_object",
+                    "link_value": "home",
+                },
+                {
+                    "priority": "high",
+                    "title": "High issue B",
+                    "detail": "b",
+                    "link_kind": "flow",
+                    "link_value": "flow-b",
+                },
+                {
+                    "priority": "medium",
+                    "title": "Medium issue 2",
+                    "detail": "m2",
+                    "link_kind": "step",
+                    "link_value": "11",
+                },
+                {
+                    "priority": "low",
+                    "title": "Low issue 2",
+                    "detail": "l2",
+                    "link_kind": "page_object",
+                    "link_value": "catalog",
+                },
+            ]
+        },
+    )
+
+    assert len(top_issues) == 5
+    assert top_issues[0]["priority"] == "high"
+    assert top_issues[1]["priority"] == "high"
+    assert top_issues[2]["priority"] == "medium"

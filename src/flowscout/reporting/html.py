@@ -171,6 +171,13 @@ class ReportDataBuilder:
             execution_step_map=execution_step_map,
             flow_templates=flow_templates,
         )
+        site_structure_summary = _build_site_structure_summary(
+            site_model=site_model,
+            flow_templates=flow_templates,
+        )
+        dashboard_top_issues = _build_dashboard_top_issues(
+            quality_insights=quality_insights,
+        )
         graph_data = _build_graph_data(
             result=result,
             site_model=site_model,
@@ -220,6 +227,8 @@ class ReportDataBuilder:
             "mbt_coverage": mbt_coverage,
             "page_object_cards": page_object_cards,
             "quality_insights": quality_insights,
+            "site_structure_summary": site_structure_summary,
+            "dashboard_top_issues": dashboard_top_issues,
             "site_model_available": bool(site_model),
             "site_model_summary": (
                 site_model.summary.model_dump() if site_model is not None else {}
@@ -1551,6 +1560,45 @@ def _build_quality_insights(
         "flaky_action_count": len(flaky_actions),
         "low_stability_count": len(low_stability_steps),
     }
+
+
+def _build_site_structure_summary(
+    *,
+    site_model: SiteModel | None,
+    flow_templates: list[FlowTemplate],
+) -> dict[str, int]:
+    """Build compact site-structure counts for dashboard display."""
+    if site_model is None:
+        return {
+            "page_type_count": 0,
+            "navigation_path_count": 0,
+            "flow_template_count": len(flow_templates),
+        }
+    return {
+        "page_type_count": len(site_model.page_types),
+        "navigation_path_count": len(site_model.navigation_edges),
+        "flow_template_count": len(flow_templates),
+    }
+
+
+def _build_dashboard_top_issues(
+    *,
+    quality_insights: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Select top actionable issues for the dashboard callout."""
+    recommendations = [
+        row
+        for row in quality_insights.get("recommendations", [])
+        if isinstance(row, dict)
+    ]
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    recommendations.sort(
+        key=lambda row: (
+            priority_order.get(str(row.get("priority", "low")), 3),
+            str(row.get("title", "")).lower(),
+        )
+    )
+    return recommendations[:5]
 
 
 def _select_matching_step_index(

@@ -2296,6 +2296,7 @@
                 </div>
                 <div class="quick-actions">
                     <button class="filter-btn" onclick="jumpToTestCases('all')">Open Test Cases</button>
+                    <button class="filter-btn" onclick="setReportPage('page-objects')">Open Page Objects</button>
                     {% if flow_counts.fail %}
                     <button class="filter-btn active-fail" onclick="jumpToTestCases('fail')">Focus Failures ({{ flow_counts.fail }})</button>
                     {% endif %}
@@ -2303,6 +2304,37 @@
                     <button class="filter-btn active-warn" onclick="jumpToTestCases('warn')">Focus Warnings ({{ flow_counts.warn }})</button>
                     {% endif %}
                 </div>
+                <div class="input-provenance">
+                    <div class="input-provenance-title">Site Structure Summary</div>
+                    <div class="input-provenance-meta">
+                        {{ site_structure_summary.page_type_count }} page types, {{ site_structure_summary.navigation_path_count }} navigation paths, {{ site_structure_summary.flow_template_count }} flow templates
+                    </div>
+                </div>
+                {% if dashboard_top_issues %}
+                <div class="input-provenance">
+                    <div class="input-provenance-title">Top Issues</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                        {% for issue in dashboard_top_issues %}
+                        <div class="defect-card warning">
+                            <div class="defect-header" style="display: flex; justify-content: space-between; gap: 0.5rem; align-items: center;">
+                                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                    <span class="verdict {% if issue.priority == 'high' %}fail{% elif issue.priority == 'medium' %}warn{% else %}pass{% endif %}">{{ issue.priority }}</span>
+                                    <span class="defect-name">{{ issue.title }}</span>
+                                </div>
+                                {% if issue.link_kind == 'page_object' %}
+                                <button class="filter-btn" onclick="openPageObjectCard('{{ issue.link_value }}')">Open Page Object</button>
+                                {% elif issue.link_kind == 'flow' %}
+                                <button class="filter-btn" onclick="expandTestCase('{{ issue.link_value }}')">Open Flow</button>
+                                {% elif issue.link_kind == 'step' %}
+                                <button class="filter-btn" onclick="jumpToExecutionStep({{ issue.link_value }})">Open Step</button>
+                                {% endif %}
+                            </div>
+                            <div class="defect-detail">{{ issue.detail }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
                 <div class="input-provenance">
                     <div class="input-provenance-title">Input Data Source</div>
                     <div class="input-provenance-meta">
