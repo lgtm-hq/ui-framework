@@ -74,6 +74,32 @@ from flowscout.storage.db import FlowscoutDB
     help="Capture action evidence screenshots with highlighted targets.",
 )
 @click.option(
+    "--stealth/--no-stealth",
+    default=True,
+    show_default=True,
+    help="Enable baseline browser stealth patches.",
+)
+@click.option(
+    "--context",
+    default="",
+    help="Context path used as both --load-context and --save-context.",
+)
+@click.option(
+    "--save-context",
+    default="",
+    help="Save browser context JSON to this path after exploration.",
+)
+@click.option(
+    "--load-context",
+    default="",
+    help="Load browser context JSON from this path before exploration.",
+)
+@click.option(
+    "--cdp-endpoint",
+    default="",
+    help="Connect to an existing Chromium CDP endpoint URL.",
+)
+@click.option(
     "--strategy",
     type=click.Choice(["bfs", "dfs", "priority"]),
     default="priority",
@@ -169,6 +195,11 @@ def explore(
     output_dir: str,
     environment: str,
     screenshot: bool,
+    stealth: bool,
+    context: str,
+    save_context: str,
+    load_context: str,
+    cdp_endpoint: str,
     strategy: str,
     verbose: bool,
     generate_tests: bool,
@@ -264,6 +295,46 @@ def explore(
         config=crawl_config,
         config_keys=("capture_screenshots", "take_screenshots", "screenshot"),
     )
+    resolved_stealth = _resolve_bool_option(
+        ctx=ctx,
+        parameter="stealth",
+        cli_value=stealth,
+        config=crawl_config,
+        config_keys=("stealth",),
+    )
+    resolved_context_path = _resolve_str_option(
+        ctx=ctx,
+        parameter="context",
+        cli_value=context,
+        config=crawl_config,
+        config_keys=("context", "context_path"),
+    ).strip()
+    resolved_save_context_path = _resolve_str_option(
+        ctx=ctx,
+        parameter="save_context",
+        cli_value=save_context,
+        config=crawl_config,
+        config_keys=("save_context", "save_context_path"),
+    ).strip()
+    resolved_load_context_path = _resolve_str_option(
+        ctx=ctx,
+        parameter="load_context",
+        cli_value=load_context,
+        config=crawl_config,
+        config_keys=("load_context", "load_context_path"),
+    ).strip()
+    resolved_cdp_endpoint = _resolve_str_option(
+        ctx=ctx,
+        parameter="cdp_endpoint",
+        cli_value=cdp_endpoint,
+        config=crawl_config,
+        config_keys=("cdp_endpoint",),
+    ).strip()
+    if resolved_context_path:
+        if not resolved_save_context_path:
+            resolved_save_context_path = resolved_context_path
+        if not resolved_load_context_path:
+            resolved_load_context_path = resolved_context_path
     resolved_strategy = _resolve_str_option(
         ctx=ctx,
         parameter="strategy",
@@ -429,6 +500,11 @@ def explore(
         output_dir=resolved_output_dir,
         environment=resolved_environment,
         take_screenshots=resolved_screenshot,
+        stealth=resolved_stealth,
+        context_path=resolved_context_path or None,
+        save_context_path=resolved_save_context_path or None,
+        load_context_path=resolved_load_context_path or None,
+        cdp_endpoint=resolved_cdp_endpoint or None,
         strategy=ExplorationStrategy(resolved_strategy),
         verbose=resolved_verbose,
         smart_mode=resolved_smart,
@@ -578,6 +654,9 @@ async def _run_exploration(
             )
             await browser.apply_auth_bootstrap(auth_bootstrap)
         result = await navigator.explore(config.start_url)
+        saved_context_path = await browser.save_context()
+        if saved_context_path:
+            console.print(f"  [green]Context saved:[/green] {saved_context_path}")
         if auth_profile_summary is not None:
             result.config["auth"] = auth_profile_summary
 

@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 import time
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+import flowscout.core.browser as browser_module
 from flowscout.core.browser import BrowserManager, StabilityWaiter
 from flowscout.core.state import ExplorerConfig
 from flowscout.discovery.actions import Action, ActionType, OutcomeType
@@ -109,6 +112,24 @@ def _make_action(
     )
 
 
+def _install_playwright_mocks(
+    *,
+    monkeypatch: pytest.MonkeyPatch,
+    chromium: Any,
+) -> Any:
+    playwright = SimpleNamespace(
+        chromium=chromium,
+        stop=AsyncMock(),
+    )
+
+    class _FakeAsyncPlaywright:
+        async def start(self) -> Any:
+            return playwright
+
+    monkeypatch.setattr(browser_module, "async_playwright", _FakeAsyncPlaywright)
+    return playwright
+
+
 # ---------------------------------------------------------------------------
 # StabilityWaiter tests
 # ---------------------------------------------------------------------------
@@ -207,6 +228,265 @@ class TestBrowserManagerInit:
         bm = BrowserManager(_config())
         with pytest.raises(RuntimeError, match="Browser not launched"):
             _ = bm.page
+
+
+# ---------------------------------------------------------------------------
+# BrowserManager launch/context tests
+# ---------------------------------------------------------------------------
+
+
+class TestBrowserManagerLaunchContext:
+    """Tests for launch modes, stealth defaults, and context persistence."""
+
+    @pytest.mark.asyncio
+    async def test_launch_applies_stealth_defaults(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        page = MagicMock()
+        context = MagicMock()
+        context.pages = []
+        context.new_page = AsyncMock(return_value=page)
+        context.add_init_script = AsyncMock()
+        context.add_cookies = AsyncMock()
+        context.close = AsyncMock()
+
+        browser = MagicMock()
+        browser.version = "124.0.6367.91"
+        browser.contexts = []
+        browser.new_context = AsyncMock(return_value=context)
+        browser.close = AsyncMock()
+
+        chromium = MagicMock()
+        chromium.launch = AsyncMock(return_value=browser)
+        chromium.connect_over_cdp = AsyncMock()
+        playwright = _install_playwright_mocks(
+            monkeypatch=monkeypatch,
+            chromium=chromium,
+        )
+
+        bm = BrowserManager(_config(stealth=True))
+        await bm.launch()
+
+        launch_kwargs = chromium.launch.await_args.kwargs
+        assert "--disable-blink-features=AutomationControlled" in launch_kwargs["args"]
+
+        context_kwargs = browser.new_context.await_args.kwargs
+        assert "Chrome/124.0.6367.91" in context_kwargs["user_agent"]
+        assert context.add_init_script.await_count == 1
+        assert "webdriver" in context.add_init_script.await_args.args[0]
+
+        await bm.close()
+        browser.close.assert_awaited_once()
+        playwright.stop.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_no_stealth_disables_patches(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        page = MagicMock()
+        context = MagicMock()
+        context.pages = []
+        context.new_page = AsyncMock(return_value=page)
+        context.add_init_script = AsyncMock()
+        context.add_cookies = AsyncMock()
+        context.close = AsyncMock()
+
+        browser = MagicMock()
+        browser.version = "124.0.6367.91"
+        browser.contexts = []
+        browser.new_context = AsyncMock(return_value=context)
+        browser.close = AsyncMock()
+
+        chromium = MagicMock()
+        chromium.launch = AsyncMock(return_value=browser)
+        chromium.connect_over_cdp = AsyncMock()
+        _install_playwright_mocks(monkeypatch=monkeypatch, chromium=chromium)
+
+        bm = BrowserManager(_config(stealth=False))
+        await bm.launch()
+
+        launch_kwargs = chromium.launch.await_args.kwargs
+        assert launch_kwargs["args"] == []
+        context_kwargs = browser.new_context.await_args.kwargs
+        assert "user_agent" not in context_kwargs
+        context.add_init_script.assert_not_awaited()
+
+        await bm.close()
+
+    @pytest.mark.asyncio
+    async def test_launch_loads_context_and_restores_session_storage(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        context_file = tmp_path / "ctx.json"
+        context_file.write_text(
+            json.dumps(
+                {
+                    "cookies": [
+                        {
+                            "name": "sid",
+                            "value": "abc",
+                            "domain": "example.com",
+                            "path": "/",
+                        }
+                    ],
+                    "origins": [
+                        {
+                            "origin": "https://example.com",
+                            "localStorage": [{"name": "theme", "value": "light"}],
+                        }
+                    ],
+                    "sessionStorage": {
+                        "https://example.com": {"csrf": "token-1"},
+                    },
+                },
+            ),
+        )
+
+        page = MagicMock()
+        context = MagicMock()
+        context.pages = []
+        context.new_page = AsyncMock(return_value=page)
+        context.add_init_script = AsyncMock()
+        context.add_cookies = AsyncMock()
+        context.close = AsyncMock()
+
+        browser = MagicMock()
+        browser.version = "124.0.6367.91"
+        browser.contexts = []
+        browser.new_context = AsyncMock(return_value=context)
+        browser.close = AsyncMock()
+
+        chromium = MagicMock()
+        chromium.launch = AsyncMock(return_value=browser)
+        chromium.connect_over_cdp = AsyncMock()
+        _install_playwright_mocks(monkeypatch=monkeypatch, chromium=chromium)
+
+        bm = BrowserManager(
+            _config(
+                stealth=False,
+                load_context_path=str(context_file),
+            )
+        )
+        await bm.launch()
+
+        storage_state = browser.new_context.await_args.kwargs["storage_state"]
+        assert storage_state["cookies"][0]["name"] == "sid"
+        assert storage_state["origins"][0]["origin"] == "https://example.com"
+        assert context.add_init_script.await_count == 1
+        assert "sessionStorageByOrigin" in context.add_init_script.await_args.args[0]
+
+        await bm.close()
+
+    @pytest.mark.asyncio
+    async def test_save_and_load_context_round_trip(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        context_file = tmp_path / "ctx" / "session.json"
+        bm = BrowserManager(_config(save_context_path=str(context_file)))
+        bm._context = MagicMock()
+        bm._context.storage_state = AsyncMock(
+            return_value={
+                "cookies": [
+                    {
+                        "name": "sid",
+                        "value": "abc",
+                        "domain": "example.com",
+                        "path": "/",
+                    }
+                ],
+                "origins": [
+                    {
+                        "origin": "https://example.com",
+                        "localStorage": [{"name": "theme", "value": "light"}],
+                    }
+                ],
+            },
+        )
+        bm._page = MagicMock()
+        bm._page.url = "https://example.com/dashboard"
+        bm._page.evaluate = AsyncMock(return_value={"csrf": "token-1"})
+
+        saved = await bm.save_context()
+        assert saved == str(context_file)
+        payload = json.loads(context_file.read_text())
+        assert payload["cookies"][0]["name"] == "sid"
+        assert payload["origins"][0]["origin"] == "https://example.com"
+        assert payload["localStorage"]["https://example.com"]["theme"] == "light"
+        assert payload["sessionStorage"]["https://example.com"]["csrf"] == "token-1"
+
+        reloaded = BrowserManager(_config(load_context_path=str(context_file)))
+        loaded_payload = reloaded.load_context()
+        assert loaded_payload["storage_state"]["cookies"][0]["name"] == "sid"
+        assert (
+            loaded_payload["session_storage_by_origin"]["https://example.com"]["csrf"]
+            == "token-1"
+        )
+
+    @pytest.mark.asyncio
+    async def test_cdp_uses_existing_browser_and_does_not_close_it(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        existing_page = MagicMock()
+        existing_context = MagicMock()
+        existing_context.pages = [existing_page]
+        existing_context.new_page = AsyncMock(return_value=existing_page)
+        existing_context.add_init_script = AsyncMock()
+        existing_context.add_cookies = AsyncMock()
+
+        browser = MagicMock()
+        browser.version = "124.0.6367.91"
+        browser.contexts = [existing_context]
+        browser.new_context = AsyncMock()
+        browser.close = AsyncMock()
+
+        chromium = MagicMock()
+        chromium.connect_over_cdp = AsyncMock(return_value=browser)
+        chromium.launch = AsyncMock()
+        playwright = _install_playwright_mocks(
+            monkeypatch=monkeypatch,
+            chromium=chromium,
+        )
+
+        endpoint = "ws://localhost:9222/devtools/browser/abc123"
+        bm = BrowserManager(
+            _config(
+                stealth=False,
+                cdp_endpoint=endpoint,
+            )
+        )
+        await bm.launch()
+
+        chromium.connect_over_cdp.assert_awaited_once_with(endpoint)
+        chromium.launch.assert_not_called()
+        assert bm.using_cdp is True
+        assert bm.page is existing_page
+
+        await bm.close()
+        browser.close.assert_not_awaited()
+        playwright.stop.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_cdp_connection_error_is_clear(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from playwright.async_api import Error as PlaywrightError
+
+        chromium = MagicMock()
+        chromium.connect_over_cdp = AsyncMock(side_effect=PlaywrightError("boom"))
+        chromium.launch = AsyncMock()
+        _install_playwright_mocks(monkeypatch=monkeypatch, chromium=chromium)
+
+        endpoint = "ws://localhost:9222/devtools/browser/abc123"
+        bm = BrowserManager(_config(cdp_endpoint=endpoint))
+        with pytest.raises(RuntimeError, match="Could not connect to CDP endpoint"):
+            await bm.launch()
 
 
 # ---------------------------------------------------------------------------

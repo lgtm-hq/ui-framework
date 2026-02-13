@@ -389,6 +389,8 @@ always consume Layer 2 output, even across versions.
 
 ## Phase 1b: Real-World Site Readiness
 
+**Status**: COMPLETE
+
 **Goal**: Make the crawler work reliably on real-world sites that have
 bot protection, authentication walls, and access controls. Without
 this, all later phases are moot for production use.
@@ -461,14 +463,14 @@ block_detail: str = ""   # Human-readable description
 
 **Acceptance criteria**:
 
-- [ ] Pages returning HTTP 401/403 are classified as `ACCESS_DENIED`
-- [ ] Pages with "Access Denied" / "Forbidden" in title/body are
+- [x] Pages returning HTTP 401/403 are classified as `ACCESS_DENIED`
+- [x] Pages with "Access Denied" / "Forbidden" in title/body are
       detected
-- [ ] CAPTCHA pages (reCAPTCHA, hCaptcha, Turnstile) are detected
-- [ ] Blocked states are clearly reported in terminal and HTML output
-- [ ] Element discovery is skipped for blocked pages
-- [ ] Exploration continues from remaining frontier items
-- [ ] Screenshot is still captured for blocked pages
+- [x] CAPTCHA pages (reCAPTCHA, hCaptcha, Turnstile) are detected
+- [x] Blocked states are clearly reported in terminal and HTML output
+- [x] Element discovery is skipped for blocked pages
+- [x] Exploration continues from remaining frontier items
+- [x] Screenshot is still captured for blocked pages
 
 ### 1b.2 Browser stealth defaults
 
@@ -502,13 +504,13 @@ not failing on standard WAF configurations in test/UAT environments.
 
 **Acceptance criteria**:
 
-- [ ] `navigator.webdriver` returns `undefined` on pages
-- [ ] User-Agent matches a real Chrome browser string
-- [ ] `--no-stealth` disables all stealth patches
-- [ ] Stealth is enabled by default
-- [ ] Sites with basic bot detection (webdriver check) no longer
+- [x] `navigator.webdriver` returns `undefined` on pages
+- [x] User-Agent matches a real Chrome browser string
+- [x] `--no-stealth` disables all stealth patches
+- [x] Stealth is enabled by default
+- [x] Sites with basic bot detection (webdriver check) no longer
       block the crawler
-- [ ] No impact on existing test suite
+- [x] No impact on existing test suite
 
 ### 1b.3 Persistent browser context
 
@@ -556,12 +558,12 @@ uv run flowscout explore <url> --context ./ctx/mysite.json
 
 **Acceptance criteria**:
 
-- [ ] `--save-context` writes browser state to JSON file
-- [ ] `--load-context` restores browser state before navigation
-- [ ] `--context` combines load + save (round-trip)
-- [ ] Cookies from a previous session are present on subsequent runs
-- [ ] Context file format is documented
-- [ ] Works with `--no-headless` for manual login → save → headless
+- [x] `--save-context` writes browser state to JSON file
+- [x] `--load-context` restores browser state before navigation
+- [x] `--context` combines load + save (round-trip)
+- [x] Cookies from a previous session are present on subsequent runs
+- [x] Context file format is documented
+- [x] Works with `--no-headless` for manual login → save → headless
       explore workflow
 
 ### 1b.4 CDP connection to existing browser
@@ -605,12 +607,12 @@ uv run flowscout explore <url> --cdp-endpoint ws://localhost:9222
 
 **Acceptance criteria**:
 
-- [ ] `--cdp-endpoint ws://localhost:9222` connects to running Chrome
-- [ ] Exploration works on the connected browser's pages
-- [ ] Browser is NOT closed when exploration ends (user's browser)
-- [ ] All existing exploration features work over CDP
-- [ ] Falls back to normal launch when `--cdp-endpoint` not provided
-- [ ] Clear error message if CDP connection fails
+- [x] `--cdp-endpoint ws://localhost:9222` connects to running Chrome
+- [x] Exploration works on the connected browser's pages
+- [x] Browser is NOT closed when exploration ends (user's browser)
+- [x] All existing exploration features work over CDP
+- [x] Falls back to normal launch when `--cdp-endpoint` not provided
+- [x] Clear error message if CDP connection fails
 
 ---
 
@@ -1363,10 +1365,10 @@ generate parameterized tests.
 | 1     | 1.3  | Codegen consolidation      | L3     | POM + scenarios primary           | —          | DONE   |
 | 1     | 1.4  | Three-layer boundary       | All    | `modeling/` package, CLI pipeline | 1.1–1.3    | DONE   |
 | 1     | 1.5  | Serialization contracts    | L1+L2  | Versioned schemas                 | 1.4        | DONE   |
-| 1b    | 1b.1 | Blocked page detection     | L1     | Block reason classification       | 1.5        | —      |
-| 1b    | 1b.2 | Browser stealth defaults   | L1     | Anti-detection baseline           | 1b.1       | —      |
-| 1b    | 1b.3 | Persistent browser context | L1+CLI | Cookie/storage persistence        | 1b.2       | —      |
-| 1b    | 1b.4 | CDP connection             | L1+CLI | Connect to existing browser       | 1b.2       | —      |
+| 1b    | 1b.1 | Blocked page detection     | L1     | Block reason classification       | 1.5        | DONE   |
+| 1b    | 1b.2 | Browser stealth defaults   | L1     | Anti-detection baseline           | 1b.1       | DONE   |
+| 1b    | 1b.3 | Persistent browser context | L1+CLI | Cookie/storage persistence        | 1b.2       | DONE   |
+| 1b    | 1b.4 | CDP connection             | L1+CLI | Connect to existing browser       | 1b.2       | DONE   |
 | 2     | 2.1  | Flow deduplication         | L2     | Flow templates                    | 1.4        | DONE   |
 | 2     | 2.2  | Component extraction       | L2     | Shared components                 | 1.4        | DONE   |
 | 2     | 2.3  | POM inheritance            | L3     | BasePage + subclasses             | 2.2        | DONE   |

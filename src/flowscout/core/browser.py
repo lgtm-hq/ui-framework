@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 import time
@@ -10,6 +11,7 @@ from collections.abc import Awaitable, Callable
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from playwright.async_api import (
     Page,
@@ -48,6 +50,107 @@ VISIBLE_TEXT_JS = load_script("visible_text")
 FORM_STATE_JS = load_script("form_state")
 SIGNALS_JS = load_script("signals")
 PAGE_ANALYSIS_JS = load_script("page_analysis")
+STEALTH_PATCH_JS = """
+() => {
+  const override = (obj, prop, value) => {
+    try {
+      Object.defineProperty(obj, prop, {
+        configurable: true,
+        get: () => value,
+      });
+    } catch (_err) {
+      // Best effort.
+    }
+  };
+
+  override(Navigator.prototype, 'webdriver', undefined);
+  override(Navigator.prototype, 'platform', 'Win32');
+  override(Navigator.prototype, 'language', 'en-US');
+  override(Navigator.prototype, 'languages', ['en-US', 'en']);
+
+  const fakePlugins = [
+    { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+    { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+    { name: 'Native Client', filename: 'internal-nacl-plugin' },
+  ];
+  override(Navigator.prototype, 'plugins', fakePlugins);
+  override(
+    Navigator.prototype,
+    'mimeTypes',
+    [{ type: 'application/pdf', suffixes: 'pdf', description: 'PDF' }],
+  );
+
+  if (!window.chrome) {
+    Object.defineProperty(window, 'chrome', {
+      configurable: true,
+      value: { runtime: {} },
+    });
+  } else if (!window.chrome.runtime) {
+    Object.defineProperty(window.chrome, 'runtime', {
+      configurable: true,
+      value: {},
+    });
+  }
+
+  const originalGetParameter = WebGLRenderingContext.prototype.getParameter;
+  WebGLRenderingContext.prototype.getParameter = function (parameter) {
+    // UNMASKED_VENDOR_WEBGL / UNMASKED_RENDERER_WEBGL
+    if (parameter === 0x9245) return 'Intel Inc.';
+    if (parameter === 0x9246) return 'Intel Iris OpenGL Engine';
+    return originalGetParameter.call(this, parameter);
+  };
+}
+"""
+
+
+def _build_stealth_user_agent(*, browser_version: str) -> str:
+    """Build a realistic Chrome User-Agent based on Chromium version."""
+    version_match = re.search(r"\d+(?:\.\d+){0,3}", browser_version or "")
+    chrome_version = version_match.group(0) if version_match else "120.0.0.0"
+    return (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        f"Chrome/{chrome_version} Safari/537.36"
+    )
+
+
+def _coerce_session_storage(
+    payload: object,
+) -> dict[str, dict[str, str]]:
+    """Normalize persisted session storage payload to mapping form."""
+    if not isinstance(payload, dict):
+        return {}
+    normalized: dict[str, dict[str, str]] = {}
+    for origin, storage in payload.items():
+        if not isinstance(origin, str) or not isinstance(storage, dict):
+            continue
+        normalized[origin] = {str(key): str(value) for key, value in storage.items()}
+    return normalized
+
+
+def _build_session_storage_restore_script(
+    *,
+    session_storage_by_origin: dict[str, dict[str, str]],
+) -> str:
+    """Build an init script that restores sessionStorage per origin."""
+    payload = json.dumps(session_storage_by_origin, separators=(",", ":"))
+    return (
+        "() => {\n"
+        f"  const sessionStorageByOrigin = {payload};\n"
+        "  const origin = window.location.origin;\n"
+        "  const rows = sessionStorageByOrigin?.[origin];\n"
+        "  if (!rows || typeof rows !== 'object') {\n"
+        "    return;\n"
+        "  }\n"
+        "  for (const [key, value] of Object.entries(rows)) {\n"
+        "    try {\n"
+        "      window.sessionStorage.setItem(String(key), String(value));\n"
+        "    } catch (_err) {\n"
+        "      // Ignore storage restoration errors for restricted origins.\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
 
 
 class StabilityWaiter:
@@ -104,6 +207,10 @@ class BrowserManager:
             poll_interval_s=self._browser_defaults.stability_poll_interval_s,
         )
         self._fingerprint_config = FingerprintConfig()
+        self._last_navigation_status: int | None = None
+        self._using_cdp = False
+        self._context_owned = True
+        self._session_storage_by_origin: dict[str, dict[str, str]] = {}
 
     @property
     def page(self) -> Page:
@@ -112,31 +219,230 @@ class BrowserManager:
             raise RuntimeError(msg)
         return self._page
 
+    @property
+    def last_navigation_status(self) -> int | None:
+        """Most recent top-level document navigation status code, if available."""
+        return self._last_navigation_status
+
+    @property
+    def using_cdp(self) -> bool:
+        """Whether this browser manager is connected via CDP."""
+        return self._using_cdp
+
     async def launch(self) -> None:
         """Launch the browser."""
         self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(
-            headless=self.config.headless,
+        loaded_context = self.load_context()
+        self._session_storage_by_origin = loaded_context.get(
+            "session_storage_by_origin",
+            {},
         )
-        self._context = await self._browser.new_context(
-            viewport={"width": 1280, "height": 720},
+
+        if self.config.cdp_endpoint:
+            self._using_cdp = True
+            try:
+                self._browser = await self._playwright.chromium.connect_over_cdp(
+                    self.config.cdp_endpoint,
+                )
+            except PlaywrightError as exc:
+                msg = (
+                    "Could not connect to CDP endpoint "
+                    f"{self.config.cdp_endpoint}: {exc}"
+                )
+                raise RuntimeError(msg) from exc
+        else:
+            launch_args: list[str] = []
+            if self.config.stealth:
+                launch_args.append("--disable-blink-features=AutomationControlled")
+            self._browser = await self._playwright.chromium.launch(
+                headless=self.config.headless,
+                args=launch_args,
+            )
+
+        user_agent = ""
+        if self.config.stealth:
+            user_agent = _build_stealth_user_agent(
+                browser_version=self._browser.version if self._browser else "",
+            )
+
+        storage_state: dict[str, Any] | None = loaded_context.get("storage_state")
+        existing_context = (
+            self._browser.contexts[0]
+            if self._browser and self._browser.contexts
+            else None
         )
-        self._page = await self._context.new_page()
+        if existing_context is not None:
+            self._context = existing_context
+            self._context_owned = False
+        else:
+            context_kwargs: dict[str, Any] = {
+                "viewport": {
+                    "width": self._browser_defaults.viewport_width,
+                    "height": self._browser_defaults.viewport_height,
+                },
+            }
+            if storage_state:
+                context_kwargs["storage_state"] = storage_state
+            if user_agent:
+                context_kwargs["user_agent"] = user_agent
+
+            self._context = await self._browser.new_context(**context_kwargs)
+            self._context_owned = True
+
+        if self._context is None:
+            msg = "Browser context was not created."
+            raise RuntimeError(msg)
+
+        if self.config.stealth:
+            await self._context.add_init_script(STEALTH_PATCH_JS)
+        if self._session_storage_by_origin:
+            session_storage_script = _build_session_storage_restore_script(
+                session_storage_by_origin=self._session_storage_by_origin,
+            )
+            await self._context.add_init_script(
+                session_storage_script,
+            )
+        if loaded_context.get("cookies") and (
+            existing_context is not None or not storage_state
+        ):
+            await self._context.add_cookies(loaded_context["cookies"])
+
+        if self._context.pages:
+            self._page = self._context.pages[0]
+        else:
+            self._page = await self._context.new_page()
 
     async def close(self) -> None:
         """Close the browser and clean up."""
-        if self._context:
+        if self._context and self._context_owned and not self._using_cdp:
             await self._context.close()
-        if self._browser:
+        if self._browser and not self._using_cdp:
             await self._browser.close()
         if self._playwright:
             await self._playwright.stop()
 
+    def load_context(self) -> dict[str, Any]:
+        """Load persisted browser context payload from disk."""
+        load_path = self.config.load_context_path or self.config.context_path
+        if not load_path:
+            return {}
+
+        path = Path(load_path).expanduser()
+        if not path.exists():
+            msg = f"Context file not found: {path}"
+            raise RuntimeError(msg)
+
+        try:
+            raw_payload = json.loads(path.read_text())
+        except OSError as exc:
+            msg = f"Could not read context file {path}: {exc}"
+            raise RuntimeError(msg) from exc
+        except json.JSONDecodeError as exc:
+            msg = f"Invalid context JSON in {path}: {exc}"
+            raise RuntimeError(msg) from exc
+
+        if not isinstance(raw_payload, dict):
+            msg = f"Invalid context JSON in {path}: root must be an object."
+            raise RuntimeError(msg)
+
+        storage_state = raw_payload.get("storage_state")
+        if not isinstance(storage_state, dict):
+            storage_state = {
+                "cookies": raw_payload.get("cookies", []),
+                "origins": raw_payload.get("origins", []),
+            }
+        cookies = storage_state.get("cookies", [])
+        if not isinstance(cookies, list):
+            cookies = []
+
+        session_storage_raw = raw_payload.get("sessionStorage", {})
+        if not session_storage_raw:
+            session_storage_raw = raw_payload.get("session_storage_by_origin", {})
+
+        return {
+            "storage_state": storage_state,
+            "cookies": cookies,
+            "session_storage_by_origin": _coerce_session_storage(session_storage_raw),
+        }
+
+    async def save_context(self) -> str | None:
+        """Save current browser context to disk if configured."""
+        save_path = self.config.save_context_path or self.config.context_path
+        if not save_path:
+            return None
+        if self._context is None:
+            msg = "Browser context is not available; cannot save context."
+            raise RuntimeError(msg)
+
+        storage_state = await self._context.storage_state()
+        origins = storage_state.get("origins", [])
+        local_storage_by_origin: dict[str, dict[str, str]] = {}
+        for entry in origins:
+            if not isinstance(entry, dict):
+                continue
+            origin = entry.get("origin")
+            local_storage = entry.get("localStorage")
+            if not isinstance(origin, str) or not isinstance(local_storage, list):
+                continue
+            normalized_local_storage: dict[str, str] = {}
+            for item in local_storage:
+                if not isinstance(item, dict):
+                    continue
+                name = item.get("name")
+                value = item.get("value")
+                if isinstance(name, str) and isinstance(value, str):
+                    normalized_local_storage[name] = value
+            if normalized_local_storage:
+                local_storage_by_origin[origin] = normalized_local_storage
+
+        session_storage_by_origin = dict(self._session_storage_by_origin)
+        if self._page is not None and self._page.url:
+            parsed = urlparse(self._page.url)
+            if parsed.scheme and parsed.netloc:
+                origin = f"{parsed.scheme}://{parsed.netloc}"
+                try:
+                    session_rows = await self._page.evaluate(
+                        """
+                        () => {
+                          const out = {};
+                          for (let idx = 0; idx < window.sessionStorage.length; idx++) {
+                            const key = window.sessionStorage.key(idx);
+                            if (!key) {
+                              continue;
+                            }
+                            out[key] = window.sessionStorage.getItem(key) ?? '';
+                          }
+                          return out;
+                        }
+                        """,
+                    )
+                except PlaywrightError:
+                    logger.debug("Could not snapshot sessionStorage", exc_info=True)
+                else:
+                    if isinstance(session_rows, dict):
+                        session_storage_by_origin[origin] = {
+                            str(key): str(value) for key, value in session_rows.items()
+                        }
+
+        payload = {
+            "storage_state": storage_state,
+            "cookies": storage_state.get("cookies", []),
+            "origins": storage_state.get("origins", []),
+            "localStorage": local_storage_by_origin,
+            "sessionStorage": session_storage_by_origin,
+        }
+
+        path = Path(save_path).expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2))
+        return str(path)
+
     async def navigate(self, url: str) -> None:
         """Navigate to a URL and wait for load."""
-        await self.page.goto(
+        response = await self.page.goto(
             url, timeout=self.config.timeout_ms, wait_until="domcontentloaded"
         )
+        self._last_navigation_status = response.status if response else None
         await self._wait_for_stability()
 
     async def apply_auth_bootstrap(self, auth: AuthBootstrap) -> None:
@@ -282,6 +588,13 @@ class BrowserManager:
         def on_response(resp: Any) -> None:
             if resp.status >= 400:
                 network_errors.append({"url": resp.url, "status": str(resp.status)})
+            try:
+                request = resp.request
+                resource_type = str(request.resource_type)
+                if resource_type == "document":
+                    self._last_navigation_status = int(resp.status)
+            except (AttributeError, TypeError, ValueError):
+                logger.debug("Could not infer response resource type", exc_info=True)
 
         page.on("console", on_console)
         page.on("response", on_response)
