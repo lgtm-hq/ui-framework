@@ -616,6 +616,8 @@ uv run flowscout explore <url> --cdp-endpoint ws://localhost:9222
 
 ## Phase 2: Output Quality
 
+**Status**: COMPLETE
+
 **Goal**: Make what comes out of exploration immediately usable by a
 test engineer. All work in this phase lives in **Layer 2 (Modeling)**
 or **Layer 3 (Generation)** — never modifying Layer 1 discovery logic.
@@ -663,15 +665,15 @@ class FlowTemplate(BaseModel):
 
 **Acceptance criteria**:
 
-- [ ] Clicking 10 movie tiles produces 1 flow template with
+- [x] Clicking 10 movie tiles produces 1 flow template with
       `occurrence_count: 10`
-- [ ] Representative flow has full step details
-- [ ] Terminal reporter shows: "Browse Listing → Detail
+- [x] Representative flow has full step details
+- [x] Terminal reporter shows: "Browse Listing → Detail
       (10 instances)"
-- [ ] HTML report groups by template, expands to show instances
-- [ ] Raw flows still accessible on `ExplorationResult` (Layer 1
+- [x] HTML report groups by template, expands to show instances
+- [x] Raw flows still accessible on `ExplorationResult` (Layer 1
       output unchanged)
-- [ ] `FlowTemplate` lives in `modeling/` not `analysis/`
+- [x] `FlowTemplate` lives in `modeling/` not `analysis/`
 
 ### 2.2 Component-level POM extraction
 
@@ -726,11 +728,11 @@ pages/
 
 **Acceptance criteria**:
 
-- [ ] Nav bar appearing on all pages → `NavigationComponent` class
-- [ ] Page classes import and use components via composition
-- [ ] Component has its own locators and methods
-- [ ] No duplicate locators between component and page class
-- [ ] `SharedComponent` lives in `modeling/` — codegen reads it from
+- [x] Nav bar appearing on all pages → `NavigationComponent` class
+- [x] Page classes import and use components via composition
+- [x] Component has its own locators and methods
+- [x] No duplicate locators between component and page class
+- [x] `SharedComponent` lives in `modeling/` — codegen reads it from
       `SiteModel`
 
 ### 2.3 Inheritance-aware POM generation
@@ -780,11 +782,11 @@ class MovieListingPage(BasePage):
 
 **Acceptance criteria**:
 
-- [ ] `BasePage` generated with shared locators + components
-- [ ] Each page type generates a subclass
-- [ ] No duplicated locators between base and subclass
-- [ ] Generated code is syntactically valid and importable
-- [ ] Codegen reads only from `SiteModel`, not `ExplorationResult`
+- [x] `BasePage` generated with shared locators + components
+- [x] Each page type generates a subclass
+- [x] No duplicated locators between base and subclass
+- [x] Generated code is syntactically valid and importable
+- [x] Codegen reads only from `SiteModel`, not `ExplorationResult`
       directly
 
 ### 2.4 Interaction pattern detection for POM methods
@@ -827,14 +829,14 @@ just `click()` calls.
 
 **Acceptance criteria**:
 
-- [ ] Patterns detected in Layer 2 and stored on `SiteModel`
-- [ ] Methods generated in Layer 3 from `SiteModel` data
-- [ ] Dropdown triggers generate `open()` + `close()` +
+- [x] Patterns detected in Layer 2 and stored on `SiteModel`
+- [x] Methods generated in Layer 3 from `SiteModel` data
+- [x] Dropdown triggers generate `open()` + `close()` +
       `select(value)`
-- [ ] Search inputs generate `search(query)` method
-- [ ] Forms generate `fill_and_submit()` with field parameters
-- [ ] Tabs generate `switch_to(tab_name)` method
-- [ ] Generated methods match Playwright API correctly
+- [x] Search inputs generate `search(query)` method
+- [x] Forms generate `fill_and_submit()` with field parameters
+- [x] Tabs generate `switch_to(tab_name)` method
+- [x] Generated methods match Playwright API correctly
 
 ### 2.5 Locator stability scoring
 
@@ -868,12 +870,12 @@ Score each locator by its stability tier and surface this in reports.
 
 **Acceptance criteria**:
 
-- [ ] Each element has a stability score (computed in Layer 2)
-- [ ] Each page type has an aggregate locator quality score on
+- [x] Each element has a stability score (computed in Layer 2)
+- [x] Each page type has an aggregate locator quality score on
       `SiteModel`
-- [ ] Dashboard shows "Locator Quality: 85% stable" per page type
-- [ ] Fragile locators flagged with recommendations
-- [ ] Scoring logic lives in `modeling/locators.py`, not in
+- [x] Dashboard shows "Locator Quality: 85% stable" per page type
+- [x] Fragile locators flagged with recommendations
+- [x] Scoring logic lives in `modeling/locators.py`, not in
       discovery
 
 ### 2.6 XPath fallback construction
@@ -898,12 +900,12 @@ produce fragile nth-of-type paths.
 
 **Acceptance criteria**:
 
-- [ ] Elements with fragile CSS selectors also have XPath
+- [x] Elements with fragile CSS selectors also have XPath
       alternatives captured in Layer 1
-- [ ] Layer 2 decides which locator to prefer based on stability
+- [x] Layer 2 decides which locator to prefer based on stability
       score
-- [ ] POM generation uses the preferred locator from the model
-- [ ] XPath stored in element data for reporting
+- [x] POM generation uses the preferred locator from the model
+- [x] XPath stored in element data for reporting
 
 ---
 
@@ -1352,12 +1354,12 @@ generate parameterized tests.
 | 1b | 1b.2 | Browser stealth defaults | L1 | Anti-detection baseline | 1b.1 | — |
 | 1b | 1b.3 | Persistent browser context | L1+CLI | Cookie/storage persistence | 1b.2 | — |
 | 1b | 1b.4 | CDP connection | L1+CLI | Connect to existing browser | 1b.2 | — |
-| 2 | 2.1 | Flow deduplication | L2 | Flow templates | 1.4 | — |
-| 2 | 2.2 | Component extraction | L2 | Shared components | 1.4 | — |
-| 2 | 2.3 | POM inheritance | L3 | BasePage + subclasses | 2.2 | — |
-| 2 | 2.4 | Interaction patterns | L2+L3 | Domain-specific methods | 2.2 | — |
-| 2 | 2.5 | Locator scoring | L2 | Stability tiers + scores | 1.4 | — |
-| 2 | 2.6 | XPath fallback | L1+L2 | Alternative selectors | 2.5 | — |
+| 2 | 2.1 | Flow deduplication | L2 | Flow templates | 1.4 | DONE |
+| 2 | 2.2 | Component extraction | L2 | Shared components | 1.4 | DONE |
+| 2 | 2.3 | POM inheritance | L3 | BasePage + subclasses | 2.2 | DONE |
+| 2 | 2.4 | Interaction patterns | L2+L3 | Domain-specific methods | 2.2 | DONE |
+| 2 | 2.5 | Locator scoring | L2 | Stability tiers + scores | 1.4 | DONE |
+| 2 | 2.6 | XPath fallback | L1+L2 | Alternative selectors | 2.5 | DONE |
 | 3 | 3.1 | Graph walker | L3 | MBT coverage strategies | 2.1 | — |
 | 3 | 3.2 | Coverage metrics | L3 | State/edge/path coverage | 3.1 | — |
 | 3 | 3.3 | MBT export | L3 | GraphWalker, DOT, Mermaid | 3.1 | — |
