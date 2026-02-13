@@ -17,7 +17,7 @@ from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.text_utils import strip_css_blocks
 from flowscout.discovery.actions import ActionResult, OutcomeType
 from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
-from flowscout.modeling.site_model import SiteModel
+from flowscout.modeling.site_model import NavigationEdge, SiteModel
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
@@ -425,14 +425,19 @@ def _build_mbt_coverage_data(
             },
         )
 
+    model_edges_by_key: dict[tuple[str, str, str], NavigationEdge] = {}
+    for edge in model.navigation_edges:
+        edge_key = (edge.from_page_type, edge.to_page_type, edge.action_type.value)
+        model_edges_by_key.setdefault(edge_key, edge)
+
     uncovered_edges = [
-        {
-            "from_page_type": from_page_type,
-            "to_page_type": to_page_type,
-            "action_type": action_type,
-            "from_name": page_names.get(from_page_type, from_page_type),
-            "to_name": page_names.get(to_page_type, to_page_type),
-        }
+        _build_uncovered_edge_row(
+            from_page_type=from_page_type,
+            to_page_type=to_page_type,
+            action_type=action_type,
+            page_names=page_names,
+            model_edges_by_key=model_edges_by_key,
+        )
         for from_page_type, to_page_type, action_type in coverage.uncovered_edges
     ]
 
@@ -456,6 +461,29 @@ def _build_mbt_coverage_data(
         },
         "actions": action_names,
         "matrix_rows": matrix_rows,
+    }
+
+
+def _build_uncovered_edge_row(
+    *,
+    from_page_type: str,
+    to_page_type: str,
+    action_type: str,
+    page_names: dict[str, str],
+    model_edges_by_key: dict[tuple[str, str, str], Any],
+) -> dict[str, Any]:
+    """Build a report row for one uncovered transition."""
+    edge = model_edges_by_key.get((from_page_type, to_page_type, action_type))
+    guards = sorted(set(getattr(edge, "guards", []))) if edge else []
+    inferred_from = str(getattr(edge, "inferred_from", "")).strip() if edge else ""
+    return {
+        "from_page_type": from_page_type,
+        "to_page_type": to_page_type,
+        "action_type": action_type,
+        "from_name": page_names.get(from_page_type, from_page_type),
+        "to_name": page_names.get(to_page_type, to_page_type),
+        "guards": guards,
+        "inferred_from": inferred_from,
     }
 
 

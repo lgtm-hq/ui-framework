@@ -1092,9 +1092,9 @@ inferred_from: str = ""            # How the guard was detected
 
 **Acceptance criteria**:
 
-- [ ] Guards inferred from exploration patterns (Layer 2)
-- [ ] Walker respects guards (Layer 3)
-- [ ] Guards visible in dashboard and export formats
+- [x] Guards inferred from exploration patterns (Layer 2)
+- [x] Walker respects guards (Layer 3)
+- [x] Guards visible in dashboard and export formats
 
 ---
 

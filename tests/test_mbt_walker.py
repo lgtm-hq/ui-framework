@@ -236,6 +236,50 @@ class TestModelWalker:
             )
         )
 
+    def test_walker_inserts_guard_precondition_steps(self) -> None:
+        """Guarded transitions should include required setup steps."""
+        model = SiteModel(
+            page_types=[
+                _page("search", "Search"),
+                _page("detail", "Detail"),
+            ],
+            navigation_edges=[
+                _edge(
+                    "search",
+                    "detail",
+                    trigger="Open detail",
+                    action_type=ActionType.CLICK,
+                ).model_copy(
+                    update={
+                        "guards": [
+                            "requires_input",
+                            "requires_form_submission",
+                            "requires_search",
+                        ],
+                    },
+                ),
+            ],
+        )
+        model.page_types[0].features = {"has_search"}
+
+        walker = ModelWalker()
+        scenarios = walker.walk_edge_coverage(model=model)
+        assert len(scenarios) == 1
+
+        scenario = scenarios[0]
+        action_types = [step.action_type for step in scenario.steps if step.action_type]
+        assert ActionType.FILL in action_types
+        assert ActionType.SUBMIT_FORM in action_types
+        assert any(
+            "Validate guard precondition: requires_search" in step.action_description
+            for step in scenario.steps
+        )
+        assert any(
+            "guard preconditions" in step.expected_outcome
+            for step in scenario.steps
+            if step.action_type == ActionType.CLICK
+        )
+
     def test_walker_does_not_reference_exploration_result(self) -> None:
         """Walker module should stay model-only and avoid ExplorationResult."""
         source = Path("src/flowscout/mbt/walker.py").read_text()

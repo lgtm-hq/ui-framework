@@ -23,6 +23,8 @@ def _model() -> SiteModel:
                 trigger="Open catalog",
                 action_type=ActionType.CLICK,
                 occurrence_count=3,
+                guards=["requires_search"],
+                inferred_from="source page features imply guards: requires_search",
             ),
         ],
     )
@@ -36,6 +38,7 @@ def test_render_graphwalker_json_contains_vertices_and_transition_labels() -> No
     assert '"vertices"' in output
     assert '"edges"' in output
     assert "click (3x)" in output
+    assert "requires_search" in output
 
 
 def test_render_dot_contains_action_type_and_occurrence_count() -> None:
@@ -45,6 +48,7 @@ def test_render_dot_contains_action_type_and_occurrence_count() -> None:
     assert output.startswith("digraph SiteModel")
     assert '"home" -> "catalog"' in output
     assert "click (3x)" in output
+    assert "guard: requires_search" in output
 
 
 def test_render_mermaid_uses_state_diagram_v2_syntax() -> None:
@@ -54,6 +58,7 @@ def test_render_mermaid_uses_state_diagram_v2_syntax() -> None:
     assert output.startswith("stateDiagram-v2")
     assert "home --> catalog" in output
     assert "click (3x)" in output
+    assert "guard: requires_search" in output
 
 
 def test_exporters_do_not_import_exploration_result() -> None:

@@ -297,6 +297,7 @@ class TerminalReporter:
             nav_table.add_column("To")
             nav_table.add_column("Trigger", max_width=40)
             nav_table.add_column("Count", justify="right")
+            nav_table.add_column("Guards", max_width=30)
 
             pt_names = {pt.page_type_id: pt.name for pt in model.page_types}
 
@@ -308,6 +309,7 @@ class TerminalReporter:
                     to_name,
                     edge.trigger[:40],
                     str(edge.occurrence_count),
+                    ", ".join(edge.guards) if edge.guards else "-",
                 )
             self.console.print(nav_table)
 

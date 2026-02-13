@@ -535,6 +535,129 @@ class TestFlowTemplates:
         assert template.action_type_sequence == ["CLICK"]
 
 
+class TestNavigationGuards:
+    def test_edge_infers_requires_input_when_transition_follows_fill(self) -> None:
+        s1 = _make_state("s1", url="https://example.com/search")
+        s2 = _make_state("s2", url="https://example.com/results")
+        analyses = {
+            "s1": _make_analysis(PageArchetype.LISTING, "sig_search"),
+            "s2": _make_analysis(PageArchetype.DETAIL, "sig_results"),
+        }
+        fill_action = Action(
+            action_id="a-fill",
+            action_type=ActionType.FILL,
+            target_selector="input[type='search']",
+            label="Fill search",
+        )
+        click_action = Action(
+            action_id="a-click",
+            action_type=ActionType.CLICK,
+            target_selector="button[type='submit']",
+            label="Submit search",
+        )
+        result = _make_result(
+            states={"s1": s1, "s2": s2},
+            actions={"a-fill": fill_action, "a-click": click_action},
+            results=[
+                ActionResult(
+                    action_id="a-fill",
+                    source_state_id="s1",
+                    target_state_id="s1",
+                    outcome=OutcomeType.DOM_CHANGE,
+                ),
+                ActionResult(
+                    action_id="a-click",
+                    source_state_id="s1",
+                    target_state_id="s2",
+                    outcome=OutcomeType.NAVIGATION,
+                ),
+            ],
+        )
+
+        model = SiteModelBuilder().build(result, analyses)
+        edge = model.navigation_edges[0]
+        assert "requires_input" in edge.guards
+        assert "FILL action" in edge.inferred_from
+
+    def test_edge_infers_requires_form_submission_after_submit_action(self) -> None:
+        s1 = _make_state("s1", url="https://example.com/form")
+        s2 = _make_state("s2", url="https://example.com/thanks")
+        analyses = {
+            "s1": _make_analysis(PageArchetype.FORM, "sig_form"),
+            "s2": _make_analysis(PageArchetype.DETAIL, "sig_thanks"),
+        }
+        submit_action = Action(
+            action_id="a-submit",
+            action_type=ActionType.SUBMIT_FORM,
+            target_selector="form",
+            label="Submit form",
+        )
+        click_action = Action(
+            action_id="a-next",
+            action_type=ActionType.CLICK,
+            target_selector="a.next",
+            label="Continue",
+        )
+        result = _make_result(
+            states={"s1": s1, "s2": s2},
+            actions={"a-submit": submit_action, "a-next": click_action},
+            results=[
+                ActionResult(
+                    action_id="a-submit",
+                    source_state_id="s1",
+                    target_state_id="s1",
+                    outcome=OutcomeType.DOM_CHANGE,
+                ),
+                ActionResult(
+                    action_id="a-next",
+                    source_state_id="s1",
+                    target_state_id="s2",
+                    outcome=OutcomeType.NAVIGATION,
+                ),
+            ],
+        )
+
+        model = SiteModelBuilder().build(result, analyses)
+        edge = model.navigation_edges[0]
+        assert "requires_form_submission" in edge.guards
+        assert "SUBMIT_FORM action" in edge.inferred_from
+
+    def test_edge_infers_feature_based_guards_from_source_page_type(self) -> None:
+        s1 = _make_state("s1", url="https://example.com/search")
+        s2 = _make_state("s2", url="https://example.com/detail")
+        analyses = {
+            "s1": _make_analysis(
+                PageArchetype.LISTING,
+                "sig_search",
+                has_search=True,
+            ),
+            "s2": _make_analysis(PageArchetype.DETAIL, "sig_detail"),
+        }
+        action = Action(
+            action_id="a1",
+            action_type=ActionType.CLICK,
+            target_selector="a.item",
+            label="Open result",
+        )
+        result = _make_result(
+            states={"s1": s1, "s2": s2},
+            actions={"a1": action},
+            results=[
+                ActionResult(
+                    action_id="a1",
+                    source_state_id="s1",
+                    target_state_id="s2",
+                    outcome=OutcomeType.NAVIGATION,
+                ),
+            ],
+        )
+
+        model = SiteModelBuilder().build(result, analyses)
+        edge = model.navigation_edges[0]
+        assert "requires_search" in edge.guards
+        assert "source page features imply guards" in edge.inferred_from
+
+
 class TestSharedComponents:
     def test_builder_extracts_shared_navigation_component(self) -> None:
         s1 = _make_state("s1", url="https://example.com/movies")

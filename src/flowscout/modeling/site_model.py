@@ -28,6 +28,7 @@ from flowscout.modeling.locators import (
 
 if TYPE_CHECKING:
     from flowscout.analysis.graph import ExplorationResult
+    from flowscout.discovery.actions import Action, ActionResult
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,8 @@ class NavigationEdge(BaseModel):
     outcome: OutcomeType = OutcomeType.NAVIGATION
     occurrence_count: int = 1
     example_action_id: str = ""
+    guards: list[str] = Field(default_factory=list)
+    inferred_from: str = ""
 
 
 class SiteModelSummary(BaseModel):
@@ -171,7 +174,11 @@ class SiteModelBuilder:
         """
         page_types = self._build_page_types(result, analyses)
         state_to_pt = self._build_state_lookup(page_types, analyses, result)
-        nav_edges = self._build_navigation_edges(result, state_to_pt)
+        nav_edges = self._build_navigation_edges(
+            result=result,
+            state_to_pt=state_to_pt,
+            page_types=page_types,
+        )
         shared_components = extract_shared_components(
             page_catalogs={
                 page_type.page_type_id: page_type.catalog
@@ -370,13 +377,17 @@ class SiteModelBuilder:
         self,
         result: ExplorationResult,
         state_to_pt: dict[str, str],
+        page_types: list[PageType],
     ) -> list[NavigationEdge]:
         """Build page-type-level navigation edges from action results."""
         # Aggregate by (from_pt, to_pt, action_type) for deduplication
         edge_key = tuple[str, str, str]
         edge_data: dict[edge_key, dict[str, Any]] = {}
+        page_features = {
+            page_type.page_type_id: set(page_type.features) for page_type in page_types
+        }
 
-        for action_result in result.results:
+        for index, action_result in enumerate(result.results):
             # Skip non-transitions
             if action_result.outcome in (
                 OutcomeType.NO_CHANGE,
@@ -403,8 +414,29 @@ class SiteModelBuilder:
                     "outcome": action_result.outcome,
                     "count": 0,
                     "example_action_id": action_result.action_id,
+                    "preceded_by_fill": [],
+                    "preceded_by_submit": [],
+                    "feature_guards": _feature_guards_for_page_type(
+                        features=page_features.get(from_pt, set()),
+                    ),
                 }
             edge_data[key]["count"] += 1
+            edge_data[key]["preceded_by_fill"].append(
+                _is_preceded_by_action_type(
+                    results=result.results,
+                    actions=result.actions,
+                    index=index,
+                    action_type=ActionType.FILL,
+                ),
+            )
+            edge_data[key]["preceded_by_submit"].append(
+                _is_preceded_by_action_type(
+                    results=result.results,
+                    actions=result.actions,
+                    index=index,
+                    action_type=ActionType.SUBMIT_FORM,
+                ),
+            )
 
         edges = [
             NavigationEdge(
@@ -415,6 +447,8 @@ class SiteModelBuilder:
                 outcome=data["outcome"],
                 occurrence_count=data["count"],
                 example_action_id=data["example_action_id"],
+                guards=_infer_edge_guards(data=data),
+                inferred_from=_infer_edge_guard_source(data=data),
             )
             for key, data in edge_data.items()
         ]
@@ -507,6 +541,68 @@ class SiteModelBuilder:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _is_preceded_by_action_type(
+    *,
+    results: list[ActionResult],
+    actions: dict[str, Action],
+    index: int,
+    action_type: ActionType,
+) -> bool:
+    """Check whether an edge transition is preceded by a specific action type."""
+    if index <= 0:
+        return False
+
+    current = results[index]
+    previous = results[index - 1]
+    if previous.source_state_id != current.source_state_id:
+        return False
+
+    previous_action = actions.get(previous.action_id)
+    if previous_action is None:
+        return False
+    return bool(previous_action.action_type == action_type)
+
+
+def _feature_guards_for_page_type(*, features: set[str]) -> set[str]:
+    """Map source-page features to guard names."""
+    guards: set[str] = set()
+    for feature in features:
+        normalized = feature.removeprefix("has_")
+        if not normalized:
+            continue
+        guards.add(f"requires_{normalized}")
+    return guards
+
+
+def _infer_edge_guards(*, data: dict[str, Any]) -> list[str]:
+    """Infer edge guards from traversal context signals."""
+    guards: set[str] = set(data.get("feature_guards", set()))
+    preceded_by_fill: list[bool] = list(data.get("preceded_by_fill", []))
+    preceded_by_submit: list[bool] = list(data.get("preceded_by_submit", []))
+
+    if preceded_by_fill and all(preceded_by_fill):
+        guards.add("requires_input")
+    if preceded_by_submit and all(preceded_by_submit):
+        guards.add("requires_form_submission")
+
+    return sorted(guards)
+
+
+def _infer_edge_guard_source(*, data: dict[str, Any]) -> str:
+    """Describe how inferred guards were detected."""
+    reasons: list[str] = []
+    if data.get("preceded_by_fill") and all(data["preceded_by_fill"]):
+        reasons.append("all observed transitions followed a FILL action")
+    if data.get("preceded_by_submit") and all(data["preceded_by_submit"]):
+        reasons.append("all observed transitions followed a SUBMIT_FORM action")
+    feature_guards = sorted(data.get("feature_guards", set()))
+    if feature_guards:
+        reasons.append(
+            "source page features imply guards: " + ", ".join(feature_guards),
+        )
+    return "; ".join(reasons)
 
 
 def _infer_page_type_name(

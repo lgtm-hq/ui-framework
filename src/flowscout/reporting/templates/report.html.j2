@@ -2895,6 +2895,8 @@
                                     <th>From</th>
                                     <th>To</th>
                                     <th>Action</th>
+                                    <th>Guards</th>
+                                    <th>Inference</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2903,6 +2905,8 @@
                                     <td>{{ edge.from_name }}</td>
                                     <td>{{ edge.to_name }}</td>
                                     <td class="cell-dim">{{ edge.action_type }}</td>
+                                    <td class="cell-dim">{{ edge.guards|join(', ') if edge.guards else '-' }}</td>
+                                    <td class="cell-dim">{{ edge.inferred_from or '-' }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

@@ -275,3 +275,5 @@ def test_build_mbt_coverage_data_builds_matrix_and_uncovered_edges() -> None:
     assert data["edge"]["uncovered"][0]["action_type"] == "click"
     assert data["edge"]["uncovered"][0]["from_name"] != ""
     assert data["edge"]["uncovered"][0]["to_name"] != ""
+    assert "guards" in data["edge"]["uncovered"][0]
+    assert "inferred_from" in data["edge"]["uncovered"][0]

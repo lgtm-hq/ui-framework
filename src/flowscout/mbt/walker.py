@@ -45,6 +45,7 @@ class ModelWalker:
 
         scenarios: list[FlowScenario] = []
         page_type_names = _page_type_name_map(model=model)
+        page_type_features = _page_type_feature_map(model=model)
         for scenario_index, (path_nodes, path_edge_ids) in enumerate(
             component_walks,
             start=1,
@@ -57,6 +58,7 @@ class ModelWalker:
                     edge_ids=path_edge_ids,
                     edge_index=edge_index,
                     page_type_names=page_type_names,
+                    page_type_features=page_type_features,
                 ),
             )
 
@@ -81,6 +83,7 @@ class ModelWalker:
 
         edge_index, _, edges_by_pair = _index_navigation_edges(model=model)
         page_type_names = _page_type_name_map(model=model)
+        page_type_features = _page_type_feature_map(model=model)
         uncovered: set[str] = set(all_nodes)
         scenarios: list[FlowScenario] = []
         scenario_index = 1
@@ -118,6 +121,7 @@ class ModelWalker:
                     edge_ids=path_edge_ids,
                     edge_index=edge_index,
                     page_type_names=page_type_names,
+                    page_type_features=page_type_features,
                 ),
             )
             scenario_index += 1
@@ -154,6 +158,7 @@ class ModelWalker:
 
         edge_index, outgoing_edges, _ = _index_navigation_edges(model=model)
         page_type_names = _page_type_name_map(model=model)
+        page_type_features = _page_type_feature_map(model=model)
         start_weights = [
             max(
                 sum(
@@ -197,6 +202,7 @@ class ModelWalker:
             edge_ids=path_edge_ids,
             edge_index=edge_index,
             page_type_names=page_type_names,
+            page_type_features=page_type_features,
         )
 
     def walk_all_paths(
@@ -222,6 +228,7 @@ class ModelWalker:
 
         edge_index, _, edges_by_pair = _index_navigation_edges(model=model)
         page_type_names = _page_type_name_map(model=model)
+        page_type_features = _page_type_feature_map(model=model)
         all_nodes = sorted(graph.nodes)
         start_nodes = [node for node in all_nodes if graph.in_degree(node) == 0]
         if not start_nodes:
@@ -261,6 +268,7 @@ class ModelWalker:
                             edge_ids=path_edge_ids,
                             edge_index=edge_index,
                             page_type_names=page_type_names,
+                            page_type_features=page_type_features,
                         ),
                     )
                     scenario_index += 1
@@ -653,6 +661,17 @@ def _page_type_name_map(
     return names
 
 
+def _page_type_feature_map(
+    *,
+    model: SiteModel,
+) -> dict[str, set[str]]:
+    """Build page type ID -> feature set lookup."""
+    return {
+        page_type.page_type_id: set(page_type.features)
+        for page_type in model.page_types
+    }
+
+
 def _index_navigation_edges(
     *,
     model: SiteModel,
@@ -746,6 +765,7 @@ def _build_scenario(
     edge_ids: Sequence[int],
     edge_index: dict[int, NavigationEdge],
     page_type_names: dict[str, str],
+    page_type_features: dict[str, set[str]],
 ) -> FlowScenario:
     """Create a FlowScenario for a concrete node/edge traversal path."""
     node_sequence = list(node_path)
@@ -774,19 +794,41 @@ def _build_scenario(
             expected_outcome=f"{first_name} is reachable",
         ),
     ]
+    guard_context = {
+        "has_input": False,
+        "has_form_submission": False,
+    }
 
     for edge_id in edge_ids:
         edge = edge_index[edge_id]
+        setup_steps = _guard_setup_steps(
+            edge=edge,
+            page_type_names=page_type_names,
+            page_type_features=page_type_features,
+            guard_context=guard_context,
+        )
+        steps.extend(setup_steps)
+
         target_name = page_type_names.get(edge.to_page_type, edge.to_page_type)
         trigger = edge.trigger.strip() or edge.action_type.value
+        expected_outcome = f"Transition reaches {target_name}"
+        guards = sorted(set(getattr(edge, "guards", [])))
+        if guards:
+            expected_outcome = (
+                f"{expected_outcome} with guard preconditions: " + ", ".join(guards)
+            )
         steps.append(
             ScenarioStep(
                 page_type=edge.from_page_type,
                 action_description=f"{edge.action_type.value} via {trigger}",
                 action_type=edge.action_type,
-                expected_outcome=f"Transition reaches {target_name}",
+                expected_outcome=expected_outcome,
             ),
         )
+        if edge.action_type in _INPUT_ACTION_TYPES:
+            guard_context["has_input"] = True
+        if edge.action_type == ActionType.SUBMIT_FORM:
+            guard_context["has_form_submission"] = True
 
     steps.append(
         ScenarioStep(
@@ -806,3 +848,83 @@ def _build_scenario(
         template=f"mbt_{strategy}",
         tags=["mbt", strategy],
     )
+
+
+_INPUT_ACTION_TYPES = {
+    ActionType.FILL,
+    ActionType.SELECT_OPTION,
+    ActionType.CHECK,
+    ActionType.UNCHECK,
+    ActionType.PRESS_KEY,
+}
+
+
+def _guard_setup_steps(
+    *,
+    edge: NavigationEdge,
+    page_type_names: dict[str, str],
+    page_type_features: dict[str, set[str]],
+    guard_context: dict[str, bool],
+) -> list[ScenarioStep]:
+    """Build precondition steps required by inferred edge guards."""
+    guards = sorted(set(getattr(edge, "guards", [])))
+    if not guards:
+        return []
+
+    source_name = page_type_names.get(edge.from_page_type, edge.from_page_type)
+    source_features = page_type_features.get(edge.from_page_type, set())
+    steps: list[ScenarioStep] = []
+
+    for guard in guards:
+        if guard == "requires_input":
+            if guard_context["has_input"]:
+                continue
+            steps.append(
+                ScenarioStep(
+                    page_type=edge.from_page_type,
+                    action_description="Fill required input (guard precondition)",
+                    action_type=ActionType.FILL,
+                    expected_outcome=(
+                        f"{source_name} satisfies transition input precondition"
+                    ),
+                ),
+            )
+            guard_context["has_input"] = True
+            continue
+
+        if guard == "requires_form_submission":
+            if guard_context["has_form_submission"]:
+                continue
+            steps.append(
+                ScenarioStep(
+                    page_type=edge.from_page_type,
+                    action_description="Submit form (guard precondition)",
+                    action_type=ActionType.SUBMIT_FORM,
+                    expected_outcome=(
+                        f"{source_name} satisfies form submission precondition"
+                    ),
+                ),
+            )
+            guard_context["has_form_submission"] = True
+            continue
+
+        if not guard.startswith("requires_"):
+            continue
+        feature = guard.removeprefix("requires_")
+        feature_present = (
+            feature in source_features or f"has_{feature}" in source_features
+        )
+        steps.append(
+            ScenarioStep(
+                page_type=edge.from_page_type,
+                action_description=f"Validate guard precondition: {guard}",
+                action_type=None,
+                expected_outcome=(
+                    f"{source_name} has required feature '{feature}'"
+                    if feature_present
+                    else f"{source_name} is missing required feature '{feature}'"
+                ),
+            ),
+        )
+
+    return steps
