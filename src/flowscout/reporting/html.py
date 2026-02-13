@@ -145,6 +145,7 @@ class ReportDataBuilder:
         locator_quality_rows, locator_recommendations = _build_locator_quality_data(
             result=result,
         )
+        mbt_coverage = _build_mbt_coverage_data(result=result)
 
         return {
             "start_url": result.config.get("start_url", "unknown"),
@@ -184,6 +185,7 @@ class ReportDataBuilder:
             "input_provenance": input_provenance,
             "locator_quality_rows": locator_quality_rows,
             "locator_recommendations": locator_recommendations,
+            "mbt_coverage": mbt_coverage,
         }
 
 
@@ -378,6 +380,83 @@ def _build_locator_quality_data(
 
     rows.sort(key=lambda row: (-int(row["quality_score"]), str(row["name"])))
     return rows, model.locator_recommendations
+
+
+def _build_mbt_coverage_data(
+    *,
+    result: ExplorationResult,
+) -> dict[str, Any]:
+    """Build MBT coverage metrics and matrix from the Layer-2 SiteModel."""
+    try:
+        model = SiteModel.from_exploration_result(result=result)
+    except ValueError:
+        return {}
+
+    from flowscout.mbt.coverage import compute_model_coverage
+
+    coverage = compute_model_coverage(model=model)
+    if coverage.total_states == 0 and coverage.total_edges == 0:
+        return {}
+
+    page_names = {
+        page_type.page_type_id: page_type.name for page_type in model.page_types
+    }
+    action_names = sorted(
+        {
+            action_name
+            for row in coverage.coverage_matrix.values()
+            for action_name in row
+        },
+    )
+    matrix_rows: list[dict[str, Any]] = []
+    for page_type_id in sorted(coverage.coverage_matrix):
+        row = coverage.coverage_matrix[page_type_id]
+        matrix_rows.append(
+            {
+                "page_type_id": page_type_id,
+                "page_name": page_names.get(page_type_id, page_type_id),
+                "actions": [
+                    {
+                        "action": action_name,
+                        "covered": bool(row.get(action_name, False)),
+                    }
+                    for action_name in action_names
+                ],
+            },
+        )
+
+    uncovered_edges = [
+        {
+            "from_page_type": from_page_type,
+            "to_page_type": to_page_type,
+            "action_type": action_type,
+            "from_name": page_names.get(from_page_type, from_page_type),
+            "to_name": page_names.get(to_page_type, to_page_type),
+        }
+        for from_page_type, to_page_type, action_type in coverage.uncovered_edges
+    ]
+
+    return {
+        "state": {
+            "pct": coverage.state_coverage,
+            "covered": coverage.covered_states,
+            "total": coverage.total_states,
+            "uncovered": coverage.uncovered_states,
+        },
+        "edge": {
+            "pct": coverage.edge_coverage,
+            "covered": coverage.covered_edges,
+            "total": coverage.total_edges,
+            "uncovered": uncovered_edges,
+        },
+        "path": {
+            "pct": coverage.path_coverage,
+            "covered": coverage.covered_paths,
+            "total": coverage.total_paths,
+        },
+        "actions": action_names,
+        "matrix_rows": matrix_rows,
+    }
 
 
 def _extract_dom_id_from_selector(selector: str) -> str:

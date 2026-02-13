@@ -2821,6 +2821,99 @@
         </section>
         {% endif %}
 
+        {% if mbt_coverage %}
+        <section id="mbt-coverage" class="section section-collapsible collapsed animate-in delay-3" data-report-page="model">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
+                <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                <h2>MBT Coverage Matrix</h2>
+                <div class="section-count">{{ mbt_coverage.edge.covered }}/{{ mbt_coverage.edge.total }} edges</div>
+                <div class="section-line"></div>
+            </div>
+            <div class="section-body">
+                <div class="metric-cards" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+                    <div class="metric-card">
+                        <div class="metric-label">State Coverage</div>
+                        <div class="metric-value">{{ "%.0f"|format(mbt_coverage.state.pct) }}%</div>
+                        <div class="metric-sub">{{ mbt_coverage.state.covered }}/{{ mbt_coverage.state.total }} states</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Edge Coverage</div>
+                        <div class="metric-value">{{ "%.0f"|format(mbt_coverage.edge.pct) }}%</div>
+                        <div class="metric-sub">{{ mbt_coverage.edge.covered }}/{{ mbt_coverage.edge.total }} edges</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Path Coverage</div>
+                        <div class="metric-value">{{ "%.0f"|format(mbt_coverage.path.pct) }}%</div>
+                        <div class="metric-sub">{{ mbt_coverage.path.covered }}/{{ mbt_coverage.path.total }} simple paths</div>
+                    </div>
+                </div>
+
+                {% if mbt_coverage.actions and mbt_coverage.matrix_rows %}
+                <div class="data-table-wrap" style="margin-top: 1rem;">
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <caption class="sr-only">MBT page/action coverage matrix</caption>
+                            <thead>
+                                <tr>
+                                    <th>Page Type</th>
+                                    {% for action in mbt_coverage.actions %}
+                                    <th class="right">{{ action|upper }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in mbt_coverage.matrix_rows %}
+                                <tr>
+                                    <td>{{ row.page_name }}</td>
+                                    {% for item in row.actions %}
+                                    <td class="cell-right" style="color: {% if item.covered %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                                        {{ 'Y' if item.covered else 'N' }}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if mbt_coverage.state.uncovered %}
+                <div class="untested-callout" style="margin-top: 0.75rem;">
+                    <span class="callout-icon">&#9888;</span>
+                    <span>Uncovered states: {{ mbt_coverage.state.uncovered|join(', ') }}</span>
+                </div>
+                {% endif %}
+
+                {% if mbt_coverage.edge.uncovered %}
+                <div class="data-table-wrap" style="margin-top: 0.75rem;">
+                    <div class="table-scroll">
+                        <table class="data-table">
+                            <caption class="sr-only">Uncovered navigation edges</caption>
+                            <thead>
+                                <tr>
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for edge in mbt_coverage.edge.uncovered %}
+                                <tr>
+                                    <td>{{ edge.from_name }}</td>
+                                    <td>{{ edge.to_name }}</td>
+                                    <td class="cell-dim">{{ edge.action_type }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
         <!-- ============================================================
              SECTION E: EXPLORATION MODEL (graph + pages)
              ============================================================ -->

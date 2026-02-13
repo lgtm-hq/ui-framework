@@ -258,6 +258,7 @@ class TerminalReporter:
 
     def print_site_model_summary(self, model: SiteModel) -> None:
         """Print a site model summary to the terminal."""
+        from flowscout.mbt import compute_model_coverage
         from flowscout.modeling.scenarios import FlowScenario
 
         self.console.print()
@@ -354,6 +355,41 @@ class TerminalReporter:
                     ", ".join(sc.tags),
                 )
             self.console.print(sc_table)
+
+        coverage = compute_model_coverage(model=model)
+        self.console.print()
+        self.console.print(
+            "  [bold]State coverage:[/bold]"
+            f" {coverage.state_coverage:.0f}%"
+            f" ({coverage.covered_states}/{coverage.total_states} states)",
+        )
+        self.console.print(
+            "  [bold]Edge coverage:[/bold]"
+            f" {coverage.edge_coverage:.0f}%"
+            f" ({coverage.covered_edges}/{coverage.total_edges} edges)",
+        )
+        self.console.print(
+            "  [bold]Path coverage:[/bold]"
+            f" {coverage.path_coverage:.0f}%"
+            f" ({coverage.covered_paths}/{coverage.total_paths} simple paths)",
+        )
+
+        if coverage.uncovered_states:
+            uncovered_states = ", ".join(coverage.uncovered_states[:8])
+            suffix = " ..." if len(coverage.uncovered_states) > 8 else ""
+            self.console.print(
+                f"  [yellow]Uncovered states:[/yellow] {uncovered_states}{suffix}",
+            )
+
+        if coverage.uncovered_edges:
+            preview = ", ".join(
+                f"{from_state}->{to_state} ({action_type})"
+                for from_state, to_state, action_type in coverage.uncovered_edges[:8]
+            )
+            suffix = " ..." if len(coverage.uncovered_edges) > 8 else ""
+            self.console.print(
+                f"  [yellow]Uncovered edges:[/yellow] {preview}{suffix}",
+            )
 
         # Coverage notes
         if model.summary.coverage_notes:

@@ -1018,11 +1018,11 @@ class ModelCoverage(BaseModel):
 
 **Acceptance criteria**:
 
-- [ ] Coverage metrics computed for any set of scenarios against a
+- [x] Coverage metrics computed for any set of scenarios against a
       model
-- [ ] Uncovered edges/states explicitly listed
-- [ ] Terminal shows: "Edge coverage: 85% (17/20 edges)"
-- [ ] HTML report has coverage matrix visualization
+- [x] Uncovered edges/states explicitly listed
+- [x] Terminal shows: "Edge coverage: 85% (17/20 edges)"
+- [x] HTML report has coverage matrix visualization
 
 ### 3.3 Standard MBT export formats
 

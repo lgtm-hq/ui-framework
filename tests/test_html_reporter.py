@@ -10,6 +10,7 @@ from flowscout.reporting.html import (
     _build_execution_rows,
     _build_flow_execution_map,
     _build_locator_quality_data,
+    _build_mbt_coverage_data,
     _to_report_asset_href,
 )
 
@@ -193,3 +194,84 @@ def test_build_locator_quality_data_uses_site_model_scoring() -> None:
     assert len(rows) == 1
     assert rows[0]["quality_text"] == "Locator Quality: 20% stable"
     assert recommendations
+
+
+def test_build_mbt_coverage_data_builds_matrix_and_uncovered_edges() -> None:
+    """MBT coverage helper should expose matrix rows and uncovered edges."""
+    state_home = PageState(
+        state_id="state-home",
+        url="https://example.com/",
+        title="Home",
+        fingerprint="f" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+    )
+    state_catalog = PageState(
+        state_id="state-catalog",
+        url="https://example.com/catalog",
+        title="Catalog",
+        fingerprint="e" * 64,
+        depth=1,
+        dom_structure_hash="dom2",
+        visible_text_hash="text2",
+        form_state_hash="form2",
+    )
+    state_detail = PageState(
+        state_id="state-detail",
+        url="https://example.com/detail",
+        title="Detail",
+        fingerprint="d" * 64,
+        depth=2,
+        dom_structure_hash="dom3",
+        visible_text_hash="text3",
+        form_state_hash="form3",
+    )
+    action_open_catalog = Action(
+        action_id="action-open-catalog",
+        action_type=ActionType.CLICK,
+        target_selector="a[href='/catalog']",
+        label="Open catalog",
+    )
+    action_open_detail = Action(
+        action_id="action-open-detail",
+        action_type=ActionType.CLICK,
+        target_selector="a[href='/detail']",
+        label="Open detail",
+    )
+    result = ExplorationResult(
+        states={
+            "state-home": state_home,
+            "state-catalog": state_catalog,
+            "state-detail": state_detail,
+        },
+        actions={
+            "action-open-catalog": action_open_catalog,
+            "action-open-detail": action_open_detail,
+        },
+        results=[
+            ActionResult(
+                action_id="action-open-catalog",
+                source_state_id="state-home",
+                target_state_id="state-catalog",
+                outcome=OutcomeType.NAVIGATION,
+            ),
+            ActionResult(
+                action_id="action-open-detail",
+                source_state_id="state-catalog",
+                target_state_id="state-detail",
+                outcome=OutcomeType.NAVIGATION,
+            ),
+        ],
+    )
+
+    data = _build_mbt_coverage_data(result=result)
+
+    assert data["state"]["total"] == 3
+    assert data["edge"]["total"] == 2
+    assert data["edge"]["pct"] == 0.0
+    assert len(data["matrix_rows"]) == 2
+    assert data["edge"]["uncovered"][0]["action_type"] == "click"
+    assert data["edge"]["uncovered"][0]["from_name"] != ""
+    assert data["edge"]["uncovered"][0]["to_name"] != ""
