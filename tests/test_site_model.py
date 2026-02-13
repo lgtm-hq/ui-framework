@@ -120,6 +120,73 @@ class TestPageTypeGrouping:
         assert model.page_types[0].instance_count == 2
         assert model.page_types[0].archetype == PageArchetype.LISTING
 
+    def test_catalog_entries_merge_across_same_signature_instances(self) -> None:
+        s1 = _make_state("s1", url="https://example.com/movies?page=1")
+        s2 = _make_state("s2", url="https://example.com/movies?page=2")
+
+        analyses = {
+            "s1": _make_analysis(
+                PageArchetype.LISTING,
+                "sig_listing",
+                has_filters=True,
+                catalog_entries=[
+                    CatalogEntry(
+                        selector="a.movie-card",
+                        tag="a",
+                        label="Movie card",
+                        zone_type=ZoneType.MAIN_CONTENT,
+                        element_type="link",
+                        semantic_name="movie_card",
+                    ),
+                    CatalogEntry(
+                        selector="button.filter",
+                        tag="button",
+                        label="Filter",
+                        zone_type=ZoneType.FILTER,
+                        element_type="button",
+                        semantic_name="filter_button",
+                    ),
+                ],
+            ),
+            "s2": _make_analysis(
+                PageArchetype.LISTING,
+                "sig_listing",
+                has_search=True,
+                catalog_entries=[
+                    CatalogEntry(
+                        selector="a.movie-card",
+                        tag="a",
+                        label="Movie card duplicate",
+                        zone_type=ZoneType.MAIN_CONTENT,
+                        element_type="link",
+                        semantic_name="movie_card",
+                    ),
+                    CatalogEntry(
+                        selector="input[type='search']",
+                        tag="input",
+                        label="Search",
+                        zone_type=ZoneType.SEARCH,
+                        element_type="input_search",
+                        semantic_name="search_movies",
+                    ),
+                ],
+            ),
+        }
+
+        result = _make_result(states={"s1": s1, "s2": s2})
+        model = SiteModelBuilder().build(result, analyses)
+
+        page_type = model.page_types[0]
+        selectors = {entry.selector for entry in page_type.catalog.entries}
+        assert selectors == {
+            "a.movie-card",
+            "button.filter",
+            "input[type='search']",
+        }
+        assert len(page_type.catalog.entries) == 3
+        assert "has_filters" in page_type.features
+        assert "has_search" in page_type.features
+
     def test_different_signatures_form_different_page_types(self) -> None:
         s1 = _make_state("s1", url="https://example.com/products")
         s2 = _make_state("s2", url="https://example.com/product/1")

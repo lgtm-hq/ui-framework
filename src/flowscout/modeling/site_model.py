@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from flowscout.core.action_types import ActionType, OutcomeType
 from flowscout.modeling.archetype import (
+    CatalogEntry,
     PageAnalysis,
     PageArchetype,
     PageCatalog,
@@ -264,16 +265,26 @@ class SiteModelBuilder:
             )
 
             features: set[str] = set()
-            if rep_analysis.has_search:
-                features.add("has_search")
-            if rep_analysis.has_pagination:
-                features.add("has_pagination")
-            if rep_analysis.has_filters:
-                features.add("has_filters")
-            if rep_analysis.content_density.form_input_count >= 3:
-                features.add("has_form")
-            if rep_analysis.repeated_structures:
-                features.add("has_repeated_content")
+            analyses_for_signature = [
+                analyses[sid] for sid in state_ids if sid in analyses
+            ]
+            for analysis in analyses_for_signature:
+                if analysis.has_search:
+                    features.add("has_search")
+                if analysis.has_pagination:
+                    features.add("has_pagination")
+                if analysis.has_filters:
+                    features.add("has_filters")
+                if analysis.content_density.form_input_count >= 3:
+                    features.add("has_form")
+                if analysis.repeated_structures:
+                    features.add("has_repeated_content")
+
+            merged_catalog = self._merge_catalog_entries(
+                analyses_for_signature=analyses_for_signature,
+                archetype=rep_analysis.archetype,
+                url_pattern=_infer_url_pattern(instance_urls),
+            )
 
             page_types.append(
                 PageType(
@@ -285,13 +296,48 @@ class SiteModelBuilder:
                     instance_count=len(state_ids),
                     representative_url=rep_state.url,
                     representative_state_id=rep_id,
-                    catalog=rep_analysis.catalog,
+                    catalog=merged_catalog,
                     features=features,
                     instance_urls=instance_urls,
                 )
             )
 
         return page_types
+
+    def _merge_catalog_entries(
+        self,
+        *,
+        analyses_for_signature: list[PageAnalysis],
+        archetype: PageArchetype,
+        url_pattern: str,
+    ) -> PageCatalog:
+        """Merge catalog entries across all instances for a page type."""
+        merged_entries: dict[tuple[str, str, str, str], CatalogEntry] = {}
+        for analysis in analyses_for_signature:
+            for entry in analysis.catalog.entries:
+                key = _catalog_entry_key(entry=entry)
+                current = merged_entries.get(key)
+                if current is None:
+                    merged_entries[key] = entry
+                    continue
+                if _catalog_entry_richness(entry=entry) > _catalog_entry_richness(
+                    entry=current
+                ):
+                    merged_entries[key] = entry
+
+        entries = sorted(
+            merged_entries.values(),
+            key=lambda item: (
+                item.zone_type.value,
+                item.element_type,
+                item.preferred_selector or item.selector,
+            ),
+        )
+        return PageCatalog(
+            archetype=archetype,
+            url_pattern=url_pattern,
+            entries=entries,
+        )
 
     def _build_page_types_from_urls(
         self,
@@ -541,6 +587,38 @@ class SiteModelBuilder:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _catalog_entry_key(*, entry: CatalogEntry) -> tuple[str, str, str, str]:
+    """Build a stable deduplication key for catalog entries."""
+    selector = (entry.preferred_selector or entry.selector).strip() or entry.selector
+    return (
+        entry.zone_type.value,
+        selector,
+        entry.element_type,
+        entry.tag,
+    )
+
+
+def _catalog_entry_richness(*, entry: CatalogEntry) -> int:
+    """Score entry richness to keep the most informative duplicate."""
+    score = 0
+    for value in (
+        entry.label,
+        entry.semantic_name,
+        entry.xpath,
+        entry.dom_id,
+        entry.aria_role,
+        entry.input_type,
+        entry.preferred_selector,
+    ):
+        if str(value or "").strip():
+            score += 1
+    if entry.bounding_box:
+        score += 1
+    if bool(entry.is_visible):
+        score += 1
+    return score
 
 
 def _is_preceded_by_action_type(
