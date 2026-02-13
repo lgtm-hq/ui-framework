@@ -2540,71 +2540,82 @@
         </section>
 
         <!-- ============================================================
-             SECTION C: TEST SUITES (primary view)
+             SECTION C: FLOW TEMPLATES (primary view)
              ============================================================ -->
         <section id="test-suites" class="section animate-in delay-2" data-report-page="test-flows">
             <div class="section-header">
-                <h2>Test Suites</h2>
-                <div class="section-count">{{ flows|length }} cases in {{ flow_groups|length }} suites</div>
+                <h2>Flow Templates</h2>
+                <div class="section-count">{{ flow_template_cards|length }} templates · {{ flows|length }} instances</div>
                 <div class="section-line"></div>
             </div>
 
-            <!-- Filter + search toolbar -->
             <div class="filter-toolbar" role="toolbar" aria-label="Filter test cases">
-                <button class="filter-btn active" data-filter="all" onclick="filterTestCases('all', this)">All ({{ flows|length }})</button>
-                <button class="filter-btn" data-filter="pass" onclick="filterTestCases('pass', this)">Pass ({{ flow_counts.pass }})</button>
-                {% if flow_counts.fail %}<button class="filter-btn" data-filter="fail" onclick="filterTestCases('fail', this)">Fail ({{ flow_counts.fail }})</button>{% endif %}
-                {% if flow_counts.warn %}<button class="filter-btn" data-filter="warn" onclick="filterTestCases('warn', this)">Warn ({{ flow_counts.warn }})</button>{% endif %}
-                <input type="text" class="search-box" placeholder="Search test cases..." aria-label="Search test cases" oninput="searchTestCases(this.value)">
+                <button class="filter-btn active" data-filter="all" onclick="filterTestCases('all', this)">All ({{ flow_template_cards|length }})</button>
+                <button class="filter-btn" data-filter="pass" onclick="filterTestCases('pass', this)">Stable</button>
+                <button class="filter-btn" data-filter="fail" onclick="filterTestCases('fail', this)">Risky</button>
+                <button class="filter-btn" data-filter="warn" onclick="filterTestCases('warn', this)">Mixed</button>
+                <input type="text" class="search-box" placeholder="Search flow templates..." aria-label="Search test cases" oninput="searchTestCases(this.value)">
+                <input type="text" id="template-type-filter" class="search-box" placeholder="Template type (click, fill...)" aria-label="Filter by template type" oninput="filterFlowTemplates()">
+                <select id="template-stability-filter" class="search-box" aria-label="Filter by stability" onchange="filterFlowTemplates()">
+                    <option value="all">All stability</option>
+                    <option value="stable">Stable</option>
+                    <option value="warn">Mixed</option>
+                    <option value="risky">Risky</option>
+                </select>
+                <input type="text" id="template-tag-filter" class="search-box" placeholder="Filter by tag..." aria-label="Filter by tags" oninput="filterFlowTemplates()">
             </div>
 
-            <!-- Test suites -->
-            {% for category, group_flows in flow_groups.items() %}
-            {% set gs = group_summaries[category] %}
-            <div class="test-suite" data-category="{{ category }}">
+            {% if flow_template_cards %}
+            {% for card in flow_template_cards %}
+            <article
+                class="test-suite flow-template-card"
+                id="flow-template-{{ card.anchor_id }}"
+                data-template-id="{{ card.template_id }}"
+                data-template-type="{{ card.template_type }}"
+                data-stability="{{ card.stability_bucket }}"
+                data-tags="{{ card.tags|join(' ')|lower }}"
+                data-name="{{ card.name|lower }}"
+                data-stable-count="{{ card.stable_count }}"
+                data-fail-count="{{ card.fail_count }}"
+                data-warn-count="{{ card.warn_count }}"
+            >
                 <div class="suite-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSuite(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSuite(this)}">
                     <svg class="suite-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                    <span class="suite-name">{{ category }}</span>
+                    <span class="suite-name">{{ card.name }}</span>
                     <div class="suite-meta">
-                        {% if gs.pass %}<span class="suite-stat pass">{{ gs.pass }} pass</span>{% endif %}
-                        {% if gs.fail %}<span class="suite-stat fail">{{ gs.fail }} fail</span>{% endif %}
-                        {% if gs.warn %}<span class="suite-stat warn">{{ gs.warn }} warn</span>{% endif %}
-                        <div class="suite-pass-bar">
-                            <div class="suite-pass-fill" style="width: {{ group_pass_rates.get(category, 0) }}%;"></div>
+                        <span class="suite-stat">{{ card.occurrence_count }} instances</span>
+                        <span class="suite-stat {% if card.stability_bucket == 'stable' %}pass{% elif card.stability_bucket == 'risky' %}fail{% else %}warn{% endif %}">
+                            {{ card.stability_pct }}% stable
+                        </span>
+                        {% if card.tags %}
+                        <div class="tc-tags">
+                            {% for tag in card.tags %}
+                            <span class="tc-tag">{{ tag }}</span>
+                            {% endfor %}
                         </div>
-                        <div class="section-count">{{ group_flows|length }}</div>
+                        {% endif %}
+                        <div class="section-count">{{ card.template_type }}</div>
                     </div>
                 </div>
                 <div class="suite-body">
-                    {% for flow in group_flows %}
-                    {% set v = flow_status_map.get(flow.flow_id, 'warn') %}
-                    {% set flow_rows = flow_execution_map.get(flow.flow_id, []) %}
-                    <details class="test-case" data-verdict="{{ v }}" data-flow-id="{{ flow.flow_id }}" data-name="{{ flow.name|lower }}">
+                    {% set flow = card.representative_flow %}
+                    <details class="test-case" data-verdict="{% if card.stability_bucket == 'stable' %}pass{% elif card.stability_bucket == 'risky' %}fail{% else %}warn{% endif %}" data-flow-id="{{ flow.flow_id }}" data-name="{{ flow.name|lower }}">
                         <summary class="test-case-header">
                             <div class="test-case-left">
-                                <span class="verdict {{ v }}">{{ v }}</span>
+                                <span class="verdict {% if card.stability_bucket == 'stable' %}pass{% elif card.stability_bucket == 'risky' %}fail{% else %}warn{% endif %}">
+                                    representative
+                                </span>
                                 <span class="tc-name">{{ flow.name }}</span>
                             </div>
                             <div class="test-case-right">
                                 <span class="tc-steps-count">{{ flow.depth }} step{{ 's' if flow.depth != 1 }}</span>
-                                {% if flow.tags %}
-                                <div class="tc-tags">
-                                    {% for tag in flow.tags %}
-                                    <span class="tc-tag {{ tag }}">{{ tag }}</span>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
                                 <svg class="tc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                             </div>
                         </summary>
                         <div class="test-case-body">
-
-                            {# --- Precondition --- #}
                             {% if flow.narrative and flow.narrative.precondition %}
                             <div class="precondition">{{ flow.narrative.precondition }}</div>
                             {% endif %}
-
-                            {# --- Step timeline --- #}
                             {% if flow.narrative and flow.narrative.steps %}
                             <div class="step-timeline">
                                 {% for step in flow.narrative.steps %}
@@ -2622,31 +2633,20 @@
                                             <span class="step-action-text">{{ step.action_description }}</span>
                                             <span class="verdict {{ sv }}">{{ sv }}</span>
                                         </div>
-                                        <div class="step-details">
-                                            {% if step.target_description %}<div class="step-target"><span class="step-target-label">Target</span><span>{{ step.target_description }}</span></div>{% endif %}
-                                            {% if step.expected %}<div class="step-expected"><span class="step-tag expected">Expected</span><span class="step-text">{{ step.expected }}</span></div>{% endif %}
-                                            {% if step.actual %}<div class="step-actual"><span class="step-tag actual">Actual</span><span class="step-text">{{ step.actual }}</span></div>{% endif %}
-                                        </div>
                                     </div>
                                 </div>
                                 {% endfor %}
                             </div>
                             {% else %}
-                            {# Fallback: description for flows without narratives #}
                             <div style="margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5; word-break: break-all;">{{ flow.description }}</div>
                             {% endif %}
 
-                            {# --- Conclusion --- #}
-                            {% if flow.narrative and flow.narrative.conclusion %}
-                            <div class="conclusion">{{ flow.narrative.conclusion }}</div>
-                            {% endif %}
-
-                            {% if flow_rows %}
+                            {% if card.representative_rows %}
                             <div class="data-table-wrap" style="margin-top: 0.75rem;">
-                                <div class="elements-subtitle-small">Flow Timeline</div>
+                                <div class="elements-subtitle-small">Representative Flow Timeline</div>
                                 <div class="table-scroll">
                                     <table class="data-table">
-                                        <caption class="sr-only">Flow timeline for {{ flow.name }}</caption>
+                                        <caption class="sr-only">Representative flow timeline for {{ flow.name }}</caption>
                                         <thead>
                                             <tr>
                                                 <th>Step</th>
@@ -2661,24 +2661,12 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for row in flow_rows %}
+                                            {% for row in card.representative_rows %}
                                             <tr id="flow-step-{{ row.index }}" class="execution-log-row flow-step-row" onclick="openExecutionStepModal({{ row.index }})" title="Open detailed step view">
                                                 <td class="cell-dim">{{ row.flow_step }}</td>
                                                 <td class="cell-action">{{ row.source_page }}</td>
                                                 <td class="cell-action">{{ row.action_label }}</td>
-                                                <td class="cell-url" title="{{ row.target_selector or (('#' ~ row.dom_id) if row.dom_id else '') }}">
-                                                    {% set dom_locator = ('#' ~ row.dom_id) if row.dom_id else '' %}
-                                                    {% if dom_locator and row.target_selector and dom_locator != row.target_selector %}
-                                                        <span class="cell-id">{{ dom_locator }}</span>
-                                                        <div class="cell-dim">{{ row.target_selector }}</div>
-                                                    {% elif row.target_selector %}
-                                                        {{ row.target_selector }}
-                                                    {% elif dom_locator %}
-                                                        {{ dom_locator }}
-                                                    {% else %}
-                                                        —
-                                                    {% endif %}
-                                                </td>
+                                                <td class="cell-url">{{ row.target_selector or (('#' ~ row.dom_id) if row.dom_id else '—') }}</td>
                                                 <td><span class="outcome {{ row.outcome }}">{{ row.outcome }}</span></td>
                                                 <td>{% if row.verdict %}<span class="verdict {{ row.verdict }}">{{ row.verdict }}</span>{% else %}<span class="verdict inconclusive">n/a</span>{% endif %}</td>
                                                 <td class="confidence-cell">{{ row.confidence_pct }}%</td>
@@ -2702,32 +2690,59 @@
                                 </div>
                             </div>
                             {% endif %}
-
-                            {# --- Action buttons row --- #}
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
-                                {% if flow.narrative and flow.narrative.gherkin %}
-                                <button class="gherkin-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">Gherkin</button>
-                                <div class="gherkin-block">{{ flow.narrative.gherkin }}</div>
-                                {% endif %}
-                                <button class="state-chain-toggle" onclick="toggleStateChain(this)">State Chain</button>
-                            </div>
-
-                            {# --- State chain (debug) --- #}
-                            <div class="state-chain">
-                                {% for sid in flow.state_ids %}
-                                <span class="state-node" title="{{ states_by_id[sid].url if sid in states_by_id else '' }}">{{ states_by_id[sid].title if sid in states_by_id and states_by_id[sid].title else (states_by_id[sid].url if sid in states_by_id else 'Page') }}</span>
-                                {% if not loop.last %}
-                                <span class="state-arrow">&rarr;</span>
-                                {% endif %}
-                                {% endfor %}
-                            </div>
-
                         </div>
                     </details>
-                    {% endfor %}
+
+                    <details class="test-case" data-name="{{ card.name|lower }}">
+                        <summary class="test-case-header">
+                            <div class="test-case-left">
+                                <span class="verdict">instances</span>
+                                <span class="tc-name">Show all instances</span>
+                            </div>
+                            <div class="test-case-right">
+                                <span class="tc-steps-count">{{ card.instances|length }} flows</span>
+                                <svg class="tc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                        </summary>
+                        <div class="test-case-body">
+                            <div class="data-table-wrap">
+                                <div class="table-scroll">
+                                    <table class="data-table">
+                                        <caption class="sr-only">All flow instances for {{ card.name }}</caption>
+                                        <thead>
+                                            <tr>
+                                                <th>Flow</th>
+                                                <th>Status</th>
+                                                <th class="right">Stability</th>
+                                                <th class="right">Steps</th>
+                                                <th>Tags</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for instance in card.instances %}
+                                            <tr data-flow-id="{{ instance.flow_id }}" onclick="openFlowInstance('{{ instance.flow_id }}', this)">
+                                                <td class="cell-action">{{ instance.name }}</td>
+                                                <td><span class="verdict {{ instance.status }}">{{ instance.status }}</span></td>
+                                                <td class="cell-right">{{ "%.2f"|format(instance.stability_score) }}</td>
+                                                <td class="cell-right">{{ instance.depth }}</td>
+                                                <td class="cell-dim">{{ instance.tags|join(', ') if instance.tags else '-' }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
-            </div>
+            </article>
             {% endfor %}
+            {% else %}
+            <div class="untested-callout">
+                <span class="callout-icon">&#9432;</span>
+                <span>No flow templates available for this run.</span>
+            </div>
+            {% endif %}
         </section>
 
         <!-- ============================================================
@@ -3451,6 +3466,7 @@
                 dashes: false,
                 uncovered: Boolean(edge.uncovered),
                 flow_id: edge.flow_id || '',
+                template_id: edge.template_id || '',
             })));
 
             const container = document.getElementById('graph-container');
@@ -3491,7 +3507,7 @@
                 if (params.edges && params.edges.length) {
                     const edge = siteMapEdges.get(params.edges[0]);
                     if (edge && edge.flow_id) {
-                        openFlowFromSiteMap(edge.flow_id);
+                        openFlowFromSiteMap(edge.flow_id, edge.template_id || '');
                     }
                 }
             });
@@ -3514,7 +3530,17 @@
             });
         }
 
-        function openFlowFromSiteMap(flowId) {
+        function openFlowFromSiteMap(flowId, templateId = '') {
+            setReportPage('test-flows');
+            if (templateId) {
+                const templateCard = document.querySelector('.flow-template-card[data-template-id="' + templateId + '"]');
+                if (templateCard) {
+                    if (templateCard.classList.contains('collapsed')) {
+                        templateCard.classList.remove('collapsed');
+                    }
+                    templateCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
             if (!flowId) return;
             expandTestCase(flowId);
         }
@@ -3617,16 +3643,7 @@
                 else if (verdict === 'warn') btnEl.classList.add('active-warn');
                 else btnEl.classList.add('active');
             }
-
-            suitesRoot.querySelectorAll('.test-case').forEach(card => {
-                card.style.display = (verdict === 'all' || card.dataset.verdict === verdict) ? '' : 'none';
-            });
-
-            /* Hide empty suites */
-            suitesRoot.querySelectorAll('.test-suite').forEach(suite => {
-                const visible = suite.querySelectorAll('.test-case:not([style*="display: none"])');
-                suite.style.display = visible.length > 0 ? '' : 'none';
-            });
+            filterFlowTemplates();
         }
 
         function jumpToTestCases(verdict) {
@@ -3640,20 +3657,50 @@
 
         /* --- Search test cases --- */
         function searchTestCases(query) {
+            const tagFilter = document.getElementById('template-tag-filter');
+            if (tagFilter) {
+                tagFilter.value = String(query || '');
+            }
+            filterFlowTemplates();
+        }
+
+        function filterFlowTemplates() {
             const suitesRoot = document.getElementById('test-suites');
             if (!suitesRoot) return;
-            const q = query.toLowerCase().trim();
-            suitesRoot.querySelectorAll('.test-case').forEach(card => {
-                if (!q) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = card.dataset.name.includes(q) ? '' : 'none';
-                }
-            });
-            /* Hide empty suites */
-            suitesRoot.querySelectorAll('.test-suite').forEach(suite => {
-                const visible = suite.querySelectorAll('.test-case:not([style*="display: none"])');
-                suite.style.display = visible.length > 0 ? '' : 'none';
+            const activeBtn = suitesRoot.querySelector(
+                '.filter-toolbar .filter-btn.active, .filter-toolbar .filter-btn.active-fail, .filter-toolbar .filter-btn.active-warn'
+            );
+            const verdict = activeBtn && activeBtn.dataset ? activeBtn.dataset.filter || 'all' : 'all';
+            const typeFilter = (
+                (document.getElementById('template-type-filter') || {}).value || ''
+            ).toLowerCase().trim();
+            const stabilityFilter = (
+                (document.getElementById('template-stability-filter') || {}).value || 'all'
+            ).toLowerCase().trim();
+            const tagFilter = (
+                (document.getElementById('template-tag-filter') || {}).value || ''
+            ).toLowerCase().trim();
+
+            suitesRoot.querySelectorAll('.flow-template-card').forEach((card) => {
+                const stableCount = Number(card.dataset.stableCount || 0);
+                const failCount = Number(card.dataset.failCount || 0);
+                const warnCount = Number(card.dataset.warnCount || 0);
+                const templateType = String(card.dataset.templateType || '').toLowerCase();
+                const stability = String(card.dataset.stability || '').toLowerCase();
+                const tags = String(card.dataset.tags || '').toLowerCase();
+                const name = String(card.dataset.name || '').toLowerCase();
+
+                const verdictMatch = (
+                    verdict === 'all' ||
+                    (verdict === 'fail' && failCount > 0) ||
+                    (verdict === 'warn' && warnCount > 0) ||
+                    (verdict === 'pass' && failCount === 0 && warnCount === 0 && stableCount > 0)
+                );
+                const typeMatch = !typeFilter || templateType.includes(typeFilter) || name.includes(typeFilter);
+                const stabilityMatch = stabilityFilter === 'all' || stability === stabilityFilter;
+                const tagMatch = !tagFilter || tags.includes(tagFilter);
+
+                card.style.display = (verdictMatch && typeMatch && stabilityMatch && tagMatch) ? '' : 'none';
             });
         }
 
@@ -3667,14 +3714,33 @@
         function expandTestCase(flowId) {
             setReportPage('test-flows');
             const el = document.querySelector('.test-case[data-flow-id="' + flowId + '"]');
-            if (!el) return;
-            /* Ensure parent suite is not collapsed */
-            const suite = el.closest('.test-suite');
+            if (el) {
+                const suite = el.closest('.test-suite');
+                if (suite && suite.classList.contains('collapsed')) {
+                    suite.classList.remove('collapsed');
+                }
+                el.open = true;
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            const row = document.querySelector('tr[data-flow-id="' + flowId + '"]');
+            if (!row) return;
+            const suite = row.closest('.test-suite');
             if (suite && suite.classList.contains('collapsed')) {
                 suite.classList.remove('collapsed');
             }
-            el.open = true;
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const details = row.closest('details');
+            if (details) details.open = true;
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function openFlowInstance(flowId, rowEl) {
+            if (rowEl) {
+                const details = rowEl.closest('details');
+                if (details) details.open = true;
+            }
+            expandTestCase(flowId);
         }
 
         function jumpToExecutionStep(stepIndex) {
@@ -3690,6 +3756,16 @@
                         suite.classList.remove('collapsed');
                     }
                     flowCase.open = true;
+                } else {
+                    const instanceRow = document.querySelector('tr[data-flow-id="' + mapped.flow_id + '"]');
+                    if (instanceRow) {
+                        const suite = instanceRow.closest('.test-suite');
+                        if (suite && suite.classList.contains('collapsed')) {
+                            suite.classList.remove('collapsed');
+                        }
+                        const details = instanceRow.closest('details');
+                        if (details) details.open = true;
+                    }
                 }
             } else {
                 setReportPage('execution-log');
@@ -4005,6 +4081,7 @@
                 });
             }
             setReportPage('dashboard');
+            filterFlowTemplates();
         });
 
         document.addEventListener('keydown', (event) => {

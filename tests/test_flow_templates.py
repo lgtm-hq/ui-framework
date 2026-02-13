@@ -151,9 +151,12 @@ def test_html_report_groups_test_suites_by_flow_template(tmp_path: Path) -> None
     HTMLReporter().generate(result, str(output))
     html = output.read_text()
 
+    assert "Flow Templates" in html
     assert (
-        "Browse Listing Page \u2192 Detail Page (2 instances)" in html
-        or "Browse Listing \u2192 Detail (2 instances)" in html
+        "Browse Listing Page \u2192 Detail Page" in html
+        or "Browse Listing \u2192 Detail" in html
     )
+    assert "2 instances" in html
+    assert "Show all instances" in html
     assert "Movie 1 detail" in html
     assert "Movie 2 detail" in html

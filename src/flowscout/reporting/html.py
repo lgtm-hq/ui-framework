@@ -142,6 +142,12 @@ class ReportDataBuilder:
             result=result,
             execution_rows=execution_rows,
         )
+        flow_template_cards = _build_flow_template_cards(
+            flow_templates=flow_templates,
+            result=result,
+            flow_execution_map=flow_execution_map,
+            flow_status_map=flow_status_map,
+        )
         input_provenance = _build_input_provenance(
             result=result,
             action_metadata=action_metadata,
@@ -200,6 +206,7 @@ class ReportDataBuilder:
             "flow_execution_map": flow_execution_map,
             "orphan_execution_rows": orphan_execution_rows,
             "execution_step_map": execution_step_map,
+            "flow_template_cards": flow_template_cards,
             "input_provenance": input_provenance,
             "locator_quality_rows": locator_quality_rows,
             "locator_recommendations": locator_recommendations,
@@ -280,6 +287,7 @@ def _build_graph_data(
     flow_lookup = {flow.flow_id: flow for flow in result.flows}
 
     edge_to_flow_id: dict[tuple[str, str], str] = {}
+    edge_to_template_id: dict[tuple[str, str], str] = {}
     for template in site_model.flow_templates:
         rep = flow_lookup.get(template.representative_flow_id)
         flow_id = template.representative_flow_id or ""
@@ -292,6 +300,8 @@ def _build_graph_data(
             )
             if key not in edge_to_flow_id:
                 edge_to_flow_id[key] = flow_id
+            if key not in edge_to_template_id:
+                edge_to_template_id[key] = template.template_id
 
     uncovered_edge_keys = {
         (
@@ -338,6 +348,7 @@ def _build_graph_data(
                 )
                 in uncovered_edge_keys,
                 "flow_id": edge_to_flow_id.get(from_to_key, ""),
+                "template_id": edge_to_template_id.get(from_to_key, ""),
             }
         )
 
@@ -1228,6 +1239,108 @@ def _build_flow_execution_map(
 
     orphans = [row for row in execution_rows if int(row["index"]) not in used_indexes]
     return dict(flow_rows), orphans, step_map
+
+
+def _build_flow_template_cards(
+    *,
+    flow_templates: list[FlowTemplate],
+    result: ExplorationResult,
+    flow_execution_map: dict[str, list[dict[str, Any]]],
+    flow_status_map: dict[str, str],
+) -> list[dict[str, Any]]:
+    """Build template-first cards for the Test Flows tab."""
+    if not flow_templates:
+        return []
+
+    flow_lookup = {flow.flow_id: flow for flow in result.flows}
+    cards: list[dict[str, Any]] = []
+    for template in flow_templates:
+        instances = [
+            flow_lookup[flow_id]
+            for flow_id in template.instance_flow_ids
+            if flow_id in flow_lookup
+        ]
+        if not instances:
+            continue
+
+        representative_flow = flow_lookup.get(template.representative_flow_id)
+        if representative_flow is None:
+            representative_flow = max(
+                instances,
+                key=lambda flow: float(flow.stability_score or 0.0),
+            )
+
+        all_tags = sorted(
+            {
+                str(tag).lower()
+                for flow in instances
+                for tag in (flow.tags or [])
+                if str(tag).strip()
+            }
+        )
+        stable_count = 0
+        fail_count = 0
+        warn_count = 0
+        for flow in instances:
+            status = flow_status_map.get(flow.flow_id, "warn")
+            if status == "pass":
+                stable_count += 1
+            elif status == "fail":
+                fail_count += 1
+            else:
+                warn_count += 1
+
+        stability_bucket = "stable"
+        if float(template.stability_score) < 0.8:
+            stability_bucket = "warn"
+        if float(template.stability_score) < 0.6:
+            stability_bucket = "risky"
+
+        cards.append(
+            {
+                "template_id": template.template_id,
+                "anchor_id": _slugify_token(template.template_id),
+                "name": template.name,
+                "occurrence_count": template.occurrence_count,
+                "stability_score": float(template.stability_score),
+                "stability_pct": int(round(float(template.stability_score) * 100)),
+                "stability_bucket": stability_bucket,
+                "template_type": (
+                    template.action_type_sequence[0].lower()
+                    if template.action_type_sequence
+                    else "unknown"
+                ),
+                "tags": all_tags,
+                "stable_count": stable_count,
+                "fail_count": fail_count,
+                "warn_count": warn_count,
+                "representative_flow": representative_flow,
+                "representative_rows": flow_execution_map.get(
+                    representative_flow.flow_id,
+                    [],
+                ),
+                "instances": [
+                    {
+                        "flow_id": flow.flow_id,
+                        "name": flow.name,
+                        "status": flow_status_map.get(flow.flow_id, "warn"),
+                        "stability_score": float(flow.stability_score or 0.0),
+                        "depth": int(flow.depth or len(flow.action_ids)),
+                        "tags": list(flow.tags or []),
+                    }
+                    for flow in instances
+                ],
+            }
+        )
+
+    cards.sort(
+        key=lambda card: (
+            -int(card["occurrence_count"]),
+            -float(card["stability_score"]),
+            str(card["name"]).lower(),
+        )
+    )
+    return cards
 
 
 def _select_matching_step_index(
