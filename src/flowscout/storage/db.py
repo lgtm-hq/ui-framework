@@ -100,16 +100,41 @@ CREATE TABLE IF NOT EXISTS flows (
     FOREIGN KEY (run_id) REFERENCES runs(run_id)
 );
 
+CREATE TABLE IF NOT EXISTS catalog_entries (
+    run_id              TEXT NOT NULL,
+    state_id            TEXT NOT NULL,
+    structural_signature TEXT NOT NULL DEFAULT '',
+    page_url            TEXT NOT NULL DEFAULT '',
+    selector            TEXT NOT NULL DEFAULT '',
+    preferred_selector  TEXT NOT NULL DEFAULT '',
+    element_type        TEXT NOT NULL DEFAULT '',
+    zone_type           TEXT NOT NULL DEFAULT '',
+    semantic_name       TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (
+        run_id,
+        state_id,
+        structural_signature,
+        selector,
+        element_type,
+        zone_type
+    ),
+    FOREIGN KEY (run_id) REFERENCES runs(run_id)
+);
+
 -- Indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_states_url ON states(url);
 CREATE INDEX IF NOT EXISTS idx_states_fingerprint ON states(fingerprint);
 CREATE INDEX IF NOT EXISTS idx_results_outcome ON results(outcome);
 CREATE INDEX IF NOT EXISTS idx_results_source ON results(source_state_id);
 CREATE INDEX IF NOT EXISTS idx_runs_start_url ON runs(start_url);
+CREATE INDEX IF NOT EXISTS idx_catalog_entries_run_sig
+    ON catalog_entries(run_id, structural_signature);
 """
 
 
-_KNOWN_TABLES = frozenset({"runs", "states", "actions", "results", "flows"})
+_KNOWN_TABLES = frozenset(
+    {"runs", "states", "actions", "results", "flows", "catalog_entries"}
+)
 
 _MIGRATIONS: list[tuple[str, str, str]] = [
     ("results", "verdict", "ALTER TABLE results ADD COLUMN verdict TEXT DEFAULT ''"),
@@ -377,6 +402,27 @@ class FlowscoutDB:
                 ),
             )
 
+        # Catalog entries captured by smart analyses.
+        for row in _iter_catalog_entry_rows(result=result):
+            self.conn.execute(
+                """INSERT OR REPLACE INTO catalog_entries
+                   (run_id, state_id, structural_signature, page_url,
+                    selector, preferred_selector, element_type, zone_type,
+                    semantic_name)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    run_id,
+                    row["state_id"],
+                    row["structural_signature"],
+                    row["page_url"],
+                    row["selector"],
+                    row["preferred_selector"],
+                    row["element_type"],
+                    row["zone_type"],
+                    row["semantic_name"],
+                ),
+            )
+
         self.conn.commit()
         return run_id
 
@@ -424,6 +470,29 @@ class FlowscoutDB:
         """Get all flows from a run."""
         rows = self.conn.execute(
             "SELECT * FROM flows WHERE run_id = ? ORDER BY flow_id",
+            (run_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_latest_run_for_url(self, start_url: str) -> dict[str, Any] | None:
+        """Get the latest run for a given start URL."""
+        row = self.conn.execute(
+            """SELECT *
+               FROM runs
+               WHERE start_url = ?
+               ORDER BY started_at DESC
+               LIMIT 1""",
+            (start_url,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def get_run_catalog_entries(self, run_id: str) -> list[dict[str, Any]]:
+        """Get all stored catalog entries for a run."""
+        rows = self.conn.execute(
+            """SELECT run_id, state_id, structural_signature, page_url, selector,
+                      preferred_selector, element_type, zone_type, semantic_name
+               FROM catalog_entries
+               WHERE run_id = ?""",
             (run_id,),
         ).fetchall()
         return [dict(r) for r in rows]
@@ -547,3 +616,47 @@ class FlowscoutDB:
             (start_url, min_runs),
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def _iter_catalog_entry_rows(*, result: ExplorationResult) -> list[dict[str, str]]:
+    """Flatten smart-analysis catalog entries into DB-ready rows."""
+    rows: list[dict[str, str]] = []
+    analyses = result.smart_analyses or {}
+    if not isinstance(analyses, dict):
+        return rows
+
+    for state_id, payload in analyses.items():
+        if not isinstance(payload, dict):
+            continue
+        structural_signature = str(payload.get("structural_signature") or "").strip()
+        if not structural_signature:
+            continue
+
+        state = result.states.get(str(state_id))
+        page_url = str(state.url) if state else ""
+        catalog = payload.get("catalog")
+        entries = catalog.get("entries", []) if isinstance(catalog, dict) else []
+        if not isinstance(entries, list):
+            continue
+
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            selector = str(entry.get("selector") or "").strip()
+            preferred_selector = str(entry.get("preferred_selector") or "").strip()
+            if not selector and not preferred_selector:
+                continue
+            rows.append(
+                {
+                    "state_id": str(state_id),
+                    "structural_signature": structural_signature,
+                    "page_url": page_url,
+                    "selector": selector,
+                    "preferred_selector": preferred_selector,
+                    "element_type": str(entry.get("element_type") or ""),
+                    "zone_type": str(entry.get("zone_type") or ""),
+                    "semantic_name": str(entry.get("semantic_name") or ""),
+                }
+            )
+
+    return rows

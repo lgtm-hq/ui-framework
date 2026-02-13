@@ -19,6 +19,7 @@ from flowscout.core.text_utils import strip_css_blocks
 from flowscout.discovery.actions import ActionResult, OutcomeType
 from flowscout.modeling.flows import FlowTemplate, deduplicate_flows
 from flowscout.modeling.site_model import NavigationEdge, SiteModel
+from flowscout.storage.db import FlowscoutDB
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
@@ -160,9 +161,14 @@ class ReportDataBuilder:
             result=result,
             site_model=site_model,
         )
+        cross_run_comparison = _build_cross_run_comparison(
+            result=result,
+            site_model=site_model,
+        )
         page_object_cards = _build_page_object_cards(
             result=result,
             site_model=site_model,
+            changed_page_type_ids=set(cross_run_comparison["changed_page_type_ids"]),
         )
         quality_insights = _build_quality_insights(
             result=result,
@@ -174,6 +180,7 @@ class ReportDataBuilder:
         site_structure_summary = _build_site_structure_summary(
             site_model=site_model,
             flow_templates=flow_templates,
+            cross_run_comparison=cross_run_comparison,
         )
         dashboard_top_issues = _build_dashboard_top_issues(
             quality_insights=quality_insights,
@@ -229,6 +236,7 @@ class ReportDataBuilder:
             "quality_insights": quality_insights,
             "site_structure_summary": site_structure_summary,
             "dashboard_top_issues": dashboard_top_issues,
+            "cross_run_comparison": cross_run_comparison,
             "site_model_available": bool(site_model),
             "site_model_summary": (
                 site_model.summary.model_dump() if site_model is not None else {}
@@ -502,6 +510,7 @@ def _build_page_object_cards(
     *,
     result: ExplorationResult,
     site_model: SiteModel | None,
+    changed_page_type_ids: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Build per-page object cards with locator tables and code previews."""
     if site_model is None:
@@ -518,6 +527,7 @@ def _build_page_object_cards(
         base_url=str(result.config.get("start_url", "")),
     )
 
+    changed_ids = changed_page_type_ids or set()
     cards: list[dict[str, Any]] = []
     for page_type in site_model.page_types:
         preview = code_previews.get(page_type.page_type_id, {})
@@ -582,6 +592,7 @@ def _build_page_object_cards(
                 "instance_count": page_type.instance_count,
                 "quality_score": quality_score,
                 "quality_tone": quality_tone,
+                "is_changed": page_type.page_type_id in changed_ids,
                 "locator_rows": locator_rows,
                 "recommendations": recommendations,
                 "code_preview": {
@@ -1562,22 +1573,228 @@ def _build_quality_insights(
     }
 
 
+def _build_cross_run_comparison(
+    *,
+    result: ExplorationResult,
+    site_model: SiteModel | None,
+) -> dict[str, Any]:
+    """Build cross-run comparison against the latest saved run for this URL."""
+    start_url = str(result.config.get("start_url", "")).strip()
+    comparison: dict[str, Any] = {
+        "has_previous_run": False,
+        "previous_run_id": "",
+        "previous_started_at": "",
+        "new_pages": 0,
+        "disappeared_pages": 0,
+        "changed_locators": 0,
+        "new_page_examples": [],
+        "disappeared_page_examples": [],
+        "locator_changes": [],
+        "changed_page_type_ids": [],
+    }
+    if not start_url:
+        return comparison
+
+    db_path = str(result.config.get("db_path") or ".flowscout/history.db")
+    db = FlowscoutDB(db_path=db_path)
+    try:
+        runs = db.list_runs(start_url=start_url, limit=2)
+        if not runs:
+            return comparison
+
+        previous_run = runs[0]
+        if (
+            str(previous_run.get("started_at", "")) == str(result.started_at)
+            and len(runs) > 1
+        ):
+            previous_run = runs[1]
+
+        previous_run_id = str(previous_run.get("run_id", "")).strip()
+        if not previous_run_id:
+            return comparison
+
+        comparison["has_previous_run"] = True
+        comparison["previous_run_id"] = previous_run_id
+        comparison["previous_started_at"] = str(previous_run.get("started_at", ""))
+
+        previous_states = db.get_run_states(previous_run_id)
+        previous_fingerprints_to_url: dict[str, str] = {}
+        for row in previous_states:
+            fingerprint = str(row.get("fingerprint") or "").strip()
+            if not fingerprint:
+                continue
+            previous_fingerprints_to_url[fingerprint] = str(row.get("url") or "")
+
+        current_fingerprints_to_url = {
+            str(state.fingerprint): str(state.url)
+            for state in result.states.values()
+            if str(state.fingerprint).strip()
+        }
+
+        current_fingerprints = set(current_fingerprints_to_url)
+        previous_fingerprints = set(previous_fingerprints_to_url)
+        new_fingerprints = sorted(current_fingerprints - previous_fingerprints)
+        disappeared_fingerprints = sorted(previous_fingerprints - current_fingerprints)
+
+        comparison["new_pages"] = len(new_fingerprints)
+        comparison["disappeared_pages"] = len(disappeared_fingerprints)
+        comparison["new_page_examples"] = [
+            current_fingerprints_to_url[fingerprint]
+            for fingerprint in new_fingerprints[:5]
+            if current_fingerprints_to_url.get(fingerprint)
+        ]
+        comparison["disappeared_page_examples"] = [
+            previous_fingerprints_to_url[fingerprint]
+            for fingerprint in disappeared_fingerprints[:5]
+            if previous_fingerprints_to_url.get(fingerprint)
+        ]
+
+        if site_model is None:
+            return comparison
+
+        current_locator_sets = _collect_current_locator_sets(site_model=site_model)
+        previous_locator_sets = _collect_previous_locator_sets(
+            entries=db.get_run_catalog_entries(previous_run_id),
+        )
+
+        page_type_by_signature = {
+            page_type.structural_signature: page_type
+            for page_type in site_model.page_types
+            if page_type.structural_signature
+        }
+
+        locator_changes: list[dict[str, Any]] = []
+        changed_page_type_ids: set[str] = set()
+        changed_locator_count = 0
+        for signature in sorted(set(current_locator_sets) | set(previous_locator_sets)):
+            current_locators = current_locator_sets.get(signature, set())
+            previous_locators = previous_locator_sets.get(signature, set())
+            added = sorted(current_locators - previous_locators)
+            removed = sorted(previous_locators - current_locators)
+            if not added and not removed:
+                continue
+
+            page_type = page_type_by_signature.get(signature)
+            page_type_id = page_type.page_type_id if page_type else ""
+            page_type_anchor = _slugify_token(page_type_id) if page_type_id else ""
+            page_type_name = page_type.name if page_type else signature[:12]
+            changed_count = len(added) + len(removed)
+            changed_locator_count += changed_count
+            if page_type_id:
+                changed_page_type_ids.add(page_type_id)
+
+            locator_changes.append(
+                {
+                    "page_type_id": page_type_id,
+                    "page_type_anchor": page_type_anchor,
+                    "page_type_name": page_type_name,
+                    "added_count": len(added),
+                    "removed_count": len(removed),
+                    "changed_count": changed_count,
+                    "added_examples": [
+                        _locator_selector_value(item) for item in added[:3]
+                    ],
+                    "removed_examples": [
+                        _locator_selector_value(item) for item in removed[:3]
+                    ],
+                }
+            )
+
+        comparison["changed_locators"] = changed_locator_count
+        comparison["locator_changes"] = locator_changes
+        comparison["changed_page_type_ids"] = sorted(changed_page_type_ids)
+        return comparison
+    except Exception:
+        return comparison
+    finally:
+        db.close()
+
+
+def _collect_current_locator_sets(
+    *,
+    site_model: SiteModel,
+) -> dict[str, set[str]]:
+    """Collect current locator signatures by structural signature."""
+    rows: dict[str, set[str]] = defaultdict(set)
+    for page_type in site_model.page_types:
+        signature = str(page_type.structural_signature or "").strip()
+        if not signature:
+            continue
+        for entry in page_type.catalog.entries:
+            selector = str(entry.preferred_selector or entry.selector or "").strip()
+            if not selector:
+                continue
+            rows[signature].add(
+                "|".join(
+                    (
+                        str(entry.zone_type.value or ""),
+                        str(entry.element_type or ""),
+                        selector,
+                    )
+                )
+            )
+    return rows
+
+
+def _collect_previous_locator_sets(
+    *,
+    entries: list[dict[str, Any]],
+) -> dict[str, set[str]]:
+    """Collect previous locator signatures from persisted DB catalog entries."""
+    rows: dict[str, set[str]] = defaultdict(set)
+    for row in entries:
+        signature = str(row.get("structural_signature") or "").strip()
+        if not signature:
+            continue
+        selector = str(
+            row.get("preferred_selector") or row.get("selector") or ""
+        ).strip()
+        if not selector:
+            continue
+        rows[signature].add(
+            "|".join(
+                (
+                    str(row.get("zone_type") or ""),
+                    str(row.get("element_type") or ""),
+                    selector,
+                )
+            )
+        )
+    return rows
+
+
+def _locator_selector_value(key: str) -> str:
+    """Extract selector text from an encoded locator key."""
+    parts = str(key).split("|", 2)
+    if len(parts) < 3:
+        return str(key)
+    return parts[2]
+
+
 def _build_site_structure_summary(
     *,
     site_model: SiteModel | None,
     flow_templates: list[FlowTemplate],
+    cross_run_comparison: dict[str, Any] | None = None,
 ) -> dict[str, int]:
     """Build compact site-structure counts for dashboard display."""
+    comparison = cross_run_comparison or {}
     if site_model is None:
         return {
             "page_type_count": 0,
             "navigation_path_count": 0,
             "flow_template_count": len(flow_templates),
+            "new_page_count": int(comparison.get("new_pages", 0)),
+            "disappeared_page_count": int(comparison.get("disappeared_pages", 0)),
+            "changed_locator_count": int(comparison.get("changed_locators", 0)),
         }
     return {
         "page_type_count": len(site_model.page_types),
         "navigation_path_count": len(site_model.navigation_edges),
         "flow_template_count": len(flow_templates),
+        "new_page_count": int(comparison.get("new_pages", 0)),
+        "disappeared_page_count": int(comparison.get("disappeared_pages", 0)),
+        "changed_locator_count": int(comparison.get("changed_locators", 0)),
     }
 
 

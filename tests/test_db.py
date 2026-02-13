@@ -27,6 +27,7 @@ def _make_result(
     num_states: int = 2,
     num_actions: int = 1,
     num_flows: int = 1,
+    smart_analyses: dict[str, object] | None = None,
 ) -> ExplorationResult:
     """Build a minimal ExplorationResult for save_run round-trip tests."""
     states = {}
@@ -91,6 +92,7 @@ def _make_result(
         results=results,
         flows=flows,
         stats={"total_states": num_states, "total_actions": num_actions},
+        smart_analyses=smart_analyses or {},
     )
 
 
@@ -114,6 +116,7 @@ class TestFromConnection:
         assert "actions" in table_names
         assert "results" in table_names
         assert "flows" in table_names
+        assert "catalog_entries" in table_names
 
     def test_migrations_applied(self) -> None:
         db = _in_memory_db()
@@ -189,6 +192,33 @@ class TestSaveRunRoundTrip:
         assert len(flows) == 2
         assert flows[0]["name"] == "Flow 0"
 
+    def test_save_and_get_run_catalog_entries(self) -> None:
+        db = _in_memory_db()
+        result = _make_result(
+            smart_analyses={
+                "state-0": {
+                    "structural_signature": "sig-listing",
+                    "catalog": {
+                        "entries": [
+                            {
+                                "selector": "a.movie-card",
+                                "preferred_selector": "[data-testid='movie-card']",
+                                "element_type": "link",
+                                "zone_type": "main_content",
+                                "semantic_name": "movie_card",
+                            }
+                        ]
+                    },
+                }
+            }
+        )
+        run_id = db.save_run(result)
+
+        rows = db.get_run_catalog_entries(run_id)
+        assert len(rows) == 1
+        assert rows[0]["structural_signature"] == "sig-listing"
+        assert rows[0]["page_url"] == "https://example.com/page0"
+
 
 # ---------------------------------------------------------------------------
 # Tests: list_runs with filtering
@@ -214,6 +244,22 @@ class TestListRuns:
 
         runs = db.list_runs(limit=3)
         assert len(runs) == 3
+
+    def test_get_latest_run_for_url(self) -> None:
+        db = _in_memory_db()
+        run1 = _make_result(start_url="https://a.com")
+        run1.started_at = "2025-01-01T00:00:00Z"
+        run1.finished_at = "2025-01-01T00:01:00Z"
+        db.save_run(run1)
+
+        run2 = _make_result(start_url="https://a.com")
+        run2.started_at = "2025-01-02T00:00:00Z"
+        run2.finished_at = "2025-01-02T00:01:00Z"
+        db.save_run(run2)
+
+        latest = db.get_latest_run_for_url("https://a.com")
+        assert latest is not None
+        assert latest["started_at"] == "2025-01-02T00:00:00Z"
 
 
 # ---------------------------------------------------------------------------

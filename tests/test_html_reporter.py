@@ -7,6 +7,7 @@ from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import (
+    _build_cross_run_comparison,
     _build_dashboard_top_issues,
     _build_diagnostics,
     _build_flow_template_cards,
@@ -21,6 +22,7 @@ from flowscout.reporting.html import (
     _build_mbt_coverage_data,
     _to_report_asset_href,
 )
+from flowscout.storage.db import FlowscoutDB
 
 
 def test_to_report_asset_href_none() -> None:
@@ -768,6 +770,175 @@ def test_build_site_structure_summary_counts_page_types_edges_and_templates() ->
     assert summary["page_type_count"] == 2
     assert summary["navigation_path_count"] == 1
     assert summary["flow_template_count"] == 1
+
+
+def test_build_cross_run_comparison_reports_page_and_locator_diffs(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "history.db"
+    db = FlowscoutDB(str(db_path))
+    baseline_result = ExplorationResult(
+        config={"start_url": "https://example.com"},
+        started_at="2025-01-01T00:00:00Z",
+        finished_at="2025-01-01T00:01:00Z",
+        states={
+            "state-home": PageState(
+                state_id="state-home",
+                url="https://example.com/",
+                title="Home",
+                fingerprint="fp-home",
+                depth=0,
+                dom_structure_hash="dom-home",
+                visible_text_hash="text-home",
+                form_state_hash="form-home",
+            )
+        },
+        smart_analyses={
+            "state-home": {
+                "archetype": "listing",
+                "structural_signature": "sig-home",
+                "content_density": {},
+                "catalog": {
+                    "archetype": "listing",
+                    "url_pattern": "/",
+                    "entries": [
+                        {
+                            "selector": "a.old-card",
+                            "tag": "a",
+                            "label": "Old card",
+                            "zone_type": "main_content",
+                            "element_type": "link",
+                        }
+                    ],
+                },
+            }
+        },
+    )
+    db.save_run(baseline_result)
+    db.close()
+
+    current_result = ExplorationResult(
+        config={
+            "start_url": "https://example.com",
+            "db_path": str(db_path),
+        },
+        started_at="2025-01-02T00:00:00Z",
+        finished_at="2025-01-02T00:01:00Z",
+        states={
+            "state-home": PageState(
+                state_id="state-home",
+                url="https://example.com/",
+                title="Home",
+                fingerprint="fp-home",
+                depth=0,
+                dom_structure_hash="dom-home",
+                visible_text_hash="text-home",
+                form_state_hash="form-home",
+            ),
+            "state-new": PageState(
+                state_id="state-new",
+                url="https://example.com/new",
+                title="New",
+                fingerprint="fp-new",
+                depth=1,
+                dom_structure_hash="dom-new",
+                visible_text_hash="text-new",
+                form_state_hash="form-new",
+            ),
+        },
+        smart_analyses={
+            "state-home": {
+                "archetype": "listing",
+                "structural_signature": "sig-home",
+                "content_density": {},
+                "catalog": {
+                    "archetype": "listing",
+                    "url_pattern": "/",
+                    "entries": [
+                        {
+                            "selector": "a.new-card",
+                            "tag": "a",
+                            "label": "New card",
+                            "zone_type": "main_content",
+                            "element_type": "link",
+                        }
+                    ],
+                },
+            },
+            "state-new": {
+                "archetype": "listing",
+                "structural_signature": "sig-home",
+                "content_density": {},
+                "catalog": {
+                    "archetype": "listing",
+                    "url_pattern": "/new",
+                    "entries": [],
+                },
+            },
+        },
+    )
+    site_model = _build_site_model(result=current_result)
+    assert site_model is not None
+
+    comparison = _build_cross_run_comparison(
+        result=current_result,
+        site_model=site_model,
+    )
+
+    assert comparison["has_previous_run"] is True
+    assert comparison["new_pages"] == 1
+    assert comparison["disappeared_pages"] == 0
+    assert comparison["changed_locators"] == 2
+    assert comparison["changed_page_type_ids"]
+
+
+def test_build_page_object_cards_marks_changed_page_types() -> None:
+    result = ExplorationResult(
+        states={
+            "state-home": PageState(
+                state_id="state-home",
+                url="https://example.com/",
+                title="Home",
+                fingerprint="fp-home",
+                depth=0,
+                dom_structure_hash="dom-home",
+                visible_text_hash="text-home",
+                form_state_hash="form-home",
+            )
+        },
+        smart_analyses={
+            "state-home": {
+                "archetype": "listing",
+                "structural_signature": "sig-home",
+                "content_density": {},
+                "catalog": {
+                    "archetype": "listing",
+                    "url_pattern": "/",
+                    "entries": [
+                        {
+                            "selector": "a.card",
+                            "tag": "a",
+                            "label": "Card",
+                            "zone_type": "main_content",
+                            "element_type": "link",
+                        }
+                    ],
+                },
+            }
+        },
+    )
+    site_model = _build_site_model(result=result)
+    assert site_model is not None
+    changed_id = site_model.page_types[0].page_type_id
+
+    cards = _build_page_object_cards(
+        result=result,
+        site_model=site_model,
+        changed_page_type_ids={changed_id},
+    )
+
+    assert cards
+    assert cards[0]["is_changed"] is True
 
 
 def test_build_dashboard_top_issues_limits_and_sorts_by_priority() -> None:

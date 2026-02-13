@@ -1541,6 +1541,12 @@
             background: var(--bg-overlay);
         }
 
+        .pom-badge.changed {
+            color: var(--accent-amber);
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
         .pom-quality {
             min-width: 74px;
             text-align: center;
@@ -2308,8 +2314,29 @@
                     <div class="input-provenance-title">Site Structure Summary</div>
                     <div class="input-provenance-meta">
                         {{ site_structure_summary.page_type_count }} page types, {{ site_structure_summary.navigation_path_count }} navigation paths, {{ site_structure_summary.flow_template_count }} flow templates
+                        {% if cross_run_comparison.has_previous_run %}
+                        · Δ {{ site_structure_summary.new_page_count }} new, {{ site_structure_summary.disappeared_page_count }} disappeared, {{ site_structure_summary.changed_locator_count }} locator changes
+                        {% endif %}
                     </div>
                 </div>
+                {% if cross_run_comparison.has_previous_run %}
+                <div class="input-provenance">
+                    <div class="input-provenance-title">Cross-Run Comparison</div>
+                    <div class="input-provenance-meta">
+                        {{ cross_run_comparison.new_pages }} new pages, {{ cross_run_comparison.disappeared_pages }} disappeared, {{ cross_run_comparison.changed_locators }} changed locators
+                    </div>
+                    {% if cross_run_comparison.new_page_examples or cross_run_comparison.disappeared_page_examples %}
+                    <div class="diag-reason-list" style="margin-top: 0.5rem;">
+                        {% for url in cross_run_comparison.new_page_examples %}
+                        <span class="diag-chip">+ {{ url }}</span>
+                        {% endfor %}
+                        {% for url in cross_run_comparison.disappeared_page_examples %}
+                        <span class="diag-chip">- {{ url }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
                 {% if dashboard_top_issues %}
                 <div class="input-provenance">
                     <div class="input-provenance-title">Top Issues</div>
@@ -2463,6 +2490,66 @@
                     <div class="diag-subtext">Steps below {{ "%.0f"|format(diagnostics.low_confidence_threshold * 100) }}% confidence</div>
                 </div>
             </div>
+            {% if cross_run_comparison.has_previous_run %}
+            <div class="data-table-wrap" style="margin-top: 1rem;">
+                <div class="elements-subtitle-small">Cross-Run Comparison</div>
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <caption class="sr-only">Cross-run comparison summary</caption>
+                        <thead>
+                            <tr>
+                                <th>Previous run</th>
+                                <th class="right">New pages</th>
+                                <th class="right">Disappeared</th>
+                                <th class="right">Changed locators</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="cell-dim">{{ cross_run_comparison.previous_started_at }}</td>
+                                <td class="cell-right">{{ cross_run_comparison.new_pages }}</td>
+                                <td class="cell-right">{{ cross_run_comparison.disappeared_pages }}</td>
+                                <td class="cell-right">{{ cross_run_comparison.changed_locators }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if cross_run_comparison.locator_changes %}
+            <div class="data-table-wrap" style="margin-top: 1rem;">
+                <div class="elements-subtitle-small">Locator Changes</div>
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <caption class="sr-only">Locator changes by page type</caption>
+                        <thead>
+                            <tr>
+                                <th>Page Type</th>
+                                <th class="right">Added</th>
+                                <th class="right">Removed</th>
+                                <th class="right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in cross_run_comparison.locator_changes %}
+                            <tr>
+                                <td>
+                                    {% if row.page_type_anchor %}
+                                    <button class="filter-btn" onclick="openPageObjectCard('{{ row.page_type_anchor }}')">{{ row.page_type_name }}</button>
+                                    {% else %}
+                                    <span class="cell-dim">{{ row.page_type_name }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="cell-right">{{ row.added_count }}</td>
+                                <td class="cell-right">{{ row.removed_count }}</td>
+                                <td class="cell-right">{{ row.changed_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
 
             {% if quality_insights.locator_health_rows %}
             <div class="data-table-wrap" style="margin-top: 1rem;">
@@ -2970,6 +3057,9 @@
                             <div class="pom-badges">
                                 <span class="pom-badge">{{ card.archetype }}</span>
                                 <span class="pom-badge">seen {{ card.instance_count }} times</span>
+                                {% if card.is_changed %}
+                                <span class="pom-badge changed">changed locators</span>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="pom-quality {{ card.quality_tone }}">
