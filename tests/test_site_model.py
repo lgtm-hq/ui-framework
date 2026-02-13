@@ -600,6 +600,12 @@ class TestFlowTemplates:
         assert template.representative_flow_id == "flow-2"
         assert template.instance_flow_ids == ["flow-1", "flow-2"]
         assert template.action_type_sequence == ["CLICK"]
+        assert len(template.data_variants) == 2
+        assert {variant.url for variant in template.data_variants} == {
+            "https://example.com/movies/1",
+            "https://example.com/movies/2",
+        }
+        assert {variant.content_id for variant in template.data_variants} == {"1", "2"}
 
 
 class TestNavigationGuards:

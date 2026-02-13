@@ -17,6 +17,7 @@ from flowscout.modeling.site_model import (
     SiteModel,
     SiteModelSummary,
 )
+from flowscout.modeling.flows import FlowDataVariant, FlowTemplate
 from flowscout.cli import _build_output_dirs
 from flowscout.codegen.scenario_tests import generate_scenario_tests
 from flowscout.core.state import ExplorerConfig
@@ -195,6 +196,47 @@ class TestPytestGeneration:
             code = Path(output).read_text()
             test_count = code.count("def test_")
             assert test_count == scenario_count
+
+    def test_browse_detail_variants_generate_parametrize(self) -> None:
+        model = _build_site_model()
+        model.flow_templates = [
+            FlowTemplate(
+                template_id="flow-template-1",
+                name="Browse listing to detail",
+                page_type_sequence=["sig_listing", "sig_detail"],
+                occurrence_count=2,
+                representative_flow_id="flow-1",
+                instance_flow_ids=["flow-1", "flow-2"],
+                action_type_sequence=["CLICK"],
+                stability_score=0.9,
+                data_variants=[
+                    FlowDataVariant(
+                        flow_id="flow-1",
+                        url="https://example.com/movies/1",
+                        content_id="1",
+                    ),
+                    FlowDataVariant(
+                        flow_id="flow-2",
+                        url="https://example.com/movies/2",
+                        content_id="2",
+                    ),
+                ],
+            )
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = str(Path(tmpdir) / "scenario_tests.py")
+            generate_scenario_tests(
+                model,
+                output,
+                framework="pytest",
+                base_url="https://example.com",
+            )
+            code = Path(output).read_text()
+
+        assert "@pytest.mark.parametrize('variant'" in code
+        assert "page.goto(variant['url'])" in code
+        assert "variant['content_id']" in code
 
 
 class TestTypescriptGeneration:

@@ -193,6 +193,7 @@ class SiteModelBuilder:
             state_to_page_type=state_to_pt,
             actions_by_id=result.actions,
             page_type_names=page_type_names,
+            states_by_id=result.states,
         )
         locator_recommendations = self._apply_locator_quality(page_types)
 

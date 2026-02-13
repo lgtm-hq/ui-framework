@@ -9,6 +9,7 @@ from typing import Any
 
 from flowscout.modeling.archetype import CatalogEntry, PageArchetype, ZoneType
 from flowscout.modeling.site_model import SiteModel
+from flowscout.modeling.flows import FlowTemplate
 from flowscout.codegen.page_objects import (
     _catalog_to_class_name,
     _group_by_zone,
@@ -464,6 +465,8 @@ def _generate_pytest(
             template = scenario.get("template", "general")
         template_groups.setdefault(template, []).append(scenario)
 
+    flow_template_lookup = _build_flow_template_lookup(site_model.flow_templates)
+
     used_names: set[str] = set()
 
     for template, scenarios in template_groups.items():
@@ -484,7 +487,26 @@ def _generate_pytest(
                 func_name = f"{func_name}_{sc.scenario_id.split('-')[-1]}"
             used_names.add(func_name)
 
-            lines.append(f"    def test_{func_name}(self, page: Page) -> None:")
+            variant_rows = _select_parametric_variants(
+                scenario=sc,
+                template=flow_template_lookup.get(tuple(sc.page_type_sequence)),
+            )
+            if variant_rows:
+                values = [
+                    {"url": row["url"], "content_id": row["content_id"]}
+                    for row in variant_rows
+                ]
+                ids = [row["content_id"] for row in variant_rows]
+                lines.append(
+                    f"    @pytest.mark.parametrize('variant', {values!r}, ids={ids!r})"
+                )
+                lines.append(
+                    f"    def test_{func_name}("
+                    "self, page: Page, variant: dict[str, str]"
+                    ") -> None:"
+                )
+            else:
+                lines.append(f"    def test_{func_name}(self, page: Page) -> None:")
             lines.append(f'        """{sc.description}')
             lines.append("")
             lines.append(f"        Priority: {sc.priority}")
@@ -493,7 +515,16 @@ def _generate_pytest(
             lines.append('        """')
 
             # Generate step code
-            _generate_pytest_steps(lines, sc, pom_map, pt_map, base_url)
+            _generate_pytest_steps(
+                lines,
+                sc,
+                pom_map,
+                pt_map,
+                base_url,
+                variant_variable="variant" if variant_rows else None,
+            )
+            if variant_rows:
+                lines.append("        assert variant['content_id']")
 
             lines.append("")
 
@@ -502,15 +533,57 @@ def _generate_pytest(
     return "\n".join(lines)
 
 
+def _build_flow_template_lookup(
+    flow_templates: list[FlowTemplate],
+) -> dict[tuple[str, ...], FlowTemplate]:
+    """Map page-type sequences to flow templates."""
+    lookup: dict[tuple[str, ...], FlowTemplate] = {}
+    for template in flow_templates:
+        key = tuple(template.page_type_sequence)
+        if key and key not in lookup:
+            lookup[key] = template
+    return lookup
+
+
+def _select_parametric_variants(
+    *,
+    scenario: FlowScenario,
+    template: FlowTemplate | None,
+) -> list[dict[str, str]]:
+    """Return parametrization rows when scenario has meaningful data variants."""
+    if template is None:
+        return []
+    if len(scenario.page_type_sequence) < 2:
+        return []
+    if len(template.data_variants) < 2:
+        return []
+
+    rows: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for variant in template.data_variants:
+        url = str(variant.url or "").strip()
+        if not url:
+            continue
+        content_id = str(variant.content_id or "").strip() or "variant"
+        key = (url, content_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append({"url": url, "content_id": content_id})
+    return rows
+
+
 def _generate_pytest_steps(
     lines: list[str],
     scenario: FlowScenario,
     pom_map: dict[str, _PomInfo],
     pt_map: dict[str, Any],
     base_url: str,
+    variant_variable: str | None = None,
 ) -> None:
     """Generate pytest step code for a scenario."""
     instantiated: set[str] = set()
+    used_variant_navigation = False
 
     # Pre-compute property maps for all page types referenced by this scenario
     prop_maps: dict[str, dict[ZoneType, list[tuple[CatalogEntry, str]]]] = {}
@@ -530,7 +603,11 @@ def _generate_pytest_steps(
             if pom.var_name not in instantiated:
                 lines.append(f"        {pom.var_name} = {pom.class_name}(page)")
                 instantiated.add(pom.var_name)
-            lines.append(f"        {pom.var_name}.navigate()")
+            if variant_variable and not used_variant_navigation:
+                lines.append(f"        page.goto({variant_variable}['url'])")
+                used_variant_navigation = True
+            else:
+                lines.append(f"        {pom.var_name}.navigate()")
 
         elif step.action_type == "fill" and step.target_selector:
             # Fill input — use POM search method if it's a search step

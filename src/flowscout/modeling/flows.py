@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from flowscout.analysis.graph import Flow
+    from flowscout.core.state import PageState
     from flowscout.discovery.actions import Action
 
 
@@ -47,6 +48,15 @@ class FlowTemplate(BaseModel):
     instance_flow_ids: list[str] = Field(default_factory=list)
     action_type_sequence: list[str] = Field(default_factory=list)
     stability_score: float = 0.0
+    data_variants: list["FlowDataVariant"] = Field(default_factory=list)
+
+
+class FlowDataVariant(BaseModel):
+    """Observed input/output data variant for one flow template instance."""
+
+    flow_id: str
+    url: str = ""
+    content_id: str = ""
 
 
 def deduplicate_flows(
@@ -55,6 +65,7 @@ def deduplicate_flows(
     state_to_page_type: Mapping[str, str],
     actions_by_id: Mapping[str, Action] | None = None,
     page_type_names: Mapping[str, str] | None = None,
+    states_by_id: Mapping[str, PageState] | None = None,
 ) -> list[FlowTemplate]:
     """Collapse flows that share the same page-type sequence."""
     if not flows:
@@ -88,6 +99,10 @@ def deduplicate_flows(
                     actions_by_id=actions_by_id,
                 ),
                 stability_score=round(avg_stability, 4),
+                data_variants=_build_data_variants(
+                    flows=group.flows,
+                    states_by_id=states_by_id,
+                ),
             )
         )
 
@@ -194,3 +209,48 @@ def _format_page_type_label(
     if len(text) > 48:
         text = text[:48].rstrip()
     return text.title()
+
+
+def _build_data_variants(
+    *,
+    flows: Sequence[Flow],
+    states_by_id: Mapping[str, PageState] | None,
+) -> list[FlowDataVariant]:
+    """Extract deterministic per-instance data variants for templated flows."""
+    variants: list[FlowDataVariant] = []
+    seen_keys: set[tuple[str, str]] = set()
+
+    for flow in flows:
+        url = ""
+        if states_by_id and flow.state_ids:
+            end_state = states_by_id.get(flow.state_ids[-1])
+            if end_state:
+                url = str(end_state.url or "")
+
+        content_id = _extract_content_id(url=url, fallback=flow.name)
+        key = (url, content_id)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        variants.append(
+            FlowDataVariant(
+                flow_id=flow.flow_id,
+                url=url,
+                content_id=content_id,
+            )
+        )
+
+    return variants
+
+
+def _extract_content_id(*, url: str, fallback: str) -> str:
+    """Build a content identifier from URL or fallback text."""
+    cleaned_url = str(url).strip()
+    if cleaned_url:
+        match = re.search(r"/([^/?#]+)/?$", cleaned_url)
+        if match and match.group(1):
+            return match.group(1)
+
+    text = re.sub(r"[^\w\s-]", " ", str(fallback)).strip().lower()
+    text = re.sub(r"[\s-]+", "_", text)
+    return text or "variant"
