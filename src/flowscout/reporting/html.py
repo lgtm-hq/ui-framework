@@ -165,6 +165,13 @@ class ReportDataBuilder:
             result=result,
             site_model=site_model,
         )
+        blocked_states = _build_blocked_states(
+            result=result,
+            report_dir=report_dir,
+        )
+        blocked_summary = _build_blocked_state_summary(
+            blocked_states=blocked_states,
+        )
         page_object_cards = _build_page_object_cards(
             result=result,
             site_model=site_model,
@@ -181,9 +188,11 @@ class ReportDataBuilder:
             site_model=site_model,
             flow_templates=flow_templates,
             cross_run_comparison=cross_run_comparison,
+            blocked_count=int(blocked_summary.get("blocked_count", 0)),
         )
         dashboard_top_issues = _build_dashboard_top_issues(
             quality_insights=quality_insights,
+            blocked_summary=blocked_summary,
         )
         graph_data = _build_graph_data(
             result=result,
@@ -237,6 +246,8 @@ class ReportDataBuilder:
             "site_structure_summary": site_structure_summary,
             "dashboard_top_issues": dashboard_top_issues,
             "cross_run_comparison": cross_run_comparison,
+            "blocked_states": blocked_states,
+            "blocked_summary": blocked_summary,
             "site_model_available": bool(site_model),
             "site_model_summary": (
                 site_model.summary.model_dump() if site_model is not None else {}
@@ -1771,11 +1782,60 @@ def _locator_selector_value(key: str) -> str:
     return parts[2]
 
 
+def _build_blocked_states(
+    *,
+    result: ExplorationResult,
+    report_dir: Path,
+) -> list[dict[str, Any]]:
+    """Build blocked-page rows for dashboard and quality views."""
+    rows: list[dict[str, Any]] = []
+    for state in result.states.values():
+        reason = str(state.block_reason.value).strip().lower()
+        if reason in {"", "none"}:
+            continue
+        rows.append(
+            {
+                "state_id": state.state_id,
+                "state_short": state.state_id[:8],
+                "title": state.title or "untitled",
+                "url": state.url,
+                "reason": reason,
+                "reason_label": reason.replace("_", " ").title(),
+                "detail": str(state.block_detail or "").strip(),
+                "screenshot_link": _to_report_asset_href(
+                    state.screenshot_path,
+                    report_dir=report_dir,
+                ),
+            }
+        )
+
+    rows.sort(
+        key=lambda row: (
+            str(row["reason"]),
+            str(row["url"]),
+        ),
+    )
+    return rows
+
+
+def _build_blocked_state_summary(
+    *,
+    blocked_states: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build blocked-state summary counts for metric cards and issues."""
+    reason_counts = Counter(str(row.get("reason_label", "")) for row in blocked_states)
+    return {
+        "blocked_count": len(blocked_states),
+        "reasons": [reason for reason, _ in reason_counts.most_common()],
+    }
+
+
 def _build_site_structure_summary(
     *,
     site_model: SiteModel | None,
     flow_templates: list[FlowTemplate],
     cross_run_comparison: dict[str, Any] | None = None,
+    blocked_count: int = 0,
 ) -> dict[str, int]:
     """Build compact site-structure counts for dashboard display."""
     comparison = cross_run_comparison or {}
@@ -1787,6 +1847,7 @@ def _build_site_structure_summary(
             "new_page_count": int(comparison.get("new_pages", 0)),
             "disappeared_page_count": int(comparison.get("disappeared_pages", 0)),
             "changed_locator_count": int(comparison.get("changed_locators", 0)),
+            "blocked_page_count": int(blocked_count),
         }
     return {
         "page_type_count": len(site_model.page_types),
@@ -1795,12 +1856,14 @@ def _build_site_structure_summary(
         "new_page_count": int(comparison.get("new_pages", 0)),
         "disappeared_page_count": int(comparison.get("disappeared_pages", 0)),
         "changed_locator_count": int(comparison.get("changed_locators", 0)),
+        "blocked_page_count": int(blocked_count),
     }
 
 
 def _build_dashboard_top_issues(
     *,
     quality_insights: dict[str, Any],
+    blocked_summary: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Select top actionable issues for the dashboard callout."""
     recommendations = [
@@ -1808,6 +1871,24 @@ def _build_dashboard_top_issues(
         for row in quality_insights.get("recommendations", [])
         if isinstance(row, dict)
     ]
+
+    summary = blocked_summary or {}
+    blocked_count = int(summary.get("blocked_count", 0))
+    blocked_reasons = summary.get("reasons", [])
+    if blocked_count > 0:
+        recommendations.append(
+            {
+                "priority": "high",
+                "title": "Investigate blocked pages",
+                "detail": (
+                    f"{blocked_count} blocked states detected"
+                    f" ({', '.join(blocked_reasons[:3])})."
+                ),
+                "link_kind": "quality_anchor",
+                "link_value": "blocked-pages",
+            }
+        )
+
     priority_order = {"high": 0, "medium": 1, "low": 2}
     recommendations.sort(
         key=lambda row: (

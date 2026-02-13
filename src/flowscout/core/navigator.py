@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from flowscout.analysis.element_inventory import summarize_element_inventory
+from flowscout.analysis.detector import detect_page_block
 from flowscout.analysis.graph import ExplorationGraph, ExplorationResult, Flow
 from flowscout.analysis.narrative import NarrativeGenerator
 from flowscout.analysis.verdict import ObservationComputer, ObservationResult
@@ -16,7 +18,7 @@ from flowscout.core.errors import BrowserError
 from flowscout.core.frontier import FrontierManager, is_diverse_action
 from flowscout.core.policy import get_action_policy_block_reason
 from flowscout.core.protocols import ITerminalReporter
-from flowscout.core.state import ExplorerConfig, PageState
+from flowscout.core.state import ExplorerConfig, PageBlockReason, PageState
 from flowscout.discovery.actions import (
     Action,
     ActionResult,
@@ -79,6 +81,7 @@ class Navigator:
 
         # 2. Capture initial state
         initial_state = await self.browser.capture_state(depth=0)
+        await self._annotate_blocked_state(initial_state)
         self.graph.add_state(initial_state)
         self.terminal.log_state_discovered(initial_state, is_new=True)
 
@@ -119,6 +122,7 @@ class Navigator:
             url_changed = result.url_before != result.url_after
             new_depth = source_state.depth + (1 if url_changed else 0)
             target_state = await self.browser.capture_state(depth=new_depth)
+            await self._annotate_blocked_state(target_state)
             result.source_state_id = source_state_id
             result.target_state_id = target_state.state_id
 
@@ -238,6 +242,13 @@ class Navigator:
 
     async def _discover_and_enqueue(self, state: PageState) -> None:
         """Discover interactive elements and add their actions to the frontier."""
+        if self._is_state_blocked(state):
+            self.terminal.log_info(
+                "  Skipping element discovery on blocked page"
+                f" ({state.block_reason.value})",
+            )
+            return
+
         elements = await discover_elements(self.browser.page)
         self.terminal.log_info(f"  Discovered {len(elements)} interactive elements")
 
@@ -316,6 +327,48 @@ class Navigator:
                 self.terminal.log_info(f"  Policy blocked '{action.label}' ({reason})")
 
         return allowed_actions, blocked_count
+
+    @staticmethod
+    def _is_state_blocked(state: PageState) -> bool:
+        """Return True when a state was classified as blocked."""
+        return state.block_reason != PageBlockReason.NONE
+
+    async def _annotate_blocked_state(self, state: PageState) -> None:
+        """Detect blocked pages and update state metadata for reporting."""
+        detection = await detect_page_block(
+            page=self.browser.page,
+            status_code=self.browser.last_navigation_status,
+        )
+        if not detection.is_blocked:
+            return
+
+        state.block_reason = detection.reason
+        state.block_detail = detection.detail
+        self.terminal.log_warning(
+            f"Page blocked: {state.block_reason.value.upper()} — {state.block_detail}",
+        )
+        await self._capture_blocked_state_screenshot(state)
+
+    async def _capture_blocked_state_screenshot(self, state: PageState) -> None:
+        """Capture a screenshot for blocked pages even when discovery is skipped."""
+        if not self.config.take_screenshots or not self.config.evidence_dir:
+            return
+
+        evidence_dir = Path(self.config.evidence_dir)
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        screenshot_path = (
+            evidence_dir / f"{int(time.time() * 1000)}_{state.state_id}_blocked.png"
+        )
+        try:
+            await self.browser.take_screenshot(str(screenshot_path))
+        except BrowserError:
+            logger.debug(
+                "Could not capture blocked-page screenshot for %s",
+                state.state_id,
+                exc_info=True,
+            )
+            return
+        state.screenshot_path = str(screenshot_path)
 
     async def _navigate_to_state(self, target_state_id: str) -> bool:
         """Navigate back to a previously visited state."""

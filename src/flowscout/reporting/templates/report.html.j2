@@ -2248,6 +2248,13 @@
                         <div class="metric-label">Pages</div>
                     </div>
 
+                    {% if blocked_summary.blocked_count %}
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: var(--accent-red);">{{ blocked_summary.blocked_count }}</div>
+                        <div class="metric-label">Blocked Pages</div>
+                    </div>
+                    {% endif %}
+
                     <!-- Duration -->
                     <div class="metric-card">
                         <div class="metric-value blue">{{ "%.1f"|format(duration) }}<span style="font-size: 0.75rem; font-weight: 400; color: var(--text-muted);">s</span></div>
@@ -2317,6 +2324,9 @@
                         {% if cross_run_comparison.has_previous_run %}
                         · Δ {{ site_structure_summary.new_page_count }} new, {{ site_structure_summary.disappeared_page_count }} disappeared, {{ site_structure_summary.changed_locator_count }} locator changes
                         {% endif %}
+                        {% if site_structure_summary.blocked_page_count %}
+                        · {{ site_structure_summary.blocked_page_count }} blocked pages
+                        {% endif %}
                     </div>
                 </div>
                 {% if cross_run_comparison.has_previous_run %}
@@ -2354,6 +2364,8 @@
                                 <button class="filter-btn" onclick="expandTestCase('{{ issue.link_value }}')">Open Flow</button>
                                 {% elif issue.link_kind == 'step' %}
                                 <button class="filter-btn" onclick="jumpToExecutionStep({{ issue.link_value }})">Open Step</button>
+                                {% elif issue.link_kind == 'quality_anchor' %}
+                                <button class="filter-btn" onclick="setReportPage('quality'); document.getElementById('{{ issue.link_value }}')?.scrollIntoView({ behavior: 'smooth', block: 'start' });">Open Issue</button>
                                 {% endif %}
                             </div>
                             <div class="defect-detail">{{ issue.detail }}</div>
@@ -2413,6 +2425,43 @@
                 {% for recommendation in locator_recommendations %}
                 <span class="diag-chip">{{ recommendation }}</span>
                 {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if blocked_states %}
+            <div id="blocked-pages" class="data-table-wrap" style="margin-top: 1rem;">
+                <div class="elements-subtitle-small">Blocked Pages</div>
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <caption class="sr-only">Blocked page states</caption>
+                        <thead>
+                            <tr>
+                                <th>State</th>
+                                <th>Reason</th>
+                                <th>Detail</th>
+                                <th>URL</th>
+                                <th>Evidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in blocked_states %}
+                            <tr>
+                                <td class="cell-dim">{{ row.state_short }}</td>
+                                <td class="cell-action">{{ row.reason_label }}</td>
+                                <td class="cell-dim">{{ row.detail or '—' }}</td>
+                                <td class="cell-dim">{{ row.url }}</td>
+                                <td>
+                                    {% if row.screenshot_link %}
+                                    <a class="filter-btn" href="{{ row.screenshot_link }}" target="_blank" rel="noopener noreferrer">Open Screenshot</a>
+                                    {% else %}
+                                    <span class="cell-dim">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             {% endif %}
         </section>
@@ -2683,6 +2732,8 @@
                             <button class="filter-btn" onclick="expandTestCase('{{ row.link_value }}')">Open Flow</button>
                             {% elif row.link_kind == 'step' %}
                             <button class="filter-btn" onclick="jumpToExecutionStep({{ row.link_value }})">Open Step</button>
+                            {% elif row.link_kind == 'quality_anchor' %}
+                            <button class="filter-btn" onclick="document.getElementById('{{ row.link_value }}')?.scrollIntoView({ behavior: 'smooth', block: 'start' });">Open Issue</button>
                             {% endif %}
                         </div>
                         <div class="defect-detail">{{ row.detail }}</div>

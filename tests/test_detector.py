@@ -2,7 +2,8 @@
 
 import pytest
 
-from flowscout.analysis.detector import OutcomeDetector
+from flowscout.analysis.detector import OutcomeDetector, detect_page_block
+from flowscout.core.state import PageBlockReason
 from flowscout.discovery.actions import OutcomeType
 
 
@@ -176,3 +177,87 @@ class TestFindErrorMessages:
         detector = OutcomeDetector()
         errors = await detector.find_error_messages(page)
         assert errors == []
+
+
+class _FakeBlockedPage:
+    """Minimal page stub for blocked-page detection tests."""
+
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload = payload
+
+    async def evaluate(self, js, *args):
+        return self._payload
+
+
+class TestDetectPageBlock:
+    @pytest.mark.asyncio
+    async def test_detects_http_access_denied(self) -> None:
+        detection = await detect_page_block(
+            page=_FakeBlockedPage({}),
+            status_code=403,
+        )
+        assert detection.is_blocked is True
+        assert detection.reason == PageBlockReason.ACCESS_DENIED
+
+    @pytest.mark.asyncio
+    async def test_detects_access_denied_text(self) -> None:
+        page = _FakeBlockedPage(
+            {
+                "title": "Access Denied",
+                "bodyText": "Forbidden",
+                "hasRecaptcha": False,
+                "hasHCaptcha": False,
+                "hasTurnstile": False,
+            }
+        )
+        detection = await detect_page_block(page=page)
+        assert detection.is_blocked is True
+        assert detection.reason == PageBlockReason.ACCESS_DENIED
+
+    @pytest.mark.asyncio
+    async def test_detects_captcha_markers(self) -> None:
+        page = _FakeBlockedPage(
+            {
+                "title": "Please Verify",
+                "bodyText": "",
+                "hasRecaptcha": True,
+                "hasHCaptcha": False,
+                "hasTurnstile": False,
+                "hasConsentWall": False,
+            }
+        )
+        detection = await detect_page_block(page=page)
+        assert detection.is_blocked is True
+        assert detection.reason == PageBlockReason.CAPTCHA
+
+    @pytest.mark.asyncio
+    async def test_detects_consent_wall_markers(self) -> None:
+        page = _FakeBlockedPage(
+            {
+                "title": "Privacy Preferences",
+                "bodyText": "Manage cookies for this site.",
+                "hasRecaptcha": False,
+                "hasHCaptcha": False,
+                "hasTurnstile": False,
+                "hasConsentWall": True,
+            }
+        )
+        detection = await detect_page_block(page=page)
+        assert detection.is_blocked is True
+        assert detection.reason == PageBlockReason.CONSENT_WALL
+
+    @pytest.mark.asyncio
+    async def test_returns_unblocked_when_no_signals(self) -> None:
+        page = _FakeBlockedPage(
+            {
+                "title": "Home",
+                "bodyText": "Welcome",
+                "hasRecaptcha": False,
+                "hasHCaptcha": False,
+                "hasTurnstile": False,
+                "hasConsentWall": False,
+            }
+        )
+        detection = await detect_page_block(page=page, status_code=200)
+        assert detection.is_blocked is False
+        assert detection.reason == PageBlockReason.NONE

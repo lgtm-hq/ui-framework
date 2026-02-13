@@ -2,8 +2,9 @@
 
 from rich.console import Console
 
+from flowscout.analysis.graph import ExplorationResult
 from flowscout.core.action_types import ActionType
-from flowscout.core.state import ExplorerConfig
+from flowscout.core.state import ExplorerConfig, PageBlockReason, PageState
 from flowscout.modeling.scenarios import FlowScenario, ScenarioStep
 from flowscout.modeling.site_model import NavigationEdge, PageType, SiteModel
 from flowscout.reporting.terminal import TerminalReporter
@@ -111,3 +112,34 @@ def test_print_site_model_summary_includes_mbt_coverage_metrics() -> None:
     assert "State coverage: 67% (2/3 states)" in output
     assert "Edge coverage: 50% (1/2 edges)" in output
     assert "Uncovered edges: catalog->detail (click)" in output
+
+
+def test_print_summary_includes_blocked_state_count() -> None:
+    reporter = TerminalReporter(verbose=False)
+    reporter.console = Console(record=True, force_terminal=False, width=120)
+    blocked_state = PageState(
+        state_id="s1",
+        url="https://example.com/forbidden",
+        title="Forbidden",
+        fingerprint="f" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+        block_reason=PageBlockReason.ACCESS_DENIED,
+        block_detail="HTTP 403 response from page navigation",
+    )
+    result = ExplorationResult(
+        states={"s1": blocked_state},
+        stats={
+            "total_states": 1,
+            "total_actions_executed": 0,
+            "total_unique_actions": 0,
+        },
+    )
+
+    reporter.print_summary(result)
+    output = reporter.console.export_text()
+
+    assert "Blocked states" in output
+    assert "1" in output

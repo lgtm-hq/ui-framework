@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 from typing import Any
 
+from flowscout.core.state import PageBlockReason
 from flowscout.discovery.actions import OutcomeType
 
 logger = logging.getLogger(__name__)
@@ -47,6 +49,58 @@ FIND_ERRORS_JS = """
     return errors;
 }
 """
+
+
+PAGE_BLOCK_SCAN_JS = """
+() => {
+    const title = document.title || '';
+    const bodyText = document.body?.innerText || '';
+    const consentSelectors = [
+        '.onetrust-banner-sdk',
+        '#onetrust-banner-sdk',
+        '#CybotCookiebotDialog',
+        '.cookie-banner',
+        '[id*="cookie-consent"]',
+        '[class*="cookie-consent"]',
+        '[id*="consent"]',
+        '[class*="consent"]',
+        '[aria-label*="cookie"]',
+    ];
+
+    return {
+        title,
+        bodyText: bodyText.slice(0, 20000),
+        hasRecaptcha: Boolean(
+            document.querySelector(
+                ".g-recaptcha, iframe[src*='recaptcha'], script[src*='recaptcha']"
+            )
+        ),
+        hasHCaptcha: Boolean(
+            document.querySelector(
+                ".h-captcha, iframe[src*='hcaptcha'], script[src*='hcaptcha']"
+            )
+        ),
+        hasTurnstile: Boolean(
+            document.querySelector(
+                ".cf-turnstile, iframe[src*='challenges.cloudflare.com'],"
+                + " script[src*='turnstile'], script[src*='challenges.cloudflare.com']"
+            )
+        ),
+        hasConsentWall: consentSelectors.some((selector) =>
+            Boolean(document.querySelector(selector))
+        ),
+    };
+}
+"""
+
+
+@dataclass(frozen=True)
+class PageBlockDetection:
+    """Result of blocked-page detection for the current page."""
+
+    is_blocked: bool
+    reason: PageBlockReason = PageBlockReason.NONE
+    detail: str = ""
 
 
 class OutcomeDetector:
@@ -106,3 +160,119 @@ class OutcomeDetector:
         except (AttributeError, RuntimeError, OSError):
             logger.debug("Error scanning for error messages", exc_info=True)
             return []
+
+
+async def detect_page_block(
+    *,
+    page: Any,
+    status_code: int | None = None,
+) -> PageBlockDetection:
+    """Detect access blocks/CAPTCHAs using status code + page content signals."""
+    if status_code in {401, 403}:
+        return PageBlockDetection(
+            is_blocked=True,
+            reason=PageBlockReason.ACCESS_DENIED,
+            detail=f"HTTP {status_code} response from page navigation",
+        )
+
+    snapshot = await _scan_page_block_signals(page=page)
+    title = str(snapshot.get("title", "")).strip()
+    body_text = str(snapshot.get("bodyText", "")).strip()
+    lowered_text = f"{title}\n{body_text}".lower()
+
+    if (
+        bool(snapshot.get("hasRecaptcha"))
+        or bool(snapshot.get("hasHCaptcha"))
+        or bool(snapshot.get("hasTurnstile"))
+        or _contains_any(
+            lowered_text,
+            (
+                "captcha",
+                "verify you are human",
+                "i am human",
+                "human verification",
+            ),
+        )
+    ):
+        return PageBlockDetection(
+            is_blocked=True,
+            reason=PageBlockReason.CAPTCHA,
+            detail="CAPTCHA challenge detected in page content",
+        )
+
+    if _contains_any(
+        lowered_text,
+        (
+            "access denied",
+            "forbidden",
+            "not authorized",
+            "unauthorized",
+            "permission denied",
+            "403",
+        ),
+    ):
+        return PageBlockDetection(
+            is_blocked=True,
+            reason=PageBlockReason.ACCESS_DENIED,
+            detail="Access denied/forbidden text detected in page title or body",
+        )
+
+    if bool(snapshot.get("hasConsentWall")) or _contains_any(
+        lowered_text,
+        (
+            "cookie consent",
+            "manage cookies",
+            "accept all cookies",
+            "reject all cookies",
+            "privacy preferences",
+            "your privacy choices",
+        ),
+    ):
+        return PageBlockDetection(
+            is_blocked=True,
+            reason=PageBlockReason.CONSENT_WALL,
+            detail="Cookie consent wall detected in page content",
+        )
+
+    if _contains_any(
+        lowered_text,
+        (
+            "just a moment",
+            "checking your browser",
+            "attention required",
+            "security check",
+            "cloudflare",
+            "ddos protection",
+        ),
+    ):
+        return PageBlockDetection(
+            is_blocked=True,
+            reason=PageBlockReason.WAF_CHALLENGE,
+            detail="WAF/challenge page markers detected",
+        )
+
+    if status_code in {429, 503}:
+        return PageBlockDetection(
+            is_blocked=True,
+            reason=PageBlockReason.BLOCKED_UNKNOWN,
+            detail=f"Potential blocked page (HTTP {status_code})",
+        )
+
+    return PageBlockDetection(is_blocked=False)
+
+
+async def _scan_page_block_signals(*, page: Any) -> dict[str, Any]:
+    """Collect key signals for blocked-page detection."""
+    try:
+        payload = await page.evaluate(PAGE_BLOCK_SCAN_JS)
+    except (AttributeError, RuntimeError, OSError):
+        logger.debug("Could not evaluate blocked-page signals", exc_info=True)
+        return {}
+
+    return payload if isinstance(payload, dict) else {}
+
+
+def _contains_any(text: str, patterns: tuple[str, ...]) -> bool:
+    """Return True when any normalized pattern exists in text."""
+    lowered = str(text or "").lower()
+    return any(pattern in lowered for pattern in patterns)

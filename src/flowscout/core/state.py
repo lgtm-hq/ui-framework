@@ -26,6 +26,15 @@ class InputProfile(StrEnum):
     NEGATIVE = auto()
 
 
+class PageBlockReason(StrEnum):
+    NONE = auto()
+    ACCESS_DENIED = auto()
+    CAPTCHA = auto()
+    CONSENT_WALL = auto()
+    WAF_CHALLENGE = auto()
+    BLOCKED_UNKNOWN = auto()
+
+
 class ExplorerConfig(BaseModel):
     """Configuration for an exploration run."""
 
@@ -50,6 +59,11 @@ class ExplorerConfig(BaseModel):
     smart_min_archetypes_before_stop: int = Field(default=2, ge=0)
     smart_archetype_instance_limit: int = Field(default=3, ge=1)
     input_profile: InputProfile = InputProfile.SAFE
+    stealth: bool = True
+    context_path: str | None = None
+    save_context_path: str | None = None
+    load_context_path: str | None = None
+    cdp_endpoint: str | None = None
     auth_profile: str | None = None
     auth_required: bool = False
     action_policy: ActionPolicyConfig = Field(default_factory=ActionPolicyConfig)
@@ -72,6 +86,8 @@ class PageState(BaseModel):
     primary_heading: str = ""
     context_markers: list[str] = Field(default_factory=list)
     signals: list[str] = Field(default_factory=list)
+    block_reason: PageBlockReason = PageBlockReason.NONE
+    block_detail: str = ""
     screenshot_path: str | None = None
     timestamp: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat(),

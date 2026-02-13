@@ -4,9 +4,10 @@ import os
 from pathlib import Path
 
 from flowscout.analysis.graph import ExplorationResult, Flow
-from flowscout.core.state import PageState
+from flowscout.core.state import PageBlockReason, PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import (
+    _build_blocked_states,
     _build_cross_run_comparison,
     _build_dashboard_top_issues,
     _build_diagnostics,
@@ -69,6 +70,32 @@ def test_to_report_asset_href_cwd_relative_run_path(tmp_path: Path) -> None:
         os.chdir(cwd)
 
     assert href == "evidence/actions/shot.png"
+
+
+def test_build_blocked_states_rows_include_reason_detail_and_screenshot() -> None:
+    report_dir = Path("/tmp/reports/run")  # nosec B108 - test fixture path
+    blocked_state = PageState(
+        state_id="state-blocked",
+        url="https://example.com/secure",
+        title="Access Denied",
+        fingerprint="a" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+        block_reason=PageBlockReason.ACCESS_DENIED,
+        block_detail="HTTP 403 response from page navigation",
+        screenshot_path="/tmp/reports/run/evidence/actions/blocked.png",  # nosec B108
+    )
+    result = ExplorationResult(states={"state-blocked": blocked_state})
+
+    rows = _build_blocked_states(result=result, report_dir=report_dir)
+
+    assert len(rows) == 1
+    assert rows[0]["reason"] == "access_denied"
+    assert rows[0]["reason_label"] == "Access Denied"
+    assert "403" in rows[0]["detail"]
+    assert rows[0]["screenshot_link"] == "evidence/actions/blocked.png"
 
 
 def test_build_flow_execution_map_assigns_rows_to_flow_steps() -> None:

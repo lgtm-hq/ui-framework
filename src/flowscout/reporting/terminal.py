@@ -83,9 +83,16 @@ class TerminalReporter:
     def log_state_discovered(self, state: PageState, *, is_new: bool) -> None:
         """Log when a state is discovered."""
         if is_new:
-            self.console.print(
+            line = (
                 f"  [green]+[/green] New state [bold]{state.state_id[:8]}[/bold]: "
-                f"{state.title or 'untitled'} [dim]({state.url})[/dim]",
+                f"{state.title or 'untitled'} [dim]({state.url})[/dim]"
+            )
+            if state.block_reason.value != "none":
+                line += (
+                    f" [yellow](blocked: {state.block_reason.value.upper()})[/yellow]"
+                )
+            self.console.print(
+                line,
             )
         elif self.verbose:
             self.console.print(f"  [dim]= Known state {state.state_id[:8]}[/dim]")
@@ -201,6 +208,16 @@ class TerminalReporter:
             "Unique actions", str(result.stats.get("total_unique_actions", 0))
         )
         table.add_row("Flows identified", str(len(result.flows)))
+        table.add_row(
+            "Blocked states",
+            str(
+                sum(
+                    1
+                    for state in result.states.values()
+                    if state.block_reason.value != "none"
+                )
+            ),
+        )
         table.add_row("Duration", f"{result.duration_seconds:.1f}s")
         table.add_row("Avg stability", f"{average_stability:.2f}")
         table.add_row("Stable steps (>=0.7)", str(stable_steps))

@@ -53,6 +53,31 @@ FORM_HTML = """\
 </html>
 """
 
+INDEX_WITH_BLOCKED_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Home</title></head>
+<body>
+  <nav>
+    <a href="/about">About</a>
+    <a href="/blocked">Blocked</a>
+  </nav>
+  <h1>Welcome</h1>
+</body>
+</html>
+"""
+
+BLOCKED_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Forbidden</title></head>
+<body>
+  <h1>Access Denied</h1>
+  <p>You are not authorized to access this page.</p>
+</body>
+</html>
+"""
+
 
 def _make_config(base_url: str) -> ExplorerConfig:
     return ExplorerConfig(
@@ -105,3 +130,44 @@ class TestFullExploration:
             assert n_flows >= 1, f"Expected >=1 flows, got {n_flows}"
         finally:
             await browser.close()
+
+    @pytest.mark.asyncio
+    async def test_blocked_page_does_not_stop_remaining_frontier_exploration(
+        self,
+        httpserver,
+    ):
+        httpserver.expect_request("/").respond_with_data(
+            INDEX_WITH_BLOCKED_HTML,
+            content_type="text/html",
+        )
+        httpserver.expect_request("/about").respond_with_data(
+            ABOUT_HTML,
+            content_type="text/html",
+        )
+        httpserver.expect_request("/blocked").respond_with_data(
+            BLOCKED_HTML,
+            status=403,
+            content_type="text/html",
+        )
+        base_url = httpserver.url_for("/")
+        config = _make_config(base_url)
+
+        browser = BrowserManager(config)
+        try:
+            await browser.launch()
+            graph = ExplorationGraph()
+            terminal = TerminalReporter(verbose=False)
+            navigator = Navigator(browser, graph, config, terminal)
+            result = await navigator.explore(base_url)
+        finally:
+            await browser.close()
+
+        by_url = {state.url: state for state in result.states.values()}
+        assert any("/about" in url for url in by_url), "Expected About page to be found"
+
+        blocked_states = [
+            state
+            for state in result.states.values()
+            if state.block_reason.value == "access_denied"
+        ]
+        assert blocked_states, "Expected blocked page to be classified as ACCESS_DENIED"
