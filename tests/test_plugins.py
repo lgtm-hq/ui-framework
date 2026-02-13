@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
+from flowscout.discovery.actions import OutcomeType
 from flowscout.plugins.registry import PluginRegistry
 
 
@@ -14,10 +15,20 @@ class _MockReporter:
 
 
 class _MockDetector:
-    def classify(self, **kwargs: Any) -> None:
-        pass
+    def classify(
+        self,
+        *,
+        url_before: str,
+        url_after: str,
+        dom_hash_before: str,
+        dom_hash_after: str,
+        error_messages: list[str],
+        console_errors: list[str],
+        network_errors: list[dict[str, str]],
+    ) -> OutcomeType:
+        return OutcomeType.NO_CHANGE
 
-    async def find_error_messages(self, page: Any) -> list[str]:
+    async def find_error_messages(self, page: object) -> list[str]:
         return []
 
 

@@ -59,7 +59,7 @@ class TestClassifyElement:
 
 class TestComputePriority:
     def _make_elem(self, **kwargs: Any) -> InteractiveElement:
-        defaults = {
+        defaults: dict[str, Any] = {
             "element_id": "test",
             "element_type": ElementType.BUTTON,
             "selector": "button",
@@ -67,7 +67,7 @@ class TestComputePriority:
             "tag": "button",
         }
         defaults.update(kwargs)
-        return InteractiveElement(**defaults)
+        return InteractiveElement.model_validate(defaults)
 
     @pytest.mark.parametrize(
         ("elem_kwargs", "base_url", "expected_priority"),

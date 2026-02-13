@@ -15,7 +15,7 @@ from flowscout.discovery.inputs import (
     generate_input_value,
     generate_input_value_with_source,
 )
-from flowscout.discovery.intent import ActionIntent, infer_intent
+from flowscout.discovery.intent import ActionIntent, IntentClass, infer_intent
 
 if TYPE_CHECKING:
     from flowscout.core.metadata import ActionMetadata
@@ -377,7 +377,7 @@ def generate_form_submit_actions(
 
         # Valid submission
         valid_intent = ActionIntent(
-            intent_class="submit",
+            intent_class=IntentClass.SUBMIT,
             target_description=f"Submit form: {form_selector}",
             expected_effect=f"Submit the {form_selector} form and process the data",
             context={"form_selector": form_selector},
@@ -413,7 +413,7 @@ def generate_form_submit_actions(
                     )
 
             invalid_intent = ActionIntent(
-                intent_class="submit",
+                intent_class=IntentClass.SUBMIT,
                 target_description=f"Submit form (invalid): {form_selector}",
                 expected_effect=(
                     "Form should display validation errors for invalid/missing input"

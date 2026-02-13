@@ -62,3 +62,4 @@ build-js:
 setup:
   uv sync --extra dev
   uv run playwright install chromium
+  just build-js

@@ -15,7 +15,7 @@ from flowscout.codegen.playwright_tests import generate_test_suite
 from flowscout.modeling.site_model import SiteModel
 
 
-@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
+@main.command()
 @click.argument("json_path", type=click.Path(exists=True))
 @click.option("--output", "-o", default=None, help="Output test file path.")
 @click.option(

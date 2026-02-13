@@ -49,6 +49,9 @@ class MockBrowser:
             title=f"Page at {self._current_url}",
             fingerprint=f"fp-{self._depth_counter}",
             depth=depth,
+            dom_structure_hash=f"dom-{self._depth_counter}",
+            visible_text_hash=f"text-{self._depth_counter}",
+            form_state_hash=f"form-{self._depth_counter}",
         )
 
     async def execute_action(self, action: Action) -> ActionResult:

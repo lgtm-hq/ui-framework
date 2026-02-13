@@ -13,7 +13,7 @@ from flowscout.discovery.elements import ElementType, InteractiveElement
 
 
 def _make_elem(**kwargs: Any) -> InteractiveElement:
-    defaults = {
+    defaults: dict[str, Any] = {
         "element_id": "test",
         "element_type": ElementType.BUTTON,
         "selector": "button#test",
@@ -23,7 +23,7 @@ def _make_elem(**kwargs: Any) -> InteractiveElement:
         "is_disabled": False,
     }
     defaults.update(kwargs)
-    return InteractiveElement(**defaults)
+    return InteractiveElement.model_validate(defaults)
 
 
 class TestGenerateActions:

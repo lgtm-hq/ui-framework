@@ -9,7 +9,7 @@ from flowscout.cli.app import DEFAULT_DB_PATH, console, main
 from flowscout.storage.db import FlowscoutDB
 
 
-@main.command()  # type: ignore[untyped-decorator]  # Click decorators are untyped
+@main.command()
 @click.option("--url", "-u", required=True, help="Start URL to analyze.")
 @click.option("--db-path", default=DEFAULT_DB_PATH, help="SQLite database path.")
 def reliability(url: str, db_path: str) -> None:
