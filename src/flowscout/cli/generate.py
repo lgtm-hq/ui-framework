@@ -49,6 +49,13 @@ from flowscout.modeling.site_model import SiteModel
         "(edge, state, random, all_paths)."
     ),
 )
+@click.option(
+    "--export",
+    "export_target",
+    type=click.Choice(["graphwalker", "dot", "mermaid"]),
+    default=None,
+    help="Export the SiteModel as graphwalker JSON, DOT, or Mermaid.",
+)
 def generate(
     json_path: str,
     output: str | None,
@@ -56,6 +63,7 @@ def generate(
     export_format: str,
     site_model: bool,
     mbt_strategy: str | None,
+    export_target: str | None,
 ) -> None:
     """Generate artifacts from JSON input.
 
@@ -66,6 +74,7 @@ def generate(
         export_format: Export format.
         site_model: Force building a SiteModel from ExplorationResult input.
         mbt_strategy: Optional MBT walking strategy for SiteModel scenarios.
+        export_target: Optional SiteModel export target format.
     """
     data = json.loads(Path(json_path).read_text())
     if site_model and framework == "bdd":
@@ -80,6 +89,28 @@ def generate(
         raise click.ClickException(
             "--mbt supports only '--format tests'.",
         )
+    if export_target and export_format != "tests":
+        raise click.ClickException(
+            "--export does not support --format. Use '--export <format>' alone.",
+        )
+    if export_target and mbt_strategy:
+        raise click.ClickException(
+            "--export does not support --mbt. Use one mode at a time.",
+        )
+
+    if export_target:
+        if _looks_like_site_model_payload(data=data):
+            model = SiteModel.model_validate(data)
+        else:
+            result = ExplorationResult.model_validate(data)
+            model = SiteModel.from_exploration_result(result=result)
+        _export_site_model(
+            model=model,
+            json_path=json_path,
+            output=output,
+            export_target=export_target,
+        )
+        return
 
     # SiteModel input is auto-detected for Layer 3 generation.
     if _looks_like_site_model_payload(data=data):
@@ -267,6 +298,68 @@ def _generate_from_site_model(
 
     terminal = TerminalReporter()
     terminal.print_site_model_summary(model)
+
+
+def _resolve_export_output(
+    *,
+    json_path: str,
+    output: str | None,
+    export_target: str,
+) -> Path:
+    """Resolve output path for model export artifacts."""
+    extension = {
+        "graphwalker": ".graphwalker.json",
+        "dot": ".dot",
+        "mermaid": ".mmd",
+    }[export_target]
+
+    if output is None:
+        base = Path(json_path)
+        return base.with_name(f"{base.stem}_mbt{extension}")
+
+    output_path = Path(output)
+    if output.endswith("/") or output_path.suffix == "":
+        output_path.mkdir(parents=True, exist_ok=True)
+        return output_path / f"site_model{extension}"
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    return output_path
+
+
+def _export_site_model(
+    *,
+    model: SiteModel,
+    json_path: str,
+    output: str | None,
+    export_target: str,
+) -> None:
+    """Export SiteModel into one of the standard MBT graph formats."""
+    from flowscout.mbt.exporters import (
+        render_dot,
+        render_graphwalker_json,
+        render_mermaid,
+    )
+
+    output_path = _resolve_export_output(
+        json_path=json_path,
+        output=output,
+        export_target=export_target,
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if export_target == "graphwalker":
+        payload = render_graphwalker_json(model=model)
+    elif export_target == "dot":
+        payload = render_dot(model=model)
+    elif export_target == "mermaid":
+        payload = render_mermaid(model=model)
+    else:
+        raise click.ClickException(f"Unsupported export format: {export_target}")
+
+    output_path.write_text(payload)
+    console.print(
+        f"  [green]SiteModel exported ({export_target}):[/green] {output_path}",
+    )
 
 
 def _apply_mbt_strategy(

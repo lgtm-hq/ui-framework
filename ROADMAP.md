@@ -1053,11 +1053,11 @@ uv run flowscout generate model.json --export mermaid
 
 **Acceptance criteria**:
 
-- [ ] GraphWalker JSON output is valid and importable by GraphWalker
-- [ ] DOT output renders correctly with Graphviz
-- [ ] Mermaid output renders in GitHub Markdown
-- [ ] Edge labels include action type and occurrence count
-- [ ] All exporters read only from `SiteModel`
+- [x] GraphWalker JSON output is valid and importable by GraphWalker
+- [x] DOT output renders correctly with Graphviz
+- [x] Mermaid output renders in GitHub Markdown
+- [x] Edge labels include action type and occurrence count
+- [x] All exporters read only from `SiteModel`
 
 ### 3.4 Guard conditions on transitions
 
