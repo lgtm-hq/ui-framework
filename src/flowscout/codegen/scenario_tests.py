@@ -103,6 +103,11 @@ def _sanitize_test_name(text: str) -> str:
     return clean[:60]
 
 
+def _to_ts_regex_literal(pattern: str) -> str:
+    """Convert a regex pattern into a safe TypeScript regex literal body."""
+    return pattern.replace("/", r"\/")
+
+
 # ---------------------------------------------------------------------------
 # Catalog → POM property mapping
 # ---------------------------------------------------------------------------
@@ -329,14 +334,14 @@ def _emit_ts_verification(
                 return
 
         if url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         else:
             lines.append(f"{indent}// Verify: page content loaded")
 
     elif template == "browse_detail":
         if url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         prop = _find_pom_property(
             prop_map, ZoneType.MAIN_CONTENT
@@ -351,7 +356,7 @@ def _emit_ts_verification(
         if prop and var:
             lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
         elif url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         else:
             lines.append(f"{indent}// Verify: search results are displayed")
@@ -361,7 +366,7 @@ def _emit_ts_verification(
         if prop and var:
             lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
         if url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         if not prop and not url_pattern:
             lines.append(f"{indent}// Verify: content has changed")
@@ -371,28 +376,28 @@ def _emit_ts_verification(
         if prop and var:
             lines.append(f"{indent}await expect({var}.{prop}.first()).toBeVisible();")
         elif url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         else:
             lines.append(f"{indent}// Verify: filtered content is displayed")
 
     elif template == "form_submit":
         if url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         else:
             lines.append(f"{indent}// Verify: form submitted successfully")
 
     elif template == "round_trip":
         if url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         else:
             lines.append(f"{indent}// Verify: returned to original page")
 
     else:
         if url_pattern and var:
-            pattern = url_pattern.replace("\\", "\\\\")
+            pattern = _to_ts_regex_literal(url_pattern)
             lines.append(f"{indent}await expect(page).toHaveURL(/{pattern}/);")
         else:
             lines.append(f"{indent}// Verify: expected outcome")
