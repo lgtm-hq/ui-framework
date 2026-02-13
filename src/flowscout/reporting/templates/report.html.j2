@@ -2406,6 +2406,175 @@
         {% endif %}
 
         <!-- ============================================================
+             SECTION H: QUALITY OVERVIEW
+             ============================================================ -->
+        <section id="quality-overview" class="section animate-in delay-2" data-report-page="quality">
+            <div class="section-header">
+                <h2>Quality Overview</h2>
+                <div class="section-count">{{ quality_insights.recommendations|length }} recommendations</div>
+                <div class="section-line"></div>
+            </div>
+            <div class="diagnostics-grid">
+                <div class="diag-card">
+                    <div class="diag-label">Locator Health Issues</div>
+                    <div class="diag-value {% if quality_insights.locator_issue_count %}warn{% else %}pass{% endif %}">{{ quality_insights.locator_issue_count }}</div>
+                    <div class="diag-subtext">Page types with fragile selectors or sub-80 quality score</div>
+                </div>
+                <div class="diag-card">
+                    <div class="diag-label">Flaky Actions</div>
+                    <div class="diag-value {% if quality_insights.flaky_action_count %}fail{% else %}pass{% endif %}">{{ quality_insights.flaky_action_count }}</div>
+                    <div class="diag-subtext">Transitions with inconsistent outcomes from the same page/action</div>
+                </div>
+                <div class="diag-card">
+                    <div class="diag-label">Low-Stability Steps</div>
+                    <div class="diag-value {% if quality_insights.low_stability_count %}warn{% else %}pass{% endif %}">{{ quality_insights.low_stability_count }}</div>
+                    <div class="diag-subtext">Steps below {{ "%.0f"|format(diagnostics.low_confidence_threshold * 100) }}% confidence</div>
+                </div>
+            </div>
+
+            {% if quality_insights.locator_health_rows %}
+            <div class="data-table-wrap" style="margin-top: 1rem;">
+                <div class="elements-subtitle-small">Locator Health</div>
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <caption class="sr-only">Locator health by page type</caption>
+                        <thead>
+                            <tr>
+                                <th>Page Type</th>
+                                <th class="right">Quality</th>
+                                <th class="right">Fragile</th>
+                                <th class="right">Instances</th>
+                                <th>Recommendation</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in quality_insights.locator_health_rows %}
+                            <tr>
+                                <td class="cell-action">{{ row.name }}</td>
+                                <td class="cell-right">{{ row.quality_score }}%</td>
+                                <td class="cell-right">{{ row.fragile_count }}</td>
+                                <td class="cell-right">{{ row.instance_count }}</td>
+                                <td class="cell-dim">{{ row.recommendation }}</td>
+                                <td>
+                                    <button class="filter-btn" onclick="openPageObjectCard('{{ row.anchor_id }}')">Open Page Object</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if quality_insights.flaky_actions %}
+            <div class="data-table-wrap" style="margin-top: 1rem;">
+                <div class="elements-subtitle-small">Flaky Actions</div>
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <caption class="sr-only">Flaky actions with links to affected flows</caption>
+                        <thead>
+                            <tr>
+                                <th>Page</th>
+                                <th>Action</th>
+                                <th>Outcomes</th>
+                                <th class="right">Occurrences</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in quality_insights.flaky_actions %}
+                            <tr>
+                                <td class="cell-action">{{ row.source_page }}</td>
+                                <td class="cell-action">{{ row.action_label }}</td>
+                                <td class="cell-dim">{{ row.outcomes|join(', ') }}</td>
+                                <td class="cell-right">{{ row.occurrences }}</td>
+                                <td>
+                                    {% if row.flow_id %}
+                                    <button class="filter-btn" onclick="openFlowFromSiteMap('{{ row.flow_id }}', '{{ row.template_id }}')">Open Flow</button>
+                                    {% else %}
+                                    <span class="cell-dim">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if quality_insights.low_stability_steps %}
+            <div class="data-table-wrap" style="margin-top: 1rem;">
+                <div class="elements-subtitle-small">Low-Stability Steps</div>
+                <div class="table-scroll">
+                    <table class="data-table">
+                        <caption class="sr-only">Low-confidence steps with jump links</caption>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Page</th>
+                                <th>Action</th>
+                                <th class="right">Confidence</th>
+                                <th>Reason</th>
+                                <th>Flow</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in quality_insights.low_stability_steps %}
+                            <tr>
+                                <td class="cell-dim">{{ row.step_index }}</td>
+                                <td class="cell-action">{{ row.source_page }}</td>
+                                <td class="cell-action">{{ row.action_label }}</td>
+                                <td class="cell-right">{{ row.confidence_pct }}%</td>
+                                <td class="cell-dim">{{ row.confidence_reason }}</td>
+                                <td class="cell-dim">
+                                    {% if row.flow_name %}
+                                    {{ row.flow_name }}{% if row.flow_step %} · step {{ row.flow_step }}{% endif %}
+                                    {% else %}
+                                    —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="filter-btn" onclick="jumpToExecutionStep({{ row.step_index }})">Open Step</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if quality_insights.recommendations %}
+            <div class="data-table-wrap" style="margin-top: 1rem;">
+                <div class="elements-subtitle-small">Improvement Recommendations</div>
+                <div style="display: flex; flex-direction: column; gap: 0.625rem; margin-top: 0.5rem;">
+                    {% for row in quality_insights.recommendations %}
+                    <div class="defect-card warning">
+                        <div class="defect-header" style="display: flex; justify-content: space-between; gap: 0.5rem; align-items: center;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <span class="verdict {% if row.priority == 'high' %}fail{% elif row.priority == 'medium' %}warn{% else %}pass{% endif %}">{{ row.priority }}</span>
+                                <span class="defect-name">{{ row.title }}</span>
+                            </div>
+                            {% if row.link_kind == 'page_object' %}
+                            <button class="filter-btn" onclick="openPageObjectCard('{{ row.link_value }}')">Open Page Object</button>
+                            {% elif row.link_kind == 'flow' %}
+                            <button class="filter-btn" onclick="expandTestCase('{{ row.link_value }}')">Open Flow</button>
+                            {% elif row.link_kind == 'step' %}
+                            <button class="filter-btn" onclick="jumpToExecutionStep({{ row.link_value }})">Open Step</button>
+                            {% endif %}
+                        </div>
+                        <div class="defect-detail">{{ row.detail }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- ============================================================
              SECTION H: DIAGNOSTICS
              ============================================================ -->
         <section id="diagnostics-section" class="section section-collapsible collapsed animate-in delay-2" data-report-page="quality">

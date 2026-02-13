@@ -7,9 +7,11 @@ from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import (
+    _build_diagnostics,
     _build_flow_template_cards,
     _build_graph_data,
     _build_page_object_cards,
+    _build_quality_insights,
     _build_site_model,
     _build_execution_rows,
     _build_flow_execution_map,
@@ -569,3 +571,130 @@ def test_build_flow_template_cards_include_instances_and_status_counts() -> None
     assert cards[0]["warn_count"] == 0
     assert cards[0]["representative_rows"]
     assert len(cards[0]["instances"]) == 2
+
+
+def test_build_quality_insights_provides_actionable_links() -> None:
+    state_listing = PageState(
+        state_id="state-listing",
+        url="https://example.com/movies",
+        title="Listing",
+        fingerprint="f" * 64,
+        depth=0,
+        dom_structure_hash="dom1",
+        visible_text_hash="text1",
+        form_state_hash="form1",
+    )
+    state_detail_1 = PageState(
+        state_id="state-detail-1",
+        url="https://example.com/movies/1",
+        title="Detail 1",
+        fingerprint="e" * 64,
+        depth=1,
+        dom_structure_hash="dom2",
+        visible_text_hash="text2",
+        form_state_hash="form2",
+    )
+    state_detail_2 = PageState(
+        state_id="state-detail-2",
+        url="https://example.com/movies/2",
+        title="Detail 2",
+        fingerprint="d" * 64,
+        depth=1,
+        dom_structure_hash="dom3",
+        visible_text_hash="text3",
+        form_state_hash="form3",
+    )
+    action_open = Action(
+        action_id="action-open",
+        action_type=ActionType.CLICK,
+        target_selector="a[href='/movies/1']",
+        label="Open detail",
+    )
+    result = ExplorationResult(
+        states={
+            "state-listing": state_listing,
+            "state-detail-1": state_detail_1,
+            "state-detail-2": state_detail_2,
+        },
+        actions={"action-open": action_open},
+        results=[
+            ActionResult(
+                action_id="action-open",
+                source_state_id="state-listing",
+                target_state_id="state-detail-1",
+                outcome=OutcomeType.NAVIGATION,
+                stability_score=0.9,
+            ),
+            ActionResult(
+                action_id="action-open",
+                source_state_id="state-listing",
+                target_state_id="state-detail-2",
+                outcome=OutcomeType.EXCEPTION,
+                stability_score=0.25,
+                observation_notes="button not clickable",
+            ),
+        ],
+        flows=[
+            Flow(
+                flow_id="flow-1",
+                name="Detail 1 flow",
+                description="Open detail 1",
+                state_ids=["state-listing", "state-detail-1"],
+                action_ids=["action-open"],
+                outcomes=[OutcomeType.NAVIGATION],
+                stability_score=0.9,
+            ),
+            Flow(
+                flow_id="flow-2",
+                name="Detail 2 flow",
+                description="Open detail 2",
+                state_ids=["state-listing", "state-detail-2"],
+                action_ids=["action-open"],
+                outcomes=[OutcomeType.EXCEPTION],
+                stability_score=0.25,
+            ),
+        ],
+        smart_analyses={
+            "state-listing": {"structural_signature": "listing_sig"},
+            "state-detail-1": {"structural_signature": "detail_sig"},
+            "state-detail-2": {"structural_signature": "detail_sig"},
+        },
+    )
+    site_model = _build_site_model(result=result)
+    assert site_model is not None
+
+    page_object_cards = _build_page_object_cards(result=result, site_model=site_model)
+    execution_rows = _build_execution_rows(
+        result=result,
+        action_labels={"action-open": "Open detail"},
+        action_selectors={"action-open": "a[href='/movies/1']"},
+        action_metadata={"action-open": {}},
+        screenshot_links=[None, None],
+    )
+    _, _, execution_step_map = _build_flow_execution_map(
+        result=result,
+        execution_rows=execution_rows,
+    )
+    diagnostics = _build_diagnostics(
+        result=result,
+        action_labels={"action-open": "Open detail"},
+        action_selectors={"action-open": "a[href='/movies/1']"},
+        screenshot_links=[None, None],
+    )
+    insights = _build_quality_insights(
+        result=result,
+        page_object_cards=page_object_cards,
+        diagnostics=diagnostics,
+        execution_step_map=execution_step_map,
+        flow_templates=site_model.flow_templates,
+    )
+
+    assert insights["locator_health_rows"]
+    assert insights["flaky_action_count"] == 1
+    assert insights["low_stability_count"] == 1
+    assert insights["recommendations"]
+    assert any(
+        item["link_kind"] == "page_object" for item in insights["recommendations"]
+    )
+    assert any(item["link_kind"] == "flow" for item in insights["recommendations"])
+    assert any(item["link_kind"] == "step" for item in insights["recommendations"])

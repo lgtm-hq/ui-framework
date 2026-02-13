@@ -164,6 +164,13 @@ class ReportDataBuilder:
             result=result,
             site_model=site_model,
         )
+        quality_insights = _build_quality_insights(
+            result=result,
+            page_object_cards=page_object_cards,
+            diagnostics=diagnostics,
+            execution_step_map=execution_step_map,
+            flow_templates=flow_templates,
+        )
         graph_data = _build_graph_data(
             result=result,
             site_model=site_model,
@@ -212,6 +219,7 @@ class ReportDataBuilder:
             "locator_recommendations": locator_recommendations,
             "mbt_coverage": mbt_coverage,
             "page_object_cards": page_object_cards,
+            "quality_insights": quality_insights,
             "site_model_available": bool(site_model),
             "site_model_summary": (
                 site_model.summary.model_dump() if site_model is not None else {}
@@ -1341,6 +1349,208 @@ def _build_flow_template_cards(
         )
     )
     return cards
+
+
+def _build_quality_insights(
+    *,
+    result: ExplorationResult,
+    page_object_cards: list[dict[str, Any]],
+    diagnostics: dict[str, Any],
+    execution_step_map: dict[int, dict[str, Any]],
+    flow_templates: list[FlowTemplate],
+) -> dict[str, Any]:
+    """Build actionable quality sections for the Quality tab."""
+    flow_to_template: dict[str, str] = {}
+    for template in flow_templates:
+        for flow_id in template.instance_flow_ids:
+            flow_to_template.setdefault(flow_id, template.template_id)
+
+    action_to_flow_ids: dict[str, list[str]] = defaultdict(list)
+    for flow in result.flows:
+        seen_action_ids: set[str] = set()
+        for action_id in flow.action_ids:
+            if action_id in seen_action_ids:
+                continue
+            action_to_flow_ids[action_id].append(flow.flow_id)
+            seen_action_ids.add(action_id)
+
+    locator_health_rows: list[dict[str, Any]] = []
+    for card in page_object_cards:
+        locator_rows = list(card.get("locator_rows", []))
+        fragile_count = sum(
+            1
+            for row in locator_rows
+            if str(row.get("stability", "")).strip().lower() in {"low", "fragile"}
+        )
+        quality_score = int(card.get("quality_score", 0))
+        locator_health_rows.append(
+            {
+                "name": str(card.get("name", "Page Type")),
+                "anchor_id": str(card.get("anchor_id", "")),
+                "quality_score": quality_score,
+                "instance_count": int(card.get("instance_count", 0)),
+                "fragile_count": fragile_count,
+                "recommendation": (
+                    str(card.get("recommendations", [""])[0])
+                    if card.get("recommendations")
+                    else "Locator strategy looks healthy on this page type."
+                ),
+            }
+        )
+    locator_health_rows.sort(
+        key=lambda row: (
+            int(row["quality_score"]),
+            -int(row["fragile_count"]),
+            str(row["name"]).lower(),
+        )
+    )
+
+    flaky_actions: list[dict[str, Any]] = []
+    for item in diagnostics.get("flaky_items", []):
+        if not isinstance(item, dict):
+            continue
+        action_id = str(item.get("action_id", "")).strip()
+        related_flows = action_to_flow_ids.get(action_id, [])
+        flow_id = related_flows[0] if related_flows else ""
+        flaky_actions.append(
+            {
+                "source_page": str(item.get("source_page", "")),
+                "action_label": str(item.get("action_label", action_id)),
+                "outcomes": list(item.get("outcomes", [])),
+                "occurrences": int(item.get("occurrences", 0)),
+                "flow_id": flow_id,
+                "template_id": flow_to_template.get(flow_id, ""),
+            }
+        )
+    flaky_actions.sort(
+        key=lambda row: (
+            -int(row["occurrences"]),
+            -len(row["outcomes"]),
+            str(row["action_label"]).lower(),
+        )
+    )
+
+    low_stability_steps: list[dict[str, Any]] = []
+    for item in diagnostics.get("low_confidence_items", []):
+        if not isinstance(item, dict):
+            continue
+        step_index = int(item.get("step_index", 0))
+        flow_ctx = execution_step_map.get(step_index, {})
+        flow_id = str(flow_ctx.get("flow_id", "")).strip()
+        confidence_pct = int(item.get("confidence_pct", 0))
+        severity = "low"
+        if confidence_pct < 60:
+            severity = "medium"
+        if confidence_pct < 40:
+            severity = "high"
+        low_stability_steps.append(
+            {
+                "step_index": step_index,
+                "source_page": str(item.get("source_page", "")),
+                "action_label": str(item.get("action_label", "")),
+                "confidence_pct": confidence_pct,
+                "confidence_reason": str(item.get("confidence_reason", "")),
+                "detail": str(item.get("detail", "")),
+                "flow_id": flow_id,
+                "flow_name": str(flow_ctx.get("flow_name", "")),
+                "flow_step": int(flow_ctx.get("flow_step", 0) or 0),
+                "template_id": flow_to_template.get(flow_id, ""),
+                "severity": severity,
+            }
+        )
+    low_stability_steps.sort(
+        key=lambda row: (
+            int(row["confidence_pct"]),
+            int(row["step_index"]),
+        )
+    )
+
+    recommendations: list[dict[str, Any]] = []
+    seen_recommendations: set[tuple[str, str, str]] = set()
+
+    def _push_recommendation(
+        *,
+        priority: str,
+        title: str,
+        detail: str,
+        link_kind: str,
+        link_value: str,
+    ) -> None:
+        key = (title, link_kind, link_value)
+        if key in seen_recommendations:
+            return
+        seen_recommendations.add(key)
+        recommendations.append(
+            {
+                "priority": priority,
+                "title": title,
+                "detail": detail,
+                "link_kind": link_kind,
+                "link_value": link_value,
+            }
+        )
+
+    for row in locator_health_rows:
+        if int(row["fragile_count"]) <= 0 and int(row["quality_score"]) >= 80:
+            continue
+        priority = "medium"
+        if int(row["quality_score"]) < 50 or int(row["fragile_count"]) >= 3:
+            priority = "high"
+        _push_recommendation(
+            priority=priority,
+            title=f"Improve locator quality on {row['name']}",
+            detail=str(row["recommendation"]),
+            link_kind="page_object",
+            link_value=str(row["anchor_id"]),
+        )
+
+    for row in flaky_actions:
+        if not row["flow_id"]:
+            continue
+        _push_recommendation(
+            priority="high",
+            title=f"Stabilize flaky action '{row['action_label']}'",
+            detail=(
+                f"Observed outcomes: {', '.join(row['outcomes'])} "
+                f"across {row['occurrences']} occurrences."
+            ),
+            link_kind="flow",
+            link_value=str(row["flow_id"]),
+        )
+
+    for row in low_stability_steps[:8]:
+        _push_recommendation(
+            priority="high" if row["severity"] == "high" else "medium",
+            title=f"Fix low-confidence step {row['step_index']}",
+            detail=(
+                f"{row['action_label']} on {row['source_page']} "
+                f"({row['confidence_pct']}% confidence)."
+            ),
+            link_kind="step",
+            link_value=str(row["step_index"]),
+        )
+
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    recommendations.sort(
+        key=lambda item: (
+            priority_order.get(str(item["priority"]), 3),
+            str(item["title"]).lower(),
+        )
+    )
+
+    return {
+        "locator_health_rows": locator_health_rows,
+        "flaky_actions": flaky_actions,
+        "low_stability_steps": low_stability_steps,
+        "recommendations": recommendations[:12],
+        "locator_issue_count": sum(
+            1
+            for row in locator_health_rows
+            if int(row["fragile_count"]) > 0 or int(row["quality_score"]) < 80
+        ),
+        "flaky_action_count": len(flaky_actions),
+        "low_stability_count": len(low_stability_steps),
+    }
 
 
 def _select_matching_step_index(
