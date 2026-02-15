@@ -3169,7 +3169,14 @@
                 <div class="section-line"></div>
             </div>
             <div class="diag-subtext" style="margin-bottom: 0.75rem;">Flow Templates view</div>
+            <div class="filter-toolbar" role="toolbar" aria-label="Generated test views">
+                <div class="button-group" role="group" aria-label="Generated test case view mode">
+                    <button id="generated-view-canonical" class="filter-btn active" aria-pressed="true" onclick="setGeneratedTestView('canonical', this)">Canonical scenarios</button>
+                    <button id="generated-view-instances" class="filter-btn" aria-pressed="false" onclick="setGeneratedTestView('instances', this)">Crawl instances</button>
+                </div>
+            </div>
 
+            <div id="generated-tests-canonical-view">
             <div class="filter-toolbar" role="toolbar" aria-label="Filter test cases">
                 <button class="filter-btn active" data-filter="all" onclick="filterTestCases('all', this)">All ({{ flow_template_cards|length }})</button>
                 <button class="filter-btn" data-filter="pass" onclick="filterTestCases('pass', this)">Stable</button>
@@ -3364,6 +3371,53 @@
                 <span>No flow templates available for this run.</span>
             </div>
             {% endif %}
+            </div>
+
+            <div id="generated-tests-instance-view" class="page-hidden">
+                <div class="filter-toolbar" role="toolbar" aria-label="Filter generated test instances">
+                    <select id="instance-status-filter" class="search-box" aria-label="Filter by instance status" onchange="filterFlowInstances()">
+                        <option value="all">All statuses</option>
+                        <option value="pass">Pass</option>
+                        <option value="warn">Warn</option>
+                        <option value="fail">Fail</option>
+                    </select>
+                    <input id="instance-search" type="text" class="search-box" placeholder="Search instance names..." aria-label="Search generated test instances" oninput="filterFlowInstances()">
+                </div>
+                {% if flow_instance_cards %}
+                <div style="display: grid; gap: 0.75rem;">
+                    {% for card in flow_instance_cards %}
+                    <article class="test-case generated-instance-card" data-status="{{ card.status }}" data-name="{{ card.flow_name|lower }} {{ card.template_name|lower }}">
+                        <div class="test-case-header">
+                            <div class="test-case-left">
+                                <span class="verdict {{ card.status }}">{{ card.status }}</span>
+                                <span class="tc-name">{{ card.flow_name }}</span>
+                            </div>
+                            <div class="test-case-right">
+                                <span class="tc-steps-count">{{ card.depth }} steps</span>
+                                <span class="tc-steps-count">{{ card.stability_pct }}% stability</span>
+                            </div>
+                        </div>
+                        <div class="test-case-body">
+                            <div class="test-step-row" style="margin-bottom: 0.5rem;">
+                                <div class="test-step-desc">
+                                    {{ card.summary }}
+                                    <span class="cell-dim">Template: {{ card.template_name }}</span>
+                                </div>
+                            </div>
+                            <div class="quick-actions">
+                                <button class="filter-btn" onclick="openFlowInstance('{{ card.flow_id }}', null)">Open full timeline</button>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="untested-callout">
+                    <span class="callout-icon">&#9432;</span>
+                    <span>No concrete crawl instances are available for this run.</span>
+                </div>
+                {% endif %}
+            </div>
         </section>
 
         <!-- ============================================================
@@ -4316,9 +4370,11 @@
             const suitesRoot = document.getElementById('test-suites');
             if (!suitesRoot) return;
 
-            suitesRoot.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'active-fail', 'active-warn'));
+            suitesRoot.querySelectorAll('.filter-btn[data-filter]').forEach((b) => {
+                b.classList.remove('active', 'active-fail', 'active-warn');
+            });
             if (!btnEl) {
-                btnEl = suitesRoot.querySelector('.filter-toolbar .filter-btn[data-filter="' + verdict + '"]');
+                btnEl = suitesRoot.querySelector('.filter-btn[data-filter="' + verdict + '"]');
             }
             if (btnEl) {
                 if (verdict === 'fail') btnEl.classList.add('active-fail');
@@ -4331,9 +4387,35 @@
         function jumpToTestCases(verdict) {
             setReportPage('test-flows');
             const section = document.getElementById('test-suites');
+            setGeneratedTestView('canonical');
             filterTestCases(verdict, null);
             if (section) {
                 section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function setGeneratedTestView(mode) {
+            const canonicalView = document.getElementById('generated-tests-canonical-view');
+            const instanceView = document.getElementById('generated-tests-instance-view');
+            const canonicalBtn = document.getElementById('generated-view-canonical');
+            const instanceBtn = document.getElementById('generated-view-instances');
+            const normalized = mode === 'instances' ? 'instances' : 'canonical';
+            if (!canonicalView || !instanceView || !canonicalBtn || !instanceBtn) return;
+
+            const showingCanonical = normalized === 'canonical';
+            canonicalView.classList.toggle('page-hidden', !showingCanonical);
+            instanceView.classList.toggle('page-hidden', showingCanonical);
+
+            [canonicalBtn, instanceBtn].forEach((button) => {
+                const isActive = button === (showingCanonical ? canonicalBtn : instanceBtn);
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            if (showingCanonical) {
+                filterFlowTemplates();
+            } else {
+                filterFlowInstances();
             }
         }
 
@@ -4350,7 +4432,7 @@
             const suitesRoot = document.getElementById('test-suites');
             if (!suitesRoot) return;
             const activeBtn = suitesRoot.querySelector(
-                '.filter-toolbar .filter-btn.active, .filter-toolbar .filter-btn.active-fail, .filter-toolbar .filter-btn.active-warn'
+                '.filter-btn[data-filter].active, .filter-btn[data-filter].active-fail, .filter-btn[data-filter].active-warn'
             );
             const verdict = activeBtn && activeBtn.dataset ? activeBtn.dataset.filter || 'all' : 'all';
             const typeFilter = (
@@ -4383,6 +4465,23 @@
                 const tagMatch = !tagFilter || tags.includes(tagFilter);
 
                 card.style.display = (verdictMatch && typeMatch && stabilityMatch && tagMatch) ? '' : 'none';
+            });
+        }
+
+        function filterFlowInstances() {
+            const statusFilter = (
+                (document.getElementById('instance-status-filter') || {}).value || 'all'
+            ).toLowerCase().trim();
+            const searchValue = (
+                (document.getElementById('instance-search') || {}).value || ''
+            ).toLowerCase().trim();
+
+            document.querySelectorAll('.generated-instance-card').forEach((card) => {
+                const status = String(card.dataset.status || '').toLowerCase();
+                const name = String(card.dataset.name || '').toLowerCase();
+                const statusMatch = statusFilter === 'all' || status === statusFilter;
+                const searchMatch = !searchValue || name.includes(searchValue);
+                card.style.display = statusMatch && searchMatch ? '' : 'none';
             });
         }
 
@@ -4748,7 +4847,9 @@
             }
             setSiteMapView('canonical');
             setReportPage('site-map');
+            setGeneratedTestView('canonical');
             filterFlowTemplates();
+            filterFlowInstances();
         });
 
         document.addEventListener('keydown', (event) => {

@@ -15,6 +15,7 @@ from flowscout.reporting.html import (
     _build_diagnostics,
     _build_human_execution_rows,
     _build_timeline_sentence,
+    _build_flow_instance_cards,
     _build_flow_template_cards,
     _build_graph_data,
     _build_page_object_cards,
@@ -655,6 +656,45 @@ def test_build_flow_template_cards_include_instances_and_status_counts() -> None
     assert cards[0]["warn_count"] == 0
     assert cards[0]["representative_rows"]
     assert len(cards[0]["instances"]) == 2
+
+
+def test_build_flow_instance_cards_flattens_and_sorts_instances() -> None:
+    cards = _build_flow_instance_cards(
+        flow_template_cards=[
+            {
+                "template_id": "template-alpha",
+                "name": "Browse Listing \u2192 Detail",
+                "instances": [
+                    {
+                        "flow_id": "flow-pass",
+                        "name": "Detail page pass path",
+                        "status": "pass",
+                        "stability_score": 0.9,
+                        "depth": 2,
+                        "tags": ["smoke"],
+                    },
+                    {
+                        "flow_id": "flow-fail",
+                        "name": "Detail page fail path",
+                        "status": "fail",
+                        "stability_score": 0.2,
+                        "depth": 3,
+                        "tags": ["regression"],
+                    },
+                ],
+            }
+        ]
+    )
+
+    assert len(cards) == 2
+    assert cards[0]["status"] == "fail"
+    assert cards[0]["flow_id"] == "flow-fail"
+    assert cards[0]["stability_pct"] == 20
+    assert (
+        cards[0]["summary"] == "Detail page fail path takes 3 steps with 20% stability."
+    )
+    assert cards[1]["status"] == "pass"
+    assert cards[1]["template_name"] == "Browse Listing \u2192 Detail"
 
 
 def test_build_quality_insights_provides_actionable_links() -> None:

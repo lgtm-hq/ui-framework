@@ -156,6 +156,9 @@ class ReportDataBuilder:
             flow_execution_map=flow_execution_map,
             flow_status_map=flow_status_map,
         )
+        flow_instance_cards = _build_flow_instance_cards(
+            flow_template_cards=flow_template_cards,
+        )
         input_provenance = _build_input_provenance(
             result=result,
             action_metadata=action_metadata,
@@ -245,6 +248,7 @@ class ReportDataBuilder:
             "orphan_execution_rows": orphan_execution_rows,
             "execution_step_map": execution_step_map,
             "flow_template_cards": flow_template_cards,
+            "flow_instance_cards": flow_instance_cards,
             "input_provenance": input_provenance,
             "locator_quality_rows": locator_quality_rows,
             "locator_recommendations": locator_recommendations,
@@ -1509,6 +1513,61 @@ def _build_flow_template_cards(
             -int(card["occurrence_count"]),
             -float(card["stability_score"]),
             str(card["name"]).lower(),
+        )
+    )
+    return cards
+
+
+def _build_flow_instance_cards(
+    *,
+    flow_template_cards: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Flatten template instances into cards for the instance-centric report view."""
+    cards: list[dict[str, Any]] = []
+    for template_card in flow_template_cards:
+        template_id = str(template_card.get("template_id", "")).strip()
+        template_name = str(template_card.get("name", "Generated template")).strip()
+        for instance in template_card.get("instances", []):
+            flow_id = str(instance.get("flow_id", "")).strip()
+            flow_name = str(instance.get("name", flow_id)).strip()
+            status = str(instance.get("status", "warn")).strip().lower() or "warn"
+            stability_score = float(instance.get("stability_score", 0.0) or 0.0)
+            depth = int(instance.get("depth", 0) or 0)
+            cards.append(
+                {
+                    "instance_id": _slugify_token(f"{template_id}-{flow_id}"),
+                    "template_id": template_id,
+                    "template_name": template_name,
+                    "flow_id": flow_id,
+                    "flow_name": flow_name,
+                    "status": status,
+                    "stability_score": stability_score,
+                    "stability_pct": int(round(stability_score * 100)),
+                    "depth": depth,
+                    "tags": list(instance.get("tags", [])),
+                    "summary": (
+                        f"{flow_name} takes {depth} step"
+                        f"{'' if depth == 1 else 's'} with"
+                        f" {int(round(stability_score * 100))}% stability."
+                    ),
+                }
+            )
+
+    def _status_priority(status_value: str) -> int:
+        normalized = status_value.lower()
+        if normalized == "fail":
+            return 0
+        if normalized == "warn":
+            return 1
+        if normalized == "pass":
+            return 2
+        return 3
+
+    cards.sort(
+        key=lambda card: (
+            _status_priority(str(card.get("status", ""))),
+            str(card["template_name"]).lower(),
+            str(card["flow_name"]).lower(),
         )
     )
     return cards

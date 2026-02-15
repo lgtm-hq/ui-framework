@@ -156,7 +156,16 @@ def test_html_report_groups_test_suites_by_flow_template(tmp_path: Path) -> None
         "Browse Listing Page \u2192 Detail Page" in html
         or "Browse Listing \u2192 Detail" in html
     )
+    assert "Canonical scenarios" in html
+    assert "Crawl instances" in html
+    assert 'id="generated-tests-canonical-view"' in html
+    assert 'id="generated-tests-instance-view"' in html
+    assert 'id="instance-status-filter"' in html
+    assert 'id="instance-search"' in html
+    assert "function setGeneratedTestView(mode)" in html
+    assert "function filterFlowInstances()" in html
     assert "2 instances" in html
     assert "Show all instances" in html
     assert "Movie 1 detail" in html
     assert "Movie 2 detail" in html
+    assert "Open full timeline" in html
