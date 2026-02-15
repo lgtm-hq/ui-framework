@@ -120,8 +120,7 @@ def test_report_moves_selector_into_flow_timeline_table(tmp_path: Path) -> None:
     html = output.read_text()
 
     assert "show technical selector" not in html
-    assert "<th>Locator</th>" in html
-    assert "#user-name" in html
+    assert "<th>Step Narrative</th>" in html
 
 
 def test_report_modal_styles_use_theme_tokens(tmp_path: Path) -> None:
@@ -143,3 +142,25 @@ def test_report_modal_styles_use_theme_tokens(tmp_path: Path) -> None:
     assert "rgba(0, 8, 18, 0.78)" not in html
     assert "linear-gradient(180deg, #0c151f 0%, #0a121a 100%)" not in html
     assert "rgba(45, 212, 191, 0.10)" not in html
+
+
+def test_report_assets_are_local_offline_paths(tmp_path: Path) -> None:
+    output = tmp_path / "report.html"
+    result = ExplorationResult(
+        config={
+            "start_url": "https://example.com",
+            "strategy": "priority",
+        }
+    )
+
+    HTMLReporter().generate(result, str(output))
+    html = output.read_text()
+
+    assert "https://fonts.googleapis.com" not in html
+    assert "https://unpkg.com" not in html
+    assert 'href="assets/turbo-core.css"' in html
+    assert 'href="assets/turbo-base.css"' in html
+    assert 'href="assets/themes/catppuccin-mocha.css"' in html
+    assert (tmp_path / "assets" / "turbo-core.css").exists()
+    assert (tmp_path / "assets" / "turbo-base.css").exists()
+    assert (tmp_path / "assets" / "themes" / "catppuccin-mocha.css").exists()

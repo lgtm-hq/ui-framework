@@ -2717,7 +2717,7 @@
                         <caption class="sr-only">Blocked page states</caption>
                         <thead>
                             <tr>
-                                <th>State</th>
+                                <th>Page</th>
                                 <th>Reason</th>
                                 <th>Detail</th>
                                 <th>URL</th>
@@ -2727,7 +2727,7 @@
                         <tbody>
                             {% for row in blocked_states %}
                             <tr>
-                                <td class="cell-dim">{{ row.state_short }}</td>
+                                <td class="cell-action">{{ row.title }}</td>
                                 <td class="cell-action">{{ row.reason_label }}</td>
                                 <td class="cell-dim">{{ row.detail or '—' }}</td>
                                 <td class="cell-dim">{{ row.url }}</td>
@@ -3273,7 +3273,7 @@
                                                 <th>Step</th>
                                                 <th>From</th>
                                                 <th>Action</th>
-                                                <th>Locator</th>
+                                                <th>Step Narrative</th>
                                                 <th>Outcome</th>
                                                 <th>Status</th>
                                                 <th>Confidence</th>
@@ -3287,7 +3287,7 @@
                                                 <td class="cell-dim">{{ row.flow_step }}</td>
                                                 <td class="cell-action">{{ row.source_page }}</td>
                                                 <td class="cell-action">{{ row.action_label }}</td>
-                                                <td class="cell-url">{{ row.target_selector or (('#' ~ row.dom_id) if row.dom_id else '—') }}</td>
+                                                <td class="cell-url">{{ row.timeline_sentence or row.action_label }}</td>
                                                 <td><span class="outcome {{ row.outcome }}">{{ row.outcome }}</span></td>
                                                 <td>{% if row.verdict %}<span class="verdict {{ row.verdict }}">{{ row.verdict }}</span>{% else %}<span class="verdict inconclusive">n/a</span>{% endif %}</td>
                                                 <td class="confidence-cell">{{ row.confidence_pct }}%</td>
@@ -3409,7 +3409,7 @@
                                     <caption class="sr-only">Locator table for {{ card.name }}</caption>
                                     <thead>
                                         <tr>
-                                            <th>Selector</th>
+                                            <th>Element</th>
                                             <th>Stability</th>
                                             <th>Zone</th>
                                             <th class="right">Exercised</th>
@@ -3418,7 +3418,7 @@
                                     <tbody>
                                         {% for row in card.locator_rows %}
                                         <tr>
-                                            <td class="cell-url" title="{{ row.raw_selector }}">{{ row.selector }}</td>
+                                            <td class="cell-url">Element {{ loop.index }}</td>
                                             <td><span class="pom-stability {{ row.stability }}">{{ row.stability }}</span></td>
                                             <td class="cell-dim">{{ row.zone }}</td>
                                             <td class="cell-right">{{ "yes" if row.exercised else "no" }}</td>
@@ -3501,7 +3501,6 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>State ID</th>
                                 <th>Page</th>
                                 <th class="right">Depth</th>
                                 <th class="right">Interactive</th>
@@ -3514,7 +3513,6 @@
                             {% for row in discovery_timeline %}
                             <tr class="elements-drilldown-row" onclick="openElementsDrilldown('{{ row.state_id }}', 'State Discovery Progression')" title="Open element details for this state">
                                 <td class="cell-dim">{{ row.order }}</td>
-                                <td class="cell-dim"><code>{{ row.state_short }}</code></td>
                                 <td class="cell-action" title="{{ row.url }}">{{ row.title }}</td>
                                 <td class="cell-right">{{ row.depth }}</td>
                                 <td class="cell-right" style="color: var(--accent-green);">{{ row.interactive }}</td>
@@ -3537,7 +3535,6 @@
                         <caption class="sr-only">Per-state element inventory</caption>
                         <thead>
                             <tr>
-                                <th>State ID</th>
                                 <th>Page</th>
                                 <th>URL</th>
                                 <th class="right">Interactive</th>
@@ -3548,7 +3545,6 @@
                         <tbody>
                             {% for page in element_inventory.per_page %}
                             <tr class="elements-drilldown-row" onclick="openElementsDrilldown('{{ page.state_id }}', 'Per-State Inventory')" title="Open element details for this state">
-                                <td class="cell-dim"><code>{{ page.state_id[:8] }}</code></td>
                                 <td class="cell-action">{{ page.title or page.url or 'Page' }}</td>
                                 <td class="cell-url">{{ page.url }}</td>
                                 <td class="cell-right" style="color: var(--accent-green);">{{ page.interactive_elements }}</td>
@@ -3573,7 +3569,6 @@
                                 <th>Page</th>
                                 <th>URL</th>
                                 <th class="right">States</th>
-                                <th>State IDs</th>
                                 <th class="right">Interactive</th>
                                 <th class="right">Content</th>
                                 <th class="right">Total</th>
@@ -3585,7 +3580,6 @@
                                 <td class="cell-action">{{ row.title or row.url or 'Page' }}</td>
                                 <td class="cell-url">{{ row.url or '—' }}</td>
                                 <td class="cell-right">{{ row.state_count }}</td>
-                                <td class="cell-url">{{ row.state_ids_short|join(', ') }}</td>
                                 <td class="cell-right" style="color: var(--accent-green);">{{ row.interactive_elements }}</td>
                                 <td class="cell-right" style="color: var(--accent-amber);">{{ row.non_interactive_elements }}</td>
                                 <td class="cell-right">{{ row.total_elements }}</td>
@@ -4564,7 +4558,7 @@
                 return;
             }
 
-            title.textContent = 'Element Details · ' + (info.title || info.url || info.state_short || 'Page');
+            title.textContent = 'Element Details · ' + (info.title || info.url || 'Page');
 
             const typeChips = (info.top_types || []).length
                 ? info.top_types.map((item) => '<span class="elements-modal-chip">' + esc(pretty(item.name)) + ' (' + esc(item.count) + ')</span>').join('')
@@ -4579,8 +4573,6 @@
                 const kindLabel = entry.is_interactive ? 'Interactive' : 'Content';
                 const visibilityClass = entry.is_visible ? 'visible' : 'hidden';
                 const visibilityLabel = entry.is_visible ? 'Visible' : 'Detected hidden';
-                const domId = entry.dom_id || '—';
-                const locator = entry.selector || '—';
                 const typeLabel = pretty(entry.element_type || 'other');
                 const zoneLabel = pretty(entry.zone_type || 'main_content');
                 const label = entry.label || 'Unnamed element';
@@ -4604,8 +4596,6 @@
                     '</td>' +
                     '<td class="cell-dim">' + esc(typeLabel) + '</td>' +
                     '<td class="cell-dim">' + esc(zoneLabel) + '</td>' +
-                    '<td class="cell-url">' + esc(domId) + '</td>' +
-                    '<td class="cell-url">' + esc(locator) + '</td>' +
                     '<td>' + screenshotCell + '</td>' +
                 '</tr>';
             }).join('');
@@ -4623,8 +4613,6 @@
                                     '<th>Visibility</th>' +
                                     '<th>Type</th>' +
                                     '<th>Zone</th>' +
-                                    '<th>DOM ID</th>' +
-                                    '<th>Selector</th>' +
                                     '<th>Screenshot</th>' +
                                 '</tr>' +
                             '</thead>' +
@@ -4656,8 +4644,7 @@
                     '<div class="elements-modal-list">' + zoneChips + '</div>' +
                 '</div>' +
                 entriesBlock +
-                '<div class="execution-detail-text"><strong>URL:</strong><br>' + esc(info.url || '—') + '</div>' +
-                '<div class="execution-detail-text"><strong>Technical Context:</strong><br>state_id: ' + esc(info.state_id || '—') + '</div>';
+                '<div class="execution-detail-text"><strong>URL:</strong><br>' + esc(info.url || '—') + '</div>';
 
             modal.classList.add('visible');
             document.body.style.overflow = 'hidden';
@@ -4729,17 +4716,8 @@
                         '<div class="execution-focus-header"><span class="step-tag actual">Actual</span></div>' +
                         '<div class="execution-focus-body">' + esc(row.actual || '—') + '</div>' +
                     '</div>' +
-                    '<div class="execution-focus-card selector">' +
-                        '<div class="execution-focus-header"><span class="step-tag selector">DOM ID</span></div>' +
-                        '<div class="execution-focus-body">' + esc(row.dom_id || '—') + '</div>' +
-                    '</div>' +
-                    '<div class="execution-focus-card selector">' +
-                        '<div class="execution-focus-header"><span class="step-tag selector">Selector</span></div>' +
-                        '<div class="execution-focus-body">' + esc(row.target_selector || '—') + '</div>' +
-                    '</div>' +
                 '</div>' +
                 '<div class="execution-detail-text"><strong>URL:</strong><br>before: ' + esc(row.url_before || '—') + '<br>after: ' + esc(row.url_after || '—') + '</div>' +
-                '<div class="execution-detail-text"><strong>Technical Details:</strong><br>action_id: ' + esc(row.action_id || '—') + '<br>dom_id: ' + esc(row.dom_id || '—') + '<br>source_state_id: ' + esc(row.source_state_id || '—') + '<br>target_state_id: ' + esc(row.target_state_id || '—') + '</div>' +
                 (errors ? '<div class="execution-detail-text"><strong>Validation / Errors:</strong><br>' + errors + '</div>' : '') +
                 (consoleErrors ? '<div class="execution-detail-text"><strong>Console Errors:</strong><br>' + consoleErrors + '</div>' : '') +
                 (row.message ? '<div class="execution-detail-text"><strong>Message:</strong><br>' + esc(row.message) + '</div>' : '') +

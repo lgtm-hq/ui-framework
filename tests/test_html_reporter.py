@@ -1,12 +1,14 @@
 """Tests for HTML report helper utilities."""
 
 import os
+import re
 from pathlib import Path
 
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageBlockReason, PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.reporting.html import (
+    HTMLReporter,
     _build_blocked_states,
     _build_cross_run_comparison,
     _build_dashboard_top_issues,
@@ -1073,3 +1075,69 @@ def test_build_dashboard_top_issues_limits_and_sorts_by_priority() -> None:
     assert top_issues[0]["priority"] == "high"
     assert top_issues[1]["priority"] == "high"
     assert top_issues[2]["priority"] == "medium"
+
+
+def _visible_text_without_scripts(html: str) -> str:
+    """Return only visible text content from HTML source."""
+    without_scripts = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.S)
+    without_styles = re.sub(
+        r"<style[^>]*>.*?</style>", " ", without_scripts, flags=re.S
+    )
+    without_tags = re.sub(r"<[^>]+>", " ", without_styles)
+    return " ".join(without_tags.split())
+
+
+def test_report_hides_machine_ids_from_visible_text(tmp_path: Path) -> None:
+    output = tmp_path / "report.html"
+    result = ExplorationResult(
+        config={"start_url": "https://example.com", "strategy": "priority"},
+        states={
+            "state-alpha-1234": PageState(
+                state_id="state-alpha-1234",
+                url="https://example.com",
+                title="Home",
+                fingerprint="f" * 64,
+                depth=0,
+                dom_structure_hash="dom-a",
+                visible_text_hash="text-a",
+                form_state_hash="form-a",
+            ),
+            "state-beta-9876": PageState(
+                state_id="state-beta-9876",
+                url="https://example.com/details",
+                title="Details",
+                fingerprint="e" * 64,
+                depth=1,
+                dom_structure_hash="dom-b",
+                visible_text_hash="text-b",
+                form_state_hash="form-b",
+            ),
+        },
+        actions={
+            "action-machine-888": Action(
+                action_id="action-machine-888",
+                action_type=ActionType.CLICK,
+                target_selector="#toggle-track-desktop",
+                label="Open details",
+                metadata={"dom_id": "toggle-track-desktop"},
+            )
+        },
+        results=[
+            ActionResult(
+                action_id="action-machine-888",
+                source_state_id="state-alpha-1234",
+                target_state_id="state-beta-9876",
+                outcome=OutcomeType.NAVIGATION,
+                url_before="https://example.com",
+                url_after="https://example.com/details",
+            )
+        ],
+    )
+
+    HTMLReporter().generate(result, str(output))
+    visible_text = _visible_text_without_scripts(output.read_text())
+
+    assert "state-alpha-1234" not in visible_text
+    assert "state-beta-9876" not in visible_text
+    assert "action-machine-888" not in visible_text
+    assert "toggle-track-desktop" not in visible_text
