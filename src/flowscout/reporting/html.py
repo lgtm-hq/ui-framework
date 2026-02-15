@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from pathlib import Path
+import shutil
 from typing import Any
 from urllib.parse import urlparse
 
@@ -23,6 +24,7 @@ from flowscout.storage.db import FlowscoutDB
 
 _TEMPLATE_DIR = Path(__file__).parent / "templates"
 _VENDOR_DIR = Path(__file__).parent / "vendor"
+_ASSETS_DIR = Path(__file__).parent / "assets"
 # CLI tool, not Flask — Jinja2 used directly with autoescape=True
 # nosemgrep: python.flask.security.xss.audit.direct-use-of-jinja2.direct-use-of-jinja2
 _ENV = Environment(
@@ -59,6 +61,7 @@ class ReportDataBuilder:
 
         action_labels = {aid: a.label for aid, a in result.actions.items()}
         action_selectors = {aid: a.target_selector for aid, a in result.actions.items()}
+        action_types = {aid: a.action_type.value for aid, a in result.actions.items()}
         action_metadata = {
             aid: dict(a.metadata or {}) for aid, a in result.actions.items()
         }
@@ -125,9 +128,13 @@ class ReportDataBuilder:
         execution_rows = _build_execution_rows(
             result=result,
             action_labels=action_labels,
+            action_types=action_types,
             action_selectors=action_selectors,
             action_metadata=action_metadata,
             screenshot_links=result_screenshot_links,
+        )
+        human_execution_rows = _build_human_execution_rows(
+            execution_rows=execution_rows,
         )
         element_drilldown_map = _build_element_drilldown_map(
             result=result,
@@ -233,6 +240,7 @@ class ReportDataBuilder:
             "url_inventory_rows": url_inventory_rows,
             "element_drilldown_map": element_drilldown_map,
             "execution_rows": execution_rows,
+            "human_execution_rows": human_execution_rows,
             "flow_execution_map": flow_execution_map,
             "orphan_execution_rows": orphan_execution_rows,
             "execution_step_map": execution_step_map,
@@ -265,6 +273,7 @@ class HTMLReporter:
         report_dir = Path(output_path).parent
         builder = ReportDataBuilder(result, report_dir=report_dir)
         context = builder.build()
+        context["assets"] = _materialize_report_assets(report_dir=report_dir)
 
         vis_js = (_VENDOR_DIR / "vis-network.min.js").read_text()
         context["vis_network_js"] = vis_js
@@ -277,6 +286,28 @@ class HTMLReporter:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(html)
+
+
+def _materialize_report_assets(*, report_dir: Path) -> dict[str, str]:
+    """Copy packaged report assets beside output HTML and return relative hrefs."""
+    target_assets_dir = report_dir / "assets"
+    target_assets_dir.mkdir(parents=True, exist_ok=True)
+
+    if _ASSETS_DIR.exists():
+        for source_path in _ASSETS_DIR.rglob("*"):
+            if source_path.is_dir():
+                continue
+            rel_path = source_path.relative_to(_ASSETS_DIR)
+            target_path = target_assets_dir / rel_path
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, target_path)
+
+    return {
+        "turbo_core_css": "assets/turbo-core.css",
+        "turbo_base_css": "assets/turbo-base.css",
+        "default_theme_css": "assets/themes/catppuccin-mocha.css",
+        "theme_base_href": "assets/themes/",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1161,6 +1192,7 @@ def _build_execution_rows(
     *,
     result: ExplorationResult,
     action_labels: dict[str, str],
+    action_types: dict[str, str] | None = None,
     action_selectors: dict[str, str],
     action_metadata: dict[str, dict[str, str]],
     screenshot_links: list[str | None],
@@ -1171,6 +1203,20 @@ def _build_execution_rows(
         source_state = result.states.get(action_result.source_state_id)
         target_state = result.states.get(action_result.target_state_id)
         metadata = action_metadata.get(action_result.action_id, {})
+        source_page = (
+            source_state.title
+            if source_state and source_state.title
+            else (source_state.url if source_state else "Unknown page")
+        )
+        target_page = (
+            target_state.title
+            if target_state and target_state.title
+            else (target_state.url if target_state else "Unknown page")
+        )
+        action_label = action_labels.get(
+            action_result.action_id, action_result.action_id
+        )
+        outcome = action_result.outcome.value
 
         rows.append(
             {
@@ -1179,20 +1225,11 @@ def _build_execution_rows(
                 "target_state_id": action_result.target_state_id,
                 "source_state_short": action_result.source_state_id[:8],
                 "target_state_short": action_result.target_state_id[:8],
-                "source_page": (
-                    source_state.title
-                    if source_state and source_state.title
-                    else (source_state.url if source_state else "Unknown page")
-                ),
-                "target_page": (
-                    target_state.title
-                    if target_state and target_state.title
-                    else (target_state.url if target_state else "Unknown page")
-                ),
+                "source_page": source_page,
+                "target_page": target_page,
                 "action_id": action_result.action_id,
-                "action_label": action_labels.get(
-                    action_result.action_id, action_result.action_id
-                ),
+                "action_label": action_label,
+                "action_type": (action_types or {}).get(action_result.action_id, ""),
                 "target_selector": action_selectors.get(action_result.action_id, ""),
                 "dom_id": (
                     metadata.get("dom_id", "")
@@ -1202,11 +1239,10 @@ def _build_execution_rows(
                 ),
                 "expected": "",
                 "actual": (
-                    action_result.message
-                    or action_result.observation_notes
-                    or action_result.outcome.value
+                    action_result.message or action_result.observation_notes or outcome
                 ),
-                "outcome": action_result.outcome.value,
+                "outcome": outcome,
+                "outcome_display": _human_outcome_label(outcome),
                 "verdict": (
                     "pass"
                     if float(action_result.stability_score or 0.0) >= 0.7
@@ -1225,8 +1261,98 @@ def _build_execution_rows(
                 "screenshot_link": screenshot_links[index - 1],
                 "input_source": metadata.get("input_source", ""),
                 "input_profile": metadata.get("input_profile", ""),
+                "source_page_display": _human_page_label(source_page),
+                "target_page_display": _human_page_label(target_page),
+                "action_display": _human_action_label(action_label),
+                "timeline_sentence": _build_timeline_sentence(
+                    source_page=source_page,
+                    action_label=action_label,
+                    target_page=target_page,
+                    outcome=outcome,
+                ),
             }
         )
+    return rows
+
+
+def _human_outcome_label(outcome: str) -> str:
+    """Return a plain-English label for technical outcomes."""
+    return {
+        "navigation": "Opened a new page",
+        "dom_change": "Updated this page",
+        "visual_change": "Visual change detected",
+        "no_change": "No visible change",
+        "validation_error": "Validation message shown",
+        "network_error": "Request failed",
+        "console_error": "Client-side script error",
+        "timeout": "Action timed out",
+        "exception": "Unexpected execution error",
+    }.get(str(outcome).strip().lower(), "Outcome observed")
+
+
+def _human_page_label(value: str) -> str:
+    """Normalize page labels for human-readable report copy."""
+    label = str(value or "").strip()
+    return label or "Unknown page"
+
+
+def _human_action_label(value: str) -> str:
+    """Normalize action labels for plain-English timeline rows."""
+    text = str(value or "").strip()
+    if not text:
+        return "performed an action"
+    for prefix in (
+        "Click: ",
+        "Fill: ",
+        "Check: ",
+        "Uncheck: ",
+        "Select option: ",
+        "Select radio: ",
+        "Toggle: ",
+        "Open dropdown: ",
+        "Tab: ",
+    ):
+        if text.startswith(prefix):
+            return text[len(prefix) :].strip() or "performed an action"
+    return text
+
+
+def _build_timeline_sentence(
+    *,
+    source_page: str,
+    action_label: str,
+    target_page: str,
+    outcome: str,
+) -> str:
+    """Build a human-readable sentence describing one crawl transition."""
+    source = _human_page_label(source_page)
+    action = _human_action_label(action_label)
+    target = _human_page_label(target_page)
+    outcome_label = _human_outcome_label(outcome).lower()
+    if source == target:
+        return f"On {source}, the crawler used '{action}' and {outcome_label}."
+    return (
+        f"From {source}, the crawler used '{action}' and reached {target} "
+        f"({outcome_label})."
+    )
+
+
+def _build_human_execution_rows(
+    *,
+    execution_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Build a human-first timeline view while preserving machine rows separately."""
+    rows: list[dict[str, Any]] = []
+    for row in execution_rows:
+        copied = dict(row)
+        copied["display"] = {
+            "source_page": row.get("source_page_display", "Unknown page"),
+            "target_page": row.get("target_page_display", "Unknown page"),
+            "action": row.get("action_display", "performed an action"),
+            "outcome": row.get("outcome_display", "Outcome observed"),
+            "sentence": row.get("timeline_sentence", ""),
+        }
+        rows.append(copied)
     return rows
 
 

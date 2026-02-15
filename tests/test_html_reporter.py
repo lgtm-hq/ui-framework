@@ -11,6 +11,8 @@ from flowscout.reporting.html import (
     _build_cross_run_comparison,
     _build_dashboard_top_issues,
     _build_diagnostics,
+    _build_human_execution_rows,
+    _build_timeline_sentence,
     _build_flow_template_cards,
     _build_graph_data,
     _build_page_object_cards,
@@ -19,6 +21,8 @@ from flowscout.reporting.html import (
     _build_site_structure_summary,
     _build_execution_rows,
     _build_flow_execution_map,
+    _human_action_label,
+    _human_outcome_label,
     _build_locator_quality_data,
     _build_mbt_coverage_data,
     _to_report_asset_href,
@@ -231,6 +235,53 @@ def test_build_locator_quality_data_uses_site_model_scoring() -> None:
     assert len(rows) == 1
     assert rows[0]["quality_text"] == "Locator Quality: 20% stable"
     assert recommendations
+
+
+def test_human_outcome_label_uses_plain_english_copy() -> None:
+    assert _human_outcome_label("navigation") == "Opened a new page"
+    assert _human_outcome_label("dom_change") == "Updated this page"
+    assert _human_outcome_label("no_change") == "No visible change"
+
+
+def test_human_action_label_strips_technical_prefixes() -> None:
+    assert _human_action_label("Click: Open movie") == "Open movie"
+    assert _human_action_label("Fill: Search = 'foo'") == "Search = 'foo'"
+    assert _human_action_label("Custom action") == "Custom action"
+
+
+def test_build_timeline_sentence_is_human_readable() -> None:
+    sentence = _build_timeline_sentence(
+        source_page="Home",
+        action_label="Click: Browse catalog",
+        target_page="Catalog",
+        outcome="navigation",
+    )
+    assert sentence == (
+        "From Home, the crawler used 'Browse catalog' and reached Catalog "
+        "(opened a new page)."
+    )
+
+
+def test_build_human_execution_rows_adds_display_payload() -> None:
+    rows = _build_human_execution_rows(
+        execution_rows=[
+            {
+                "index": 1,
+                "source_page_display": "Home",
+                "target_page_display": "Catalog",
+                "action_display": "Open catalog",
+                "outcome_display": "Opened a new page",
+                "timeline_sentence": "From Home ...",
+            }
+        ]
+    )
+    assert rows[0]["display"] == {
+        "source_page": "Home",
+        "target_page": "Catalog",
+        "action": "Open catalog",
+        "outcome": "Opened a new page",
+        "sentence": "From Home ...",
+    }
 
 
 def test_build_mbt_coverage_data_builds_matrix_and_uncovered_edges() -> None:
