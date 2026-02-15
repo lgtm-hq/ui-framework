@@ -255,6 +255,27 @@ class TestTimelineReadabilityDefaults:
         assert "Debug Trace (raw technical details)" in html
 
 
+class TestDefaultLandingTab:
+    def test_dashboard_button_is_active_by_default(self, tmp_path: Path) -> None:
+        html = _generate_report(tmp_path)
+        assert 'class="page-btn active" data-page="dashboard"' in html
+
+    def test_site_map_button_is_not_active_by_default(self, tmp_path: Path) -> None:
+        html = _generate_report(tmp_path)
+        assert 'class="page-btn active" data-page="site-map"' not in html
+
+    def test_init_script_sets_dashboard(self, tmp_path: Path) -> None:
+        html = _generate_report(tmp_path)
+        assert "setReportPage('dashboard')" in html
+
+
+class TestPageHiddenCssScope:
+    def test_page_hidden_is_global_class(self, tmp_path: Path) -> None:
+        html = _generate_report(tmp_path)
+        assert ".page-hidden" in html
+        assert "[data-report-page].page-hidden" not in html
+
+
 class TestFocusIndicators:
     def test_focus_visible_styles_present(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)

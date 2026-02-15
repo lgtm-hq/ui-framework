@@ -616,7 +616,7 @@
             background: rgba(103, 232, 249, 0.08);
         }
 
-        [data-report-page].page-hidden {
+        .page-hidden {
             display: none !important;
         }
 
@@ -2343,8 +2343,8 @@
 
     <main id="main-content" class="report-container" role="main">
         <nav class="page-nav animate-in" role="navigation" aria-label="Report sections">
-            <button class="page-btn active" data-page="site-map" onclick="setReportPage('site-map', this)">Site Map</button>
-            <button class="page-btn" data-page="dashboard" onclick="setReportPage('dashboard', this)">What Happened</button>
+            <button class="page-btn" data-page="site-map" onclick="setReportPage('site-map', this)">Site Map</button>
+            <button class="page-btn active" data-page="dashboard" onclick="setReportPage('dashboard', this)">What Happened</button>
             <button class="page-btn" data-page="execution-log" onclick="setReportPage('execution-log', this)">Crawl Timeline</button>
             <button class="page-btn" data-page="test-flows" onclick="setReportPage('test-flows', this)">Generated Tests</button>
             <button class="page-btn" data-page="quality" onclick="setReportPage('quality', this)">Quality Signals</button>
@@ -2399,6 +2399,7 @@
                         <div class="metric-value blue">{{ "%.1f"|format(duration) }}s</div>
                     </div>
                 </div>
+                {% if human_execution_rows %}
                 <div class="step-timeline" style="margin-top: 1rem;">
                     {% for row in human_execution_rows[:12] %}
                     <article class="step-item {{ row.verdict }}">
@@ -2414,6 +2415,16 @@
                 </div>
                 {% if human_execution_rows|length > 12 %}
                 <div class="diag-subtext">Showing the first 12 steps here. Open Crawl Timeline for the full run.</div>
+                {% endif %}
+                {% else %}
+                <div class="untested-callout" style="margin-top: 1rem;">
+                    <span class="callout-icon">&#9432;</span>
+                    {% if blocked_count > 0 %}
+                    <span>No interactive steps were captured. The crawl hit {{ blocked_count }} blocked page{{ 's' if blocked_count != 1 }} before actions could run.</span>
+                    {% else %}
+                    <span>No interactive steps were captured for this run. Review page objects and diagnostics to refine crawl inputs.</span>
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
         </section>
@@ -3168,6 +3179,7 @@
                 <div class="section-count">{{ flow_template_cards|length }} templates · {{ flows|length }} instances</div>
                 <div class="section-line"></div>
             </div>
+            {% if flow_template_cards or flow_instance_cards %}
             <div class="diag-subtext" style="margin-bottom: 0.75rem;">Flow Templates view</div>
             <div class="filter-toolbar" role="toolbar" aria-label="Generated test views">
                 <div class="button-group" role="group" aria-label="Generated test case view mode">
@@ -3418,6 +3430,16 @@
                 </div>
                 {% endif %}
             </div>
+            {% else %}
+            <div class="untested-callout">
+                <span class="callout-icon">&#9432;</span>
+                {% if blocked_count > 0 %}
+                <span>No test cases were generated. The crawl was blocked before any interactive actions could be captured.</span>
+                {% else %}
+                <span>No test cases were generated. The crawler found no interactive flows on this page. Check the Site Map and Quality Signals tabs for details.</span>
+                {% endif %}
+            </div>
+            {% endif %}
         </section>
 
         <!-- ============================================================
@@ -3944,14 +3966,15 @@
         <!-- ============================================================
              SECTION F: ALL ACTIONS (ADVANCED)
              ============================================================ -->
-        <section id="execution-log" class="section section-collapsible collapsed animate-in delay-4" data-report-page="execution-log">
-            <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
+        <section id="execution-log" class="section {% if execution_rows %}section-collapsible collapsed{% endif %} animate-in delay-4" data-report-page="execution-log">
+            <div class="section-header" {% if execution_rows %}role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}"{% endif %}>
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Step-by-Step Crawl Timeline</h2>
                 <div class="section-count">{{ execution_rows|length }} total &middot; {{ orphan_execution_rows|length }} unmatched</div>
                 <div class="section-line"></div>
             </div>
             <div class="section-body">
+                {% if execution_rows %}
                 {% if orphan_execution_rows %}
                 <div class="untested-callout" style="margin-bottom: 0.75rem;">
                     <span class="callout-icon">&#9432;</span>
@@ -4090,6 +4113,16 @@
                         </div>
                     </div>
                 </details>
+                {% else %}
+                <div class="untested-callout">
+                    <span class="callout-icon">&#9432;</span>
+                    {% if blocked_count > 0 %}
+                    <span>No crawl steps to display. The crawler was blocked before any page interactions could be recorded.</span>
+                    {% else %}
+                    <span>No crawl steps were recorded for this run. The crawler did not find any actionable elements on the starting page.</span>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </section>
 
@@ -4946,7 +4979,7 @@
                 });
             }
             setSiteMapView('canonical');
-            setReportPage('site-map');
+            setReportPage('dashboard');
             setGeneratedTestView('canonical');
             filterFlowTemplates();
             filterFlowInstances();

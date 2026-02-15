@@ -1117,6 +1117,97 @@ def test_build_dashboard_top_issues_limits_and_sorts_by_priority() -> None:
     assert top_issues[2]["priority"] == "medium"
 
 
+def _generate_zero_data_report(
+    tmp_path: Path,
+    *,
+    blocked: bool = False,
+) -> str:
+    """Generate a report with 0 actions, 0 flows. Return HTML content."""
+    output = tmp_path / "report.html"
+    states: dict[str, PageState] = {
+        "state-home": PageState(
+            state_id="state-home",
+            url="https://example.com/",
+            title="Home",
+            fingerprint="f" * 64,
+            depth=0,
+            dom_structure_hash="dom1",
+            visible_text_hash="text1",
+            form_state_hash="form1",
+        ),
+    }
+    if blocked:
+        states["state-blocked"] = PageState(
+            state_id="state-blocked",
+            url="https://example.com/admin",
+            title="Admin",
+            fingerprint="e" * 64,
+            depth=0,
+            dom_structure_hash="dom2",
+            visible_text_hash="text2",
+            form_state_hash="form2",
+            block_reason=PageBlockReason.ACCESS_DENIED,
+            block_detail="HTTP 403 Forbidden",
+        )
+    result = ExplorationResult(
+        config={"start_url": "https://example.com", "strategy": "priority"},
+        states=states,
+    )
+    HTMLReporter().generate(result, str(output))
+    return output.read_text()
+
+
+def test_default_landing_tab_is_dashboard(tmp_path: Path) -> None:
+    html = _generate_zero_data_report(tmp_path)
+    assert 'data-page="dashboard" onclick="setReportPage(\'dashboard\'' in html
+    assert 'class="page-btn active" data-page="dashboard"' in html, (
+        "Dashboard button should be active by default"
+    )
+    assert 'class="page-btn active" data-page="site-map"' not in html, (
+        "Site Map button should not be active by default"
+    )
+    assert "setReportPage('dashboard')" in html
+
+
+def test_page_hidden_css_is_global_not_scoped(tmp_path: Path) -> None:
+    html = _generate_zero_data_report(tmp_path)
+    assert ".page-hidden" in html
+    assert "[data-report-page].page-hidden" not in html
+
+
+def test_zero_data_report_shows_no_steps_message(tmp_path: Path) -> None:
+    html = _generate_zero_data_report(tmp_path)
+    assert "No interactive steps were captured" in html
+
+
+def test_zero_data_blocked_report_explains_blocked(tmp_path: Path) -> None:
+    html = _generate_zero_data_report(tmp_path, blocked=True)
+    assert "blocked" in html.lower()
+    assert "No interactive steps were captured" in html
+
+
+def test_zero_data_report_hides_test_filters(tmp_path: Path) -> None:
+    html = _generate_zero_data_report(tmp_path)
+    assert "No test cases were generated" in html
+    assert 'id="template-type-filter"' not in html
+    assert 'id="template-stability-filter"' not in html
+    assert 'id="template-tag-filter"' not in html
+
+
+def test_zero_data_report_timeline_shows_empty_state(tmp_path: Path) -> None:
+    html = _generate_zero_data_report(tmp_path)
+    assert "No crawl steps" in html
+    assert 'id="timeline-visibility-filter"' not in html
+
+
+def test_zero_data_blocked_report_timeline_mentions_blocked(
+    tmp_path: Path,
+) -> None:
+    html = _generate_zero_data_report(tmp_path, blocked=True)
+    assert "blocked" in html.lower()
+    assert "No crawl steps to display" in html
+
+
 def _visible_text_without_scripts(html: str) -> str:
     """Return only visible text content from HTML source."""
     without_scripts = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.S)
