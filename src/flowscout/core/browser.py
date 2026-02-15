@@ -153,6 +153,25 @@ def _build_session_storage_restore_script(
     )
 
 
+def _build_redirect_chain(
+    document_navigation_events: list[dict[str, str | bool]],
+) -> list[dict[str, str]]:
+    """Build a compact redirect chain from document navigation events."""
+    chain: list[dict[str, str]] = []
+    seen_pairs: set[tuple[str, str]] = set()
+    for event in document_navigation_events:
+        url = str(event.get("url", "")).strip()
+        status = str(event.get("status", "")).strip()
+        if not url:
+            continue
+        pair = (url, status)
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+        chain.append({"url": url, "status": status})
+    return chain
+
+
 class StabilityWaiter:
     """Waits for the DOM to stabilize by polling hash changes."""
 
@@ -201,7 +220,9 @@ class BrowserManager:
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
         self._page: Page | None = None
-        self._detector = detector or OutcomeDetector()
+        self._detector = detector or OutcomeDetector(
+            outcome_mode=config.outcome_mode,
+        )
         self._browser_defaults = browser_defaults or DEFAULT_BROWSER
         self._stability_waiter = stability_waiter or StabilityWaiter(
             poll_interval_s=self._browser_defaults.stability_poll_interval_s,
@@ -579,18 +600,34 @@ class BrowserManager:
         dom_hash_before = await self.get_dom_hash()
 
         console_errors: list[str] = []
-        network_errors: list[dict[str, str]] = []
+        network_errors: list[dict[str, str | bool]] = []
+        document_navigation_events: list[dict[str, str | bool]] = []
 
         def on_console(msg: Any) -> None:
             if msg.type == "error":
                 console_errors.append(msg.text)
 
         def on_response(resp: Any) -> None:
-            if resp.status >= 400:
-                network_errors.append({"url": resp.url, "status": str(resp.status)})
             try:
                 request = resp.request
                 resource_type = str(request.resource_type)
+                method = str(request.method)
+                is_navigation = bool(request.is_navigation_request())
+                is_document = bool(
+                    resource_type == "document" and request.frame == page.main_frame
+                )
+                response_event = {
+                    "url": resp.url,
+                    "status": str(resp.status),
+                    "method": method,
+                    "resource_type": resource_type,
+                    "is_navigation": is_navigation,
+                    "is_document": is_document,
+                }
+                if resp.status >= 400:
+                    network_errors.append(response_event)
+                if is_document and is_navigation:
+                    document_navigation_events.append(response_event)
                 if resource_type == "document":
                     self._last_navigation_status = int(resp.status)
             except (AttributeError, TypeError, ValueError):
@@ -611,6 +648,14 @@ class BrowserManager:
             outcome = OutcomeType.TIMEOUT
             message = str(exc)
             screenshot_path = await self._capture_action_screenshot(action)
+            transition_kind, transition_detail = self._detector.describe_transition(
+                outcome=outcome,
+                url_before=url_before,
+                url_after=page.url,
+                network_errors=network_errors,
+                console_errors=console_errors,
+                document_navigation_events=document_navigation_events,
+            )
 
             page.remove_listener("console", on_console)
             page.remove_listener("response", on_response)
@@ -624,6 +669,16 @@ class BrowserManager:
                 url_after=page.url,
                 error_messages=[],
                 console_errors=console_errors,
+                network_errors=network_errors,
+                navigation_status=self._last_navigation_status,
+                redirect_chain=_build_redirect_chain(document_navigation_events),
+                history_api_signal=(
+                    "url_changed_without_document_navigation"
+                    if transition_kind == "client_route_navigation"
+                    else ""
+                ),
+                transition_kind=transition_kind,
+                transition_detail=transition_detail,
                 screenshot_path=screenshot_path,
             )
         except (PlaywrightError, OSError) as exc:
@@ -631,6 +686,14 @@ class BrowserManager:
             outcome = OutcomeType.EXCEPTION
             message = str(exc)
             screenshot_path = await self._capture_action_screenshot(action)
+            transition_kind, transition_detail = self._detector.describe_transition(
+                outcome=outcome,
+                url_before=url_before,
+                url_after=page.url,
+                network_errors=network_errors,
+                console_errors=console_errors,
+                document_navigation_events=document_navigation_events,
+            )
 
             page.remove_listener("console", on_console)
             page.remove_listener("response", on_response)
@@ -642,6 +705,16 @@ class BrowserManager:
                 message=message,
                 url_before=url_before,
                 url_after=page.url,
+                network_errors=network_errors,
+                navigation_status=self._last_navigation_status,
+                redirect_chain=_build_redirect_chain(document_navigation_events),
+                history_api_signal=(
+                    "url_changed_without_document_navigation"
+                    if transition_kind == "client_route_navigation"
+                    else ""
+                ),
+                transition_kind=transition_kind,
+                transition_detail=transition_detail,
                 screenshot_path=screenshot_path,
             )
 
@@ -662,6 +735,14 @@ class BrowserManager:
             console_errors=console_errors,
             network_errors=network_errors,
         )
+        transition_kind, transition_detail = self._detector.describe_transition(
+            outcome=outcome,
+            url_before=url_before,
+            url_after=url_after,
+            network_errors=network_errors,
+            console_errors=console_errors,
+            document_navigation_events=document_navigation_events,
+        )
         screenshot_path = await self._capture_action_screenshot(action)
 
         page.remove_listener("console", on_console)
@@ -676,6 +757,16 @@ class BrowserManager:
             url_after=url_after,
             error_messages=error_messages,
             console_errors=console_errors,
+            network_errors=network_errors,
+            navigation_status=self._last_navigation_status,
+            redirect_chain=_build_redirect_chain(document_navigation_events),
+            history_api_signal=(
+                "url_changed_without_document_navigation"
+                if transition_kind == "client_route_navigation"
+                else ""
+            ),
+            transition_kind=transition_kind,
+            transition_detail=transition_detail,
             screenshot_path=screenshot_path,
         )
 

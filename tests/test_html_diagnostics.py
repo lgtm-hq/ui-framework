@@ -121,6 +121,9 @@ def test_build_execution_rows_includes_dom_id_from_action_metadata() -> None:
                 source_state_id="state-alpha",
                 target_state_id="state-beta",
                 outcome=OutcomeType.NO_CHANGE,
+                transition_kind="no_change",
+                transition_detail="No visible change detected.",
+                navigation_status=200,
             )
         ],
     )
@@ -135,6 +138,9 @@ def test_build_execution_rows_includes_dom_id_from_action_metadata() -> None:
 
     assert len(rows) == 1
     assert rows[0]["dom_id"] == "toggle-track-desktop"
+    assert rows[0]["transition_kind"] == "no_change"
+    assert rows[0]["transition_detail"] == "No visible change detected."
+    assert rows[0]["navigation_status"] == 200
 
 
 def test_element_drilldown_marks_hidden_entries() -> None:

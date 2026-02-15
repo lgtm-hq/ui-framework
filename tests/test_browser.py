@@ -508,6 +508,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(ActionType.CLICK, "button#go")
         result = await bm.execute_action(action)
@@ -526,6 +529,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(ActionType.FILL, "input#name", value="John")
         result = await bm.execute_action(action)
@@ -546,6 +552,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(ActionType.SELECT_OPTION, "select#country", value="US")
         result = await bm.execute_action(action)
@@ -566,6 +575,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(ActionType.CHECK, "input#agree")
         result = await bm.execute_action(action)
@@ -585,6 +597,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(ActionType.UNCHECK, "input#agree")
         result = await bm.execute_action(action)
@@ -604,6 +619,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(ActionType.HOVER, "div.tooltip-trigger")
         result = await bm.execute_action(action)
@@ -623,6 +641,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(ActionType.PRESS_KEY, "", value="Enter")
         result = await bm.execute_action(action)
@@ -639,6 +660,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NAVIGATION)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         action = _make_action(
             ActionType.NAVIGATE, "", value="https://example.com/page2"
@@ -659,6 +683,9 @@ class TestExecuteAction:
         bm._detector = MagicMock()
         bm._detector.find_error_messages = AsyncMock(return_value=[])
         bm._detector.classify = MagicMock(return_value=OutcomeType.NO_CHANGE)
+        bm._detector.describe_transition = MagicMock(
+            return_value=("no_change", "No user-visible change was detected.")
+        )
 
         field_values = {"input#name": "John", "input#email": "john@test.com"}
         action = _make_action(

@@ -3,7 +3,7 @@
 import pytest
 
 from flowscout.analysis.detector import OutcomeDetector, detect_page_block
-from flowscout.core.state import PageBlockReason
+from flowscout.core.state import OutcomeMode, PageBlockReason
 from flowscout.discovery.actions import OutcomeType
 
 
@@ -122,6 +122,59 @@ class TestOutcomeDetector:
         )
         assert result == OutcomeType.NETWORK_ERROR
 
+    def test_document_only_mode_ignores_subresource_http_errors(self) -> None:
+        detector = OutcomeDetector(outcome_mode=OutcomeMode.DOCUMENT_ONLY)
+        result = detector.classify(
+            url_before="https://example.com",
+            url_after="https://example.com",
+            dom_hash_before="aaa",
+            dom_hash_after="bbb",
+            error_messages=[],
+            console_errors=[],
+            network_errors=[
+                {
+                    "url": "https://example.com/api",
+                    "status": "404",
+                    "is_document": False,
+                    "is_navigation": False,
+                }
+            ],
+        )
+        assert result == OutcomeType.DOM_CHANGE
+
+    def test_document_only_mode_keeps_document_navigation_http_errors(self) -> None:
+        detector = OutcomeDetector(outcome_mode=OutcomeMode.DOCUMENT_ONLY)
+        result = detector.classify(
+            url_before="https://example.com",
+            url_after="https://example.com",
+            dom_hash_before="aaa",
+            dom_hash_after="aaa",
+            error_messages=[],
+            console_errors=[],
+            network_errors=[
+                {
+                    "url": "https://example.com/private",
+                    "status": "403",
+                    "is_document": True,
+                    "is_navigation": True,
+                }
+            ],
+        )
+        assert result == OutcomeType.NETWORK_ERROR
+
+    def test_legacy_mode_keeps_prior_network_error_behavior(self) -> None:
+        detector = OutcomeDetector(outcome_mode=OutcomeMode.LEGACY)
+        result = detector.classify(
+            url_before="https://example.com",
+            url_after="https://example.com",
+            dom_hash_before="aaa",
+            dom_hash_after="aaa",
+            error_messages=[],
+            console_errors=[],
+            network_errors=[{"url": "/api", "status": "500"}],
+        )
+        assert result == OutcomeType.NETWORK_ERROR
+
     def test_console_and_validation_errors(self) -> None:
         """Console errors take priority over validation errors in the detector."""
         result = self.detector.classify(
@@ -134,6 +187,62 @@ class TestOutcomeDetector:
             network_errors=[],
         )
         assert result == OutcomeType.CONSOLE_ERROR
+
+    def test_describe_transition_detects_hard_navigation(self) -> None:
+        kind, detail = self.detector.describe_transition(
+            outcome=OutcomeType.NAVIGATION,
+            url_before="https://example.com/a",
+            url_after="https://example.com/b",
+            network_errors=[],
+            console_errors=[],
+            document_navigation_events=[
+                {
+                    "url": "https://example.com/b",
+                    "status": "200",
+                    "is_navigation": True,
+                    "is_document": True,
+                }
+            ],
+        )
+        assert kind == "hard_navigation"
+        assert "document navigation" in detail.lower()
+
+    def test_describe_transition_detects_redirect_navigation(self) -> None:
+        kind, detail = self.detector.describe_transition(
+            outcome=OutcomeType.NAVIGATION,
+            url_before="https://example.com/a",
+            url_after="https://example.com/b",
+            network_errors=[],
+            console_errors=[],
+            document_navigation_events=[
+                {
+                    "url": "https://example.com/a",
+                    "status": "302",
+                    "is_navigation": True,
+                    "is_document": True,
+                },
+                {
+                    "url": "https://example.com/b",
+                    "status": "200",
+                    "is_navigation": True,
+                    "is_document": True,
+                },
+            ],
+        )
+        assert kind == "redirect_navigation"
+        assert "redirect" in detail.lower()
+
+    def test_describe_transition_detects_client_route_navigation(self) -> None:
+        kind, detail = self.detector.describe_transition(
+            outcome=OutcomeType.NAVIGATION,
+            url_before="https://example.com/a",
+            url_after="https://example.com/b",
+            network_errors=[],
+            console_errors=[],
+            document_navigation_events=[],
+        )
+        assert kind == "client_route_navigation"
+        assert "without a top-level document navigation" in detail.lower()
 
 
 class _FakePage:

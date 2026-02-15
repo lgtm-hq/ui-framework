@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import logging
 from typing import Any
 
+from flowscout.core.state import OutcomeMode
 from flowscout.core.state import PageBlockReason
 from flowscout.discovery.actions import OutcomeType
 
@@ -111,9 +112,11 @@ class OutcomeDetector:
         *,
         error_selectors: list[str] | None = None,
         success_selectors: list[str] | None = None,
+        outcome_mode: OutcomeMode = OutcomeMode.LEGACY,
     ) -> None:
         self.error_selectors = error_selectors or ERROR_SELECTORS
         self.success_selectors = success_selectors or SUCCESS_SELECTORS
+        self.outcome_mode = outcome_mode
 
     def classify(
         self,
@@ -124,7 +127,7 @@ class OutcomeDetector:
         dom_hash_after: str,
         error_messages: list[str],
         console_errors: list[str],
-        network_errors: list[dict[str, str]],
+        network_errors: list[dict[str, str | bool]],
     ) -> OutcomeType:
         """Classify the outcome of an action based on observable signals."""
         # 1. URL changed → navigation
@@ -132,10 +135,20 @@ class OutcomeDetector:
             return OutcomeType.NAVIGATION
 
         # 2. Network errors (4xx, 5xx)
-        for resp in network_errors:
-            status = int(resp.get("status", 200))
-            if status >= 400:
-                return OutcomeType.NETWORK_ERROR
+        if self.outcome_mode == OutcomeMode.LEGACY:
+            for resp in network_errors:
+                status = int(resp.get("status", 200))
+                if status >= 400:
+                    return OutcomeType.NETWORK_ERROR
+        else:
+            for resp in network_errors:
+                status = int(resp.get("status", 200))
+                if status < 400:
+                    continue
+                is_document = bool(resp.get("is_document"))
+                is_navigation = bool(resp.get("is_navigation"))
+                if is_document and is_navigation:
+                    return OutcomeType.NETWORK_ERROR
 
         # 3. Console errors
         if console_errors:
@@ -160,6 +173,66 @@ class OutcomeDetector:
         except (AttributeError, RuntimeError, OSError):
             logger.debug("Error scanning for error messages", exc_info=True)
             return []
+
+    def describe_transition(
+        self,
+        *,
+        outcome: OutcomeType,
+        url_before: str,
+        url_after: str,
+        network_errors: list[dict[str, str | bool]],
+        console_errors: list[str],
+        document_navigation_events: list[dict[str, str | bool]] | None = None,
+    ) -> tuple[str, str]:
+        """Return a stable transition-kind and plain detail text."""
+        nav_events = list(document_navigation_events or [])
+
+        if outcome == OutcomeType.NAVIGATION:
+            if not nav_events:
+                return (
+                    "client_route_navigation",
+                    "URL changed without a top-level document navigation response.",
+                )
+
+            saw_redirect = any(
+                300 <= int(event.get("status", 0) or 0) < 400 for event in nav_events
+            )
+            if saw_redirect or len(_unique_navigation_urls(nav_events)) > 1:
+                return (
+                    "redirect_navigation",
+                    "Navigation completed after at least one redirect hop.",
+                )
+            return (
+                "hard_navigation",
+                "Top-level document navigation completed.",
+            )
+
+        if outcome == OutcomeType.DOM_CHANGE:
+            return ("dom_change", "The page DOM changed without URL navigation.")
+        if outcome == OutcomeType.NO_CHANGE:
+            return ("no_change", "No user-visible change was detected.")
+        if outcome == OutcomeType.VALIDATION_ERROR:
+            return (
+                "validation_block",
+                "A validation or form feedback message was detected.",
+            )
+        if outcome == OutcomeType.NETWORK_ERROR:
+            if network_errors:
+                first = network_errors[0]
+                return (
+                    "network_error",
+                    "HTTP/network failure"
+                    f" ({first.get('status', '?')}) at {first.get('url', '')}",
+                )
+            return ("network_error", "An HTTP/network failure was detected.")
+        if outcome == OutcomeType.CONSOLE_ERROR:
+            detail = console_errors[0] if console_errors else "Console error detected."
+            return ("console_error", detail)
+        if outcome == OutcomeType.TIMEOUT:
+            return ("timeout", "Action did not complete before timeout.")
+        if outcome == OutcomeType.EXCEPTION:
+            return ("error", "Action raised an execution exception.")
+        return ("unknown", "Transition type could not be determined.")
 
 
 async def detect_page_block(
@@ -276,3 +349,18 @@ def _contains_any(text: str, patterns: tuple[str, ...]) -> bool:
     """Return True when any normalized pattern exists in text."""
     lowered = str(text or "").lower()
     return any(pattern in lowered for pattern in patterns)
+
+
+def _unique_navigation_urls(
+    events: list[dict[str, str | bool]],
+) -> list[str]:
+    """Return navigation URLs preserving order while dropping duplicates."""
+    seen: set[str] = set()
+    urls: list[str] = []
+    for event in events:
+        url = str(event.get("url", "")).strip()
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        urls.append(url)
+    return urls

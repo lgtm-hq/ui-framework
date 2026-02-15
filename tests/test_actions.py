@@ -4,7 +4,9 @@ import json
 from typing import Any
 
 from flowscout.discovery.actions import (
+    ActionResult,
     ActionType,
+    OutcomeType,
     build_action_id,
     generate_actions,
     generate_form_submit_actions,
@@ -51,6 +53,47 @@ class TestGenerateActions:
             href="https://external.com/page",
         )
         actions = generate_actions([elem], base_url="https://mysite.com")
+        assert len(actions) == 0
+
+    def test_origin_scope_keeps_same_origin_absolute_link(self) -> None:
+        elem = _make_elem(
+            element_type=ElementType.LINK,
+            tag="a",
+            href="https://mysite.com/products",
+        )
+        actions = generate_actions(
+            [elem],
+            current_page_url="https://mysite.com/catalog",
+            link_scope_mode="origin",
+        )
+        assert len(actions) == 1
+        assert actions[0].action_type == ActionType.CLICK
+
+    def test_origin_scope_filters_cross_origin_absolute_link(self) -> None:
+        elem = _make_elem(
+            element_type=ElementType.LINK,
+            tag="a",
+            href="https://external.com/products",
+        )
+        actions = generate_actions(
+            [elem],
+            current_page_url="https://mysite.com/catalog",
+            link_scope_mode="origin",
+        )
+        assert len(actions) == 0
+
+    def test_legacy_scope_preserves_previous_path_based_filtering(self) -> None:
+        elem = _make_elem(
+            element_type=ElementType.LINK,
+            tag="a",
+            href="https://mysite.com/products",
+        )
+        actions = generate_actions(
+            [elem],
+            base_url="https://mysite.com/catalog",
+            current_page_url="https://mysite.com/catalog/page",
+            link_scope_mode="legacy",
+        )
         assert len(actions) == 0
 
     def test_input_generates_fill(self) -> None:
@@ -154,6 +197,25 @@ class TestBuildActionId:
         id1 = build_action_id("button#x", "click")
         id2 = build_action_id("button#y", "click")
         assert id1 != id2
+
+
+def test_action_result_supports_transition_metadata_fields() -> None:
+    result = ActionResult(
+        action_id="a1",
+        outcome=OutcomeType.NAVIGATION,
+        transition_kind="hard_navigation",
+        transition_detail="Top-level navigation completed.",
+        network_errors=[{"url": "https://example.com/api", "status": "500"}],
+        navigation_status=200,
+        redirect_chain=[
+            {"url": "https://example.com/start", "status": "302"},
+            {"url": "https://example.com/final", "status": "200"},
+        ],
+        history_api_signal="",
+    )
+    assert result.transition_kind == "hard_navigation"
+    assert result.navigation_status == 200
+    assert len(result.redirect_chain) == 2
 
 
 class TestEdgeCases:

@@ -6,6 +6,7 @@ from hashlib import md5
 
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urljoin, urlparse
 
 from pydantic import BaseModel, Field
 
@@ -70,6 +71,12 @@ class ActionResult(BaseModel):
     screenshot_path: str | None = None
     stability_score: float = 0.0
     observation_notes: str = ""
+    transition_kind: str = ""
+    transition_detail: str = ""
+    network_errors: list[dict[str, str | bool]] = Field(default_factory=list)
+    navigation_status: int | None = None
+    redirect_chain: list[dict[str, str]] = Field(default_factory=list)
+    history_api_signal: str = ""
     timestamp: str = ""
 
 
@@ -132,7 +139,9 @@ def generate_actions(
     elements: list[InteractiveElement],
     *,
     base_url: str = "",
+    current_page_url: str = "",
     input_profile: str = "safe",
+    link_scope_mode: str = "legacy",
 ) -> list[Action]:
     """Generate a list of actions from discovered elements."""
     actions: list[Action] = []
@@ -144,7 +153,9 @@ def generate_actions(
         new_actions = _actions_for_element(
             elem,
             base_url=base_url,
+            current_page_url=current_page_url,
             input_profile=input_profile,
+            link_scope_mode=link_scope_mode,
         )
         actions.extend(new_actions)
 
@@ -157,7 +168,9 @@ def _actions_for_element(
     elem: InteractiveElement,
     *,
     base_url: str = "",
+    current_page_url: str = "",
     input_profile: str = "safe",
+    link_scope_mode: str = "legacy",
 ) -> list[Action]:
     """Generate actions for a single element based on its type."""
     actions: list[Action] = []
@@ -183,7 +196,13 @@ def _actions_for_element(
 
         # Skip external links
         if etype == ElementType.LINK and elem.href:
-            if (
+            if link_scope_mode == "origin":
+                if _is_external_origin_link(
+                    href=elem.href,
+                    current_page_url=current_page_url,
+                ):
+                    return []
+            elif (
                 base_url
                 and not elem.href.startswith(base_url)
                 and elem.href.startswith("http")
@@ -335,6 +354,22 @@ def _actions_for_element(
         )
 
     return actions
+
+
+def _is_external_origin_link(*, href: str, current_page_url: str) -> bool:
+    """Return True when href points to a different origin than current page."""
+    if not href:
+        return False
+    href_norm = href.strip()
+    if href_norm.startswith("#"):
+        return False
+    resolved = urlparse(urljoin(current_page_url, href_norm))
+    current = urlparse(current_page_url)
+    if resolved.scheme not in {"http", "https"}:
+        return False
+    if current.scheme not in {"http", "https"}:
+        return False
+    return (resolved.scheme, resolved.netloc) != (current.scheme, current.netloc)
 
 
 def generate_form_submit_actions(
