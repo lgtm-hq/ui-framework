@@ -1181,3 +1181,55 @@ def test_report_hides_machine_ids_from_visible_text(tmp_path: Path) -> None:
     assert "state-beta-9876" not in visible_text
     assert "action-machine-888" not in visible_text
     assert "toggle-track-desktop" not in visible_text
+
+
+def test_report_includes_timeline_filters_and_debug_trace_panel(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "report.html"
+    result = ExplorationResult(
+        config={"start_url": "https://example.com", "strategy": "priority"},
+        states={
+            "state-home": PageState(
+                state_id="state-home",
+                url="https://example.com",
+                title="Home",
+                fingerprint="f" * 64,
+                depth=0,
+                dom_structure_hash="dom-home",
+                visible_text_hash="text-home",
+                form_state_hash="form-home",
+            )
+        },
+        actions={
+            "action-refresh": Action(
+                action_id="action-refresh",
+                action_type=ActionType.CLICK,
+                target_selector="button.refresh",
+                label="Refresh page",
+            )
+        },
+        results=[
+            ActionResult(
+                action_id="action-refresh",
+                source_state_id="state-home",
+                target_state_id="state-home",
+                outcome=OutcomeType.NO_CHANGE,
+                url_before="https://example.com",
+                url_after="https://example.com",
+            )
+        ],
+    )
+
+    HTMLReporter().generate(result, str(output))
+    html = output.read_text()
+
+    assert 'id="timeline-visibility-filter"' in html
+    assert "Effective steps only" in html
+    assert 'id="timeline-outcome-filter"' in html
+    assert 'id="timeline-action-filter"' in html
+    assert 'id="timeline-page-filter"' in html
+    assert 'data-effective="false"' in html
+    assert "function filterExecutionTimeline()" in html
+    assert 'id="debug-trace-panel"' in html
+    assert "Debug Trace (raw technical details)" in html

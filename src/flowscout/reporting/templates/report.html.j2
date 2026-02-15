@@ -3958,6 +3958,20 @@
                     <span>{{ orphan_execution_rows|length }} action{{ 's' if orphan_execution_rows|length != 1 }} could not be mapped to a specific flow timeline.</span>
                 </div>
                 {% endif %}
+                <div class="filter-toolbar" role="toolbar" aria-label="Filter crawl timeline">
+                    <select id="timeline-visibility-filter" class="search-box" aria-label="Timeline visibility" onchange="filterExecutionTimeline()">
+                        <option value="effective" selected>Effective steps only</option>
+                        <option value="all">All steps</option>
+                    </select>
+                    <select id="timeline-outcome-filter" class="search-box" aria-label="Filter timeline by outcome" onchange="filterExecutionTimeline()">
+                        <option value="all">All outcomes</option>
+                        {% for grouped in execution_rows|groupby('outcome') %}
+                        <option value="{{ grouped.grouper }}">{{ grouped.list[0].outcome_display }}</option>
+                        {% endfor %}
+                    </select>
+                    <input id="timeline-action-filter" type="text" class="search-box" placeholder="Filter by action..." aria-label="Filter timeline by action" oninput="filterExecutionTimeline()">
+                    <input id="timeline-page-filter" type="text" class="search-box" placeholder="Filter by page..." aria-label="Filter timeline by page" oninput="filterExecutionTimeline()">
+                </div>
                 <div class="data-table-wrap">
                     <div class="table-scroll">
                         <table class="data-table">
@@ -3981,7 +3995,16 @@
                             <tbody>
                                 {% for row in execution_rows %}
                                 {% set flow_ctx = execution_step_map.get(row.index) %}
-                                <tr id="execution-step-{{ row.index }}" class="execution-log-row" onclick="openExecutionStepModal({{ row.index }})" title="Open detailed step view">
+                                <tr
+                                    id="execution-step-{{ row.index }}"
+                                    class="execution-log-row timeline-row"
+                                    data-outcome="{{ row.outcome }}"
+                                    data-action="{{ row.action_label|lower }}"
+                                    data-page="{{ (row.source_page ~ ' ' ~ row.target_page)|lower }}"
+                                    data-effective="{{ 'false' if row.outcome == 'no_change' else 'true' }}"
+                                    onclick="openExecutionStepModal({{ row.index }})"
+                                    title="Open detailed step view"
+                                >
                                     <td class="cell-dim">{{ row.index }}</td>
                                     <td class="cell-action">{{ row.source_page }}</td>
                                     <td class="cell-action">
@@ -4017,6 +4040,56 @@
                         </table>
                     </div>
                 </div>
+                <details id="debug-trace-panel" class="test-case" style="margin-top: 1rem;">
+                    <summary class="test-case-header">
+                        <div class="test-case-left">
+                            <span class="verdict">debug</span>
+                            <span class="tc-name">Debug Trace (raw technical details)</span>
+                        </div>
+                        <div class="test-case-right">
+                            <span class="tc-steps-count">{{ execution_rows|length }} steps</span>
+                            <svg class="tc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                    </summary>
+                    <div class="test-case-body">
+                        <div class="diag-subtext" style="margin-bottom: 0.75rem;">
+                            This panel is collapsed by default and keeps the technical transition trace for diagnostics.
+                        </div>
+                        <div class="data-table-wrap">
+                            <div class="table-scroll">
+                                <table class="data-table">
+                                    <caption class="sr-only">Debug trace details</caption>
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Action Type</th>
+                                            <th>Transition</th>
+                                            <th>Outcome</th>
+                                            <th>Navigation Status</th>
+                                            <th>URL Before</th>
+                                            <th>URL After</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in execution_rows %}
+                                        <tr>
+                                            <td class="cell-dim">{{ row.index }}</td>
+                                            <td class="cell-dim">{{ row.action_type or 'unknown' }}</td>
+                                            <td class="cell-dim">{{ row.transition_kind or row.transition_detail or '—' }}</td>
+                                            <td class="cell-dim">{{ row.outcome_display }}</td>
+                                            <td class="cell-dim">{{ row.navigation_status if row.navigation_status is not none else '—' }}</td>
+                                            <td class="cell-url">{{ row.url_before or '—' }}</td>
+                                            <td class="cell-url">{{ row.url_after or '—' }}</td>
+                                            <td class="cell-dim">{{ row.confidence_reason or row.message or '—' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </details>
             </div>
         </section>
 
@@ -4485,6 +4558,33 @@
             });
         }
 
+        function filterExecutionTimeline() {
+            const visibility = (
+                (document.getElementById('timeline-visibility-filter') || {}).value || 'effective'
+            ).toLowerCase().trim();
+            const outcomeFilter = (
+                (document.getElementById('timeline-outcome-filter') || {}).value || 'all'
+            ).toLowerCase().trim();
+            const actionFilter = (
+                (document.getElementById('timeline-action-filter') || {}).value || ''
+            ).toLowerCase().trim();
+            const pageFilter = (
+                (document.getElementById('timeline-page-filter') || {}).value || ''
+            ).toLowerCase().trim();
+
+            document.querySelectorAll('#execution-log .timeline-row').forEach((row) => {
+                const outcome = String(row.dataset.outcome || '').toLowerCase();
+                const action = String(row.dataset.action || '').toLowerCase();
+                const page = String(row.dataset.page || '').toLowerCase();
+                const isEffective = String(row.dataset.effective || 'true') !== 'false';
+                const visibilityMatch = visibility === 'all' || (visibility === 'effective' && isEffective);
+                const outcomeMatch = outcomeFilter === 'all' || outcome === outcomeFilter;
+                const actionMatch = !actionFilter || action.includes(actionFilter);
+                const pageMatch = !pageFilter || page.includes(pageFilter);
+                row.style.display = visibilityMatch && outcomeMatch && actionMatch && pageMatch ? '' : 'none';
+            });
+        }
+
         /* --- Toggle state chain visibility --- */
         function toggleStateChain(btn) {
             const chain = btn.closest('.test-case-body').querySelector('.state-chain');
@@ -4850,6 +4950,7 @@
             setGeneratedTestView('canonical');
             filterFlowTemplates();
             filterFlowInstances();
+            filterExecutionTimeline();
         });
 
         document.addEventListener('keydown', (event) => {

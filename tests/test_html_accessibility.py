@@ -149,6 +149,17 @@ class TestAriaLandmarks:
         assert 'role="toolbar"' in html
         assert 'aria-label="Filter test cases"' in html
 
+    def test_timeline_filter_toolbar_has_accessible_labels(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        html = _generate_report(tmp_path)
+        assert 'aria-label="Filter crawl timeline"' in html
+        assert 'aria-label="Timeline visibility"' in html
+        assert 'aria-label="Filter timeline by outcome"' in html
+        assert 'aria-label="Filter timeline by action"' in html
+        assert 'aria-label="Filter timeline by page"' in html
+
 
 class TestAriaExpandedOnCollapsibles:
     def test_collapsible_sections_have_aria_expanded(self, tmp_path: Path) -> None:
@@ -226,6 +237,22 @@ class TestSearchAccessibility:
     def test_search_box_has_aria_label(self, tmp_path: Path) -> None:
         html = _generate_report(tmp_path)
         assert 'aria-label="Search test cases"' in html
+
+
+class TestTimelineReadabilityDefaults:
+    def test_timeline_defaults_to_effective_steps_only(self, tmp_path: Path) -> None:
+        html = _generate_report(tmp_path)
+        assert (
+            '<option value="effective" selected>Effective steps only</option>' in html
+        )
+
+    def test_debug_trace_panel_is_present_and_collapsible(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        html = _generate_report(tmp_path)
+        assert 'id="debug-trace-panel"' in html
+        assert "Debug Trace (raw technical details)" in html
 
 
 class TestFocusIndicators:
