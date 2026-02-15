@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 
 import click
 
+from flowscout.analysis.graph import ExplorationResult
 from flowscout.analysis.graph import ExplorationGraph
 from flowscout.cli.app import (
     DEFAULT_AUTH_CONFIG_PATH,
@@ -38,10 +39,17 @@ from flowscout.core.auth import AuthBootstrap
 from flowscout.core.browser import BrowserManager
 from flowscout.core.navigator import Navigator
 from flowscout.core.policy import ActionPolicyConfig
-from flowscout.core.state import ExplorerConfig, ExplorationStrategy, InputProfile
+from flowscout.core.state import (
+    ExplorerConfig,
+    ExplorationStrategy,
+    InputProfile,
+    LinkScopeMode,
+    OutcomeMode,
+)
 from flowscout.plugins import PluginRegistry
 from flowscout.reporting.html import HTMLReporter
 from flowscout.reporting.terminal import TerminalReporter
+from flowscout.reporting.trace_export import write_crawl_trace
 from flowscout.storage.db import FlowscoutDB
 
 
@@ -145,6 +153,28 @@ from flowscout.storage.db import FlowscoutDB
     help="Input generation profile.",
 )
 @click.option(
+    "--outcome-mode",
+    type=click.Choice(["legacy", "document-only"]),
+    default="legacy",
+    show_default=True,
+    help=(
+        "Outcome classification behavior."
+        " 'legacy' preserves prior behavior;"
+        " 'document-only' ignores non-document HTTP failures."
+    ),
+)
+@click.option(
+    "--link-scope-mode",
+    type=click.Choice(["legacy", "origin"]),
+    default="legacy",
+    show_default=True,
+    help=(
+        "Link scoping behavior for absolute links."
+        " 'legacy' preserves prior base-path behavior;"
+        " 'origin' keeps same-origin links."
+    ),
+)
+@click.option(
     "--enforce-non-destructive/--no-enforce-non-destructive",
     default=True,
     help="Enforce non-destructive exploration policy.",
@@ -211,6 +241,8 @@ def explore(
     no_db: bool,
     smart: bool,
     input_profile: str,
+    outcome_mode: str,
+    link_scope_mode: str,
     enforce_non_destructive: bool,
     allow_form_submits: bool,
     config_file: str,
@@ -370,6 +402,20 @@ def explore(
         config=crawl_config,
         config_keys=("input_profile",),
     )
+    resolved_outcome_mode = _resolve_str_option(
+        ctx=ctx,
+        parameter="outcome_mode",
+        cli_value=outcome_mode,
+        config=crawl_config,
+        config_keys=("outcome_mode",),
+    ).strip()
+    resolved_link_scope_mode = _resolve_str_option(
+        ctx=ctx,
+        parameter="link_scope_mode",
+        cli_value=link_scope_mode,
+        config=crawl_config,
+        config_keys=("link_scope_mode",),
+    ).strip()
     resolved_enforce_non_destructive = _resolve_bool_option(
         ctx=ctx,
         parameter="enforce_non_destructive",
@@ -513,6 +559,20 @@ def explore(
         smart_min_archetypes_before_stop=resolved_smart_min_archetypes_before_stop,
         smart_archetype_instance_limit=resolved_smart_archetype_instance_limit,
         input_profile=InputProfile(resolved_input_profile),
+        outcome_mode=OutcomeMode(
+            _normalize_choice_value(
+                value=resolved_outcome_mode,
+                option_name="outcome_mode",
+                allowed={"legacy", "document_only"},
+            )
+        ),
+        link_scope_mode=LinkScopeMode(
+            _normalize_choice_value(
+                value=resolved_link_scope_mode,
+                option_name="link_scope_mode",
+                allowed={"legacy", "origin"},
+            )
+        ),
         auth_profile=resolved_auth_profile_name or None,
         auth_required=resolved_auth_required,
         action_policy=ActionPolicyConfig(
@@ -588,6 +648,37 @@ def _build_output_dirs(
     return run_dir, None
 
 
+def _normalize_choice_value(
+    *,
+    value: str,
+    option_name: str,
+    allowed: set[str],
+) -> str:
+    """Normalize a config/CLI choice value to internal underscore form."""
+    normalized = str(value).strip().lower().replace("-", "_")
+    if normalized not in allowed:
+        choices = ", ".join(sorted(v.replace("_", "-") for v in allowed))
+        raise click.ClickException(
+            f"Invalid value for '{option_name}': {value!r}. Expected one of: {choices}",
+        )
+    return normalized
+
+
+def _write_run_artifacts(
+    *,
+    result: ExplorationResult,
+    run_dir: Path,
+) -> tuple[str, str]:
+    """Write machine artifacts produced by an exploration run."""
+    json_path = run_dir / "result.json"
+    json_path.write_text(result.model_dump_json(indent=2))
+    trace_path = write_crawl_trace(
+        result=result,
+        output_path=run_dir / "crawl_trace.json",
+    )
+    return str(json_path), str(trace_path)
+
+
 async def _run_exploration(
     config: ExplorerConfig,
     *,
@@ -643,6 +734,15 @@ async def _run_exploration(
         terminal=terminal,
     )
 
+    if config.outcome_mode == OutcomeMode.LEGACY:
+        console.print(
+            "  [yellow]Compatibility mode:[/yellow] outcome classification = legacy",
+        )
+    if config.link_scope_mode == LinkScopeMode.LEGACY:
+        console.print(
+            "  [yellow]Compatibility mode:[/yellow] link scoping = legacy",
+        )
+
     db: FlowscoutDB | None = None
     try:
         await browser.launch()
@@ -654,6 +754,10 @@ async def _run_exploration(
             )
             await browser.apply_auth_bootstrap(auth_bootstrap)
         result = await navigator.explore(config.start_url)
+        result.config["behavior_modes"] = {
+            "outcome_mode": config.outcome_mode.value.replace("_", "-"),
+            "link_scope_mode": config.link_scope_mode.value,
+        }
         saved_context_path = await browser.save_context()
         if saved_context_path:
             console.print(f"  [green]Context saved:[/green] {saved_context_path}")
@@ -680,10 +784,10 @@ async def _run_exploration(
             reporter_instance.generate(result, report_path)
             console.print(f"\n  [green]Report saved:[/green] {report_path}")
 
-        # Save JSON
-        json_path = str(run_dir / "result.json")
-        Path(json_path).write_text(result.model_dump_json(indent=2))
+        # Save machine artifacts
+        json_path, trace_path = _write_run_artifacts(result=result, run_dir=run_dir)
         console.print(f"  [green]JSON saved:[/green] {json_path}")
+        console.print(f"  [green]Crawl trace saved:[/green] {trace_path}")
 
         # Save to database
         if save_to_db:
