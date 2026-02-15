@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>flowscout — Test Report — {{ start_url }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/turbo-core.css">
-    <link rel="stylesheet" href="https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/turbo-base.css">
-    <link id="turbo-theme-stylesheet" rel="stylesheet" href="https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/themes/catppuccin-mocha.css">
+    <link rel="stylesheet" href="{{ assets.turbo_core_css }}">
+    <link rel="stylesheet" href="{{ assets.turbo_base_css }}">
+    <link id="turbo-theme-stylesheet" rel="stylesheet" href="{{ assets.default_theme_css }}">
     <script>
         (function() {
             const storageKey = 'flowscout-report-theme';
@@ -311,9 +308,56 @@
         .dashboard {
             margin-top: 2rem;
             display: grid;
-            grid-template-columns: 200px 1fr;
-            gap: 1.5rem;
+            grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+            gap: 1rem;
             align-items: start;
+        }
+
+        .dashboard-rail,
+        .dashboard-main {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .dashboard-panel {
+            background: linear-gradient(180deg, color-mix(in srgb, var(--bg-surface) 90%, var(--bg-base)) 0%, color-mix(in srgb, var(--bg-base) 88%, var(--bg-deep)) 100%);
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 1rem 1.1rem;
+            overflow: hidden;
+        }
+
+        .panel-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .panel-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+        }
+
+        .panel-subtitle {
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: var(--text-muted);
         }
 
         /* --- Pass rate donut --- */
@@ -360,38 +404,137 @@
             margin-top: 0.25rem;
         }
 
-        /* --- Dashboard right panel --- */
-        .dashboard-right {
+        .health-panel {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.9rem;
+        }
+
+        .health-pill {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            border-radius: 999px;
+            padding: 0.22rem 0.62rem;
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .health-pill.stable {
+            color: var(--accent-green);
+            background: var(--accent-green-dim);
+            border: 1px solid color-mix(in srgb, var(--accent-green) 35%, transparent);
+        }
+
+        .health-pill.watch {
+            color: var(--accent-amber);
+            background: var(--accent-amber-dim);
+            border: 1px solid color-mix(in srgb, var(--accent-amber) 35%, transparent);
+        }
+
+        .health-pill.critical {
+            color: var(--accent-red);
+            background: var(--accent-red-dim);
+            border: 1px solid color-mix(in srgb, var(--accent-red) 35%, transparent);
+        }
+
+        .health-summary {
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        .health-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+
+        .health-stat {
+            border: 1px solid var(--border-dim);
+            background: color-mix(in srgb, var(--bg-surface) 88%, var(--bg-base));
+            border-radius: 8px;
+            padding: 0.45rem 0.55rem;
+        }
+
+        .health-stat-label {
+            font-family: var(--font-mono);
+            font-size: 0.5625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+
+        .health-stat-value {
+            margin-top: 0.18rem;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+        }
+
+        .issue-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+            margin-top: 0.7rem;
+        }
+
+        .issue-card {
+            border: 1px solid var(--border-dim);
+            border-radius: 9px;
+            background: color-mix(in srgb, var(--bg-surface) 84%, var(--bg-base));
+            padding: 0.65rem 0.7rem;
+        }
+
+        .issue-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.45rem;
+        }
+
+        .issue-title {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.35;
+        }
+
+        .issue-detail {
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
         }
 
         /* --- Metric cards row --- */
         .metric-cards {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1px;
-            background: var(--border-dim);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border-dim);
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+            gap: 0.6rem;
         }
 
         .metric-card {
-            background: var(--bg-surface);
-            padding: 1rem 1.25rem;
+            background: color-mix(in srgb, var(--bg-surface) 88%, var(--bg-base));
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            padding: 0.9rem 0.95rem;
             display: flex;
             flex-direction: column;
             gap: 0.25rem;
-            transition: background 0.2s ease;
+            transition: border-color 0.2s ease;
         }
 
-        .metric-card:hover { background: var(--bg-raised); }
+        .metric-card:hover { border-color: var(--border-base); }
 
         .metric-value {
             font-family: var(--font-mono);
-            font-size: 1.75rem;
+            font-size: 1.4rem;
             font-weight: 700;
             letter-spacing: -0.04em;
             line-height: 1;
@@ -426,10 +569,17 @@
         }
 
         .quick-actions {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
             gap: 0.5rem;
+            align-items: stretch;
+        }
+
+        .quick-actions .filter-btn {
+            display: inline-flex;
             align-items: center;
-            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
         }
 
         .page-nav {
@@ -475,16 +625,20 @@
             display: flex;
             flex-direction: column;
             gap: 0.625rem;
-            padding: 1rem 1.25rem;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-dim);
-            border-radius: 12px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            border-radius: 0;
         }
 
         .coverage-row {
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            background: color-mix(in srgb, var(--bg-surface) 90%, var(--bg-base));
         }
 
         .coverage-label {
@@ -524,6 +678,34 @@
             width: 60px;
             text-align: right;
             flex-shrink: 0;
+        }
+
+        .context-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.65rem;
+        }
+
+        .context-card {
+            border: 1px solid var(--border-dim);
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--bg-surface) 88%, var(--bg-base));
+            padding: 0.72rem 0.8rem;
+        }
+
+        .context-card-title {
+            font-family: var(--font-mono);
+            font-size: 0.625rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .context-card-body {
+            margin-top: 0.3rem;
+            font-size: 0.75rem;
+            line-height: 1.45;
+            color: var(--text-secondary);
         }
 
         /* ============================================================
@@ -2073,12 +2255,17 @@
                 font-size: 0.625rem;
             }
             .dashboard { grid-template-columns: 1fr; }
+            .dashboard-rail { order: 2; }
+            .dashboard-main { order: 1; }
+            .dashboard-panel { padding: 0.85rem 0.9rem; }
             .pass-rate-ring { width: 140px; height: 140px; }
             .pass-rate-ring-inner { width: 90px; height: 90px; }
             .pass-rate-pct { font-size: 1.5rem; }
-            .metric-cards { grid-template-columns: repeat(2, 1fr); }
+            .metric-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .metric-value { font-size: 1.25rem; }
-            .coverage-label { width: 100px; }
+            .coverage-label { width: 94px; }
+            .coverage-row { flex-wrap: wrap; }
+            .coverage-pct { width: auto; margin-left: auto; }
             .filter-toolbar { flex-direction: column; align-items: stretch; }
             .search-box { width: 100%; margin-left: 0; }
             .page-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
@@ -2089,6 +2276,9 @@
         /* === Responsive — Mobile (480px) === */
         @media (max-width: 480px) {
             .metric-cards { grid-template-columns: 1fr; }
+            .health-stats { grid-template-columns: 1fr 1fr; }
+            .quick-actions { grid-template-columns: 1fr; }
+            .context-grid { grid-template-columns: 1fr; }
             .page-nav { gap: 0.35rem; }
             .page-btn { font-size: 0.625rem; padding: 0.35rem 0.5rem; }
             .data-table-wrap { border-radius: 8px; }
@@ -2142,29 +2332,7 @@
                             <span class="theme-picker-label">Theme</span>
                             <select id="theme-picker-select" class="theme-picker-select" aria-label="Select report theme">
                                 <option value="catppuccin-mocha">Catppuccin Mocha</option>
-                                <option value="catppuccin-macchiato">Catppuccin Macchiato</option>
-                                <option value="catppuccin-frappe">Catppuccin Frappe</option>
-                                <option value="catppuccin-latte">Catppuccin Latte</option>
-                                <option value="dracula">Dracula</option>
-                                <option value="github-dark">GitHub Dark</option>
-                                <option value="github-light">GitHub Light</option>
-                                <option value="nord">Nord</option>
-                                <option value="solarized-dark">Solarized Dark</option>
-                                <option value="solarized-light">Solarized Light</option>
-                                <option value="rose-pine">Rosé Pine</option>
-                                <option value="rose-pine-moon">Rosé Pine Moon</option>
-                                <option value="rose-pine-dawn">Rosé Pine Dawn</option>
-                                <option value="tokyo-night-dark">Tokyo Night Dark</option>
                                 <option value="tokyo-night-storm">Tokyo Night Storm</option>
-                                <option value="tokyo-night-light">Tokyo Night Light</option>
-                                <option value="gruvbox-dark-hard">Gruvbox Dark Hard</option>
-                                <option value="gruvbox-dark">Gruvbox Dark</option>
-                                <option value="gruvbox-dark-soft">Gruvbox Dark Soft</option>
-                                <option value="gruvbox-light-hard">Gruvbox Light Hard</option>
-                                <option value="gruvbox-light">Gruvbox Light</option>
-                                <option value="gruvbox-light-soft">Gruvbox Light Soft</option>
-                                <option value="bulma-dark">Bulma Dark</option>
-                                <option value="bulma-light">Bulma Light</option>
                             </select>
                         </label>
                     </div>
@@ -2175,16 +2343,16 @@
 
     <main id="main-content" class="report-container" role="main">
         <nav class="page-nav animate-in" role="navigation" aria-label="Report sections">
-            <button class="page-btn active" data-page="dashboard" onclick="setReportPage('dashboard', this)">Dashboard</button>
-            <button class="page-btn" data-page="quality" onclick="setReportPage('quality', this)">Quality</button>
-            <button class="page-btn" data-page="test-flows" onclick="setReportPage('test-flows', this)">Test Flows</button>
+            <button class="page-btn active" data-page="site-map" onclick="setReportPage('site-map', this)">Site Map</button>
+            <button class="page-btn" data-page="dashboard" onclick="setReportPage('dashboard', this)">What Happened</button>
+            <button class="page-btn" data-page="execution-log" onclick="setReportPage('execution-log', this)">Crawl Timeline</button>
+            <button class="page-btn" data-page="test-flows" onclick="setReportPage('test-flows', this)">Generated Tests</button>
+            <button class="page-btn" data-page="quality" onclick="setReportPage('quality', this)">Quality Signals</button>
             <button class="page-btn" data-page="page-objects" onclick="setReportPage('page-objects', this)">Page Objects</button>
-            <button class="page-btn" data-page="site-map" onclick="setReportPage('site-map', this)">Site Map</button>
-            <button class="page-btn" data-page="execution-log" onclick="setReportPage('execution-log', this)">Execution Log</button>
         </nav>
 
         <!-- Target URL -->
-        <div class="target-banner animate-in" data-report-page="dashboard">
+        <div class="target-banner animate-in" data-report-page="site-map">
             <div>
                 <div class="target-label">target</div>
                 <div class="target-url">{{ start_url }}</div>
@@ -2198,195 +2366,308 @@
         {% set fail_pct = (flow_counts.fail / [flows|length, 1]|max * 100)|round|int %}
         {% set warn_pct = (flow_counts.warn / [flows|length, 1]|max * 100)|round|int %}
         {% set inventory_total = element_inventory.total_elements if element_inventory else 0 %}
+        {% set blocked_count = blocked_summary.blocked_count %}
+        {% set run_health = 'stable' %}
+        {% if flow_counts.fail > 0 or blocked_count > 0 %}
+        {% set run_health = 'critical' %}
+        {% elif flow_counts.warn > 0 or quality_insights.flaky_action_count > 0 or quality_insights.locator_issue_count > 0 %}
+        {% set run_health = 'watch' %}
+        {% endif %}
+
+        <section id="crawl-story" class="section animate-in delay-1" data-report-page="dashboard">
+            <div class="section-header">
+                <h2>What Happened In This Crawl</h2>
+                <div class="section-count">{{ human_execution_rows|length }} steps</div>
+                <div class="section-line"></div>
+            </div>
+            <div class="section-body">
+                <div class="metric-cards">
+                    <div class="metric-card">
+                        <div class="metric-label">Pages Seen</div>
+                        <div class="metric-value cyan">{{ states|length }}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Actions Run</div>
+                        <div class="metric-value">{{ execution_rows|length }}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Generated Test Cases</div>
+                        <div class="metric-value green">{{ flows|length }}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Run Duration</div>
+                        <div class="metric-value blue">{{ "%.1f"|format(duration) }}s</div>
+                    </div>
+                </div>
+                <div class="step-timeline" style="margin-top: 1rem;">
+                    {% for row in human_execution_rows[:12] %}
+                    <article class="step-item {{ row.verdict }}">
+                        <div class="step-number">{{ row.index }}</div>
+                        <div class="step-content">
+                            <div class="step-action-text">{{ row.sentence }}</div>
+                            <div class="step-details">
+                                <div class="step-detail">{{ row.action_label }} &middot; {{ row.outcome_label }}</div>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% if human_execution_rows|length > 12 %}
+                <div class="diag-subtext">Showing the first 12 steps here. Open Crawl Timeline for the full run.</div>
+                {% endif %}
+            </div>
+        </section>
 
         <div class="dashboard animate-in delay-1" data-report-page="dashboard">
-            <!-- Pass rate donut -->
-            <div class="pass-rate-ring" style="background: conic-gradient(
-                var(--accent-green) 0deg {{ (pass_pct * 3.6)|round|int }}deg,
-                var(--accent-red) {{ (pass_pct * 3.6)|round|int }}deg {{ ((pass_pct + fail_pct) * 3.6)|round|int }}deg,
-                var(--accent-amber) {{ ((pass_pct + fail_pct) * 3.6)|round|int }}deg {{ ((pass_pct + fail_pct + warn_pct) * 3.6)|round|int }}deg,
-                var(--bg-overlay) {{ ((pass_pct + fail_pct + warn_pct) * 3.6)|round|int }}deg 360deg
-            );">
-                <div class="pass-rate-ring-inner">
-                    <div class="pass-rate-pct">{{ pass_pct }}%</div>
-                    <div class="pass-rate-label">Passed</div>
-                </div>
-            </div>
-
-            <!-- Right panel: metric cards + coverage bars -->
-            <div class="dashboard-right">
-                <div class="metric-cards">
-                    <!-- Test Cases -->
-                    <div class="metric-card">
-                        <div class="metric-value">{{ flows|length }}</div>
-                        <div class="metric-label">Test Cases</div>
-                        {% if flows|length > 0 %}
-                        <div class="metric-breakdown">
-                            {% if flow_counts.pass %}<div class="metric-breakdown-bar" style="width: {{ flow_counts.pass / flows|length * 100 }}%; background: var(--accent-green);"></div>{% endif %}
-                            {% if flow_counts.fail %}<div class="metric-breakdown-bar" style="width: {{ flow_counts.fail / flows|length * 100 }}%; background: var(--accent-red);"></div>{% endif %}
-                            {% if flow_counts.warn %}<div class="metric-breakdown-bar" style="width: {{ flow_counts.warn / flows|length * 100 }}%; background: var(--accent-amber);"></div>{% endif %}
+            <aside class="dashboard-rail">
+                <section class="dashboard-panel health-panel">
+                    <div class="panel-eyebrow">Run Health</div>
+                    <div class="pass-rate-ring" style="background: conic-gradient(
+                        var(--accent-green) 0deg {{ (pass_pct * 3.6)|round|int }}deg,
+                        var(--accent-red) {{ (pass_pct * 3.6)|round|int }}deg {{ ((pass_pct + fail_pct) * 3.6)|round|int }}deg,
+                        var(--accent-amber) {{ ((pass_pct + fail_pct) * 3.6)|round|int }}deg {{ ((pass_pct + fail_pct + warn_pct) * 3.6)|round|int }}deg,
+                        var(--bg-overlay) {{ ((pass_pct + fail_pct + warn_pct) * 3.6)|round|int }}deg 360deg
+                    );">
+                        <div class="pass-rate-ring-inner">
+                            <div class="pass-rate-pct">{{ pass_pct }}%</div>
+                            <div class="pass-rate-label">Passed</div>
                         </div>
+                    </div>
+                    <div class="health-pill {{ run_health }}">
+                        {% if run_health == 'critical' %}needs attention{% elif run_health == 'watch' %}watch list{% else %}stable run{% endif %}
+                    </div>
+                    <p class="health-summary">
+                        {% if run_health == 'critical' %}
+                        {{ flow_counts.fail }} failing flow{{ 's' if flow_counts.fail != 1 }} and {{ blocked_count }} blocked page{{ 's' if blocked_count != 1 }} need immediate triage.
+                        {% elif run_health == 'watch' %}
+                        Run is mostly stable, but there are {{ flow_counts.warn }} mixed flow{{ 's' if flow_counts.warn != 1 }} and {{ quality_insights.flaky_action_count }} flaky action{{ 's' if quality_insights.flaky_action_count != 1 }} to review.
+                        {% else %}
+                        No major reliability signals detected. Review quality recommendations to keep drift low.
                         {% endif %}
-                    </div>
-
-                    <!-- Test Steps -->
-                    <div class="metric-card">
-                        <div class="metric-value">{{ total_test_steps }}</div>
-                        <div class="metric-label">Test Steps</div>
-                        {% if total_test_steps > 0 %}
-                        <div class="metric-breakdown">
-                            {% if step_verdicts_summary.pass %}<div class="metric-breakdown-bar" style="width: {{ step_verdicts_summary.pass / total_test_steps * 100 }}%; background: var(--accent-green);"></div>{% endif %}
-                            {% if step_verdicts_summary.fail %}<div class="metric-breakdown-bar" style="width: {{ step_verdicts_summary.fail / total_test_steps * 100 }}%; background: var(--accent-red);"></div>{% endif %}
-                            {% if step_verdicts_summary.warn %}<div class="metric-breakdown-bar" style="width: {{ step_verdicts_summary.warn / total_test_steps * 100 }}%; background: var(--accent-amber);"></div>{% endif %}
+                    </p>
+                    <div class="health-stats">
+                        <div class="health-stat">
+                            <div class="health-stat-label">Failures</div>
+                            <div class="health-stat-value" style="color: var(--accent-red);">{{ flow_counts.fail }}</div>
                         </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Pages Discovered -->
-                    <div class="metric-card">
-                        <div class="metric-value cyan">{{ states|length }}</div>
-                        <div class="metric-label">Pages</div>
-                    </div>
-
-                    {% if blocked_summary.blocked_count %}
-                    <div class="metric-card">
-                        <div class="metric-value" style="color: var(--accent-red);">{{ blocked_summary.blocked_count }}</div>
-                        <div class="metric-label">Blocked Pages</div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Duration -->
-                    <div class="metric-card">
-                        <div class="metric-value blue">{{ "%.1f"|format(duration) }}<span style="font-size: 0.75rem; font-weight: 400; color: var(--text-muted);">s</span></div>
-                        <div class="metric-label">Duration</div>
-                    </div>
-
-                    {% if inventory_total > 0 %}
-                    <div class="metric-card">
-                        <div class="metric-value green">{{ element_inventory.interactive_elements }}</div>
-                        <div class="metric-label">Interactive Elements</div>
-                    </div>
-
-                    <div class="metric-card">
-                        <div class="metric-value amber">{{ element_inventory.non_interactive_elements }}</div>
-                        <div class="metric-label">Content Elements</div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Coverage bars -->
-                <div class="coverage-bars">
-                    <div class="coverage-row">
-                        <div class="coverage-label">Page Coverage</div>
-                        <div class="coverage-track">
-                            <div class="coverage-fill cyan" style="width: {{ coverage.page.pct }}%;"></div>
+                        <div class="health-stat">
+                            <div class="health-stat-label">Warnings</div>
+                            <div class="health-stat-value" style="color: var(--accent-amber);">{{ flow_counts.warn }}</div>
                         </div>
-                        <div class="coverage-pct">{{ coverage.page.tested }}/{{ coverage.page.total }} ({{ coverage.page.pct }}%)</div>
-                    </div>
-                    <div class="coverage-row">
-                        <div class="coverage-label">Interaction</div>
-                        <div class="coverage-track">
-                            <div class="coverage-fill blue" style="width: {{ coverage.interaction.pct }}%;"></div>
+                        <div class="health-stat">
+                            <div class="health-stat-label">Blocked</div>
+                            <div class="health-stat-value" style="color: var(--accent-red);">{{ blocked_count }}</div>
                         </div>
-                        <div class="coverage-pct">{{ coverage.interaction.executed }}/{{ coverage.interaction.total }} ({{ coverage.interaction.pct }}%)</div>
-                    </div>
-                    <div class="coverage-row">
-                        <div class="coverage-label">Pass Rate</div>
-                        <div class="coverage-track">
-                            <div class="coverage-fill green" style="width: {{ coverage.pass_rate.pct }}%;"></div>
+                        <div class="health-stat">
+                            <div class="health-stat-label">Flaky Actions</div>
+                            <div class="health-stat-value" style="color: var(--accent-amber);">{{ quality_insights.flaky_action_count }}</div>
                         </div>
-                        <div class="coverage-pct">{{ coverage.pass_rate.passed }}/{{ coverage.pass_rate.total }} ({{ coverage.pass_rate.pct }}%)</div>
                     </div>
-                    {% if inventory_total > 0 %}
-                    <div class="coverage-row">
-                        <div class="coverage-label">Interactive Mix</div>
-                        <div class="coverage-track">
-                            <div class="coverage-fill green" style="width: {{ element_inventory.interactive_pct }}%;"></div>
-                        </div>
-                        <div class="coverage-pct">{{ element_inventory.interactive_elements }}/{{ element_inventory.total_elements }} ({{ element_inventory.interactive_pct }}%)</div>
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="quick-actions">
-                    <button class="filter-btn" onclick="jumpToTestCases('all')">Open Test Cases</button>
-                    <button class="filter-btn" onclick="setReportPage('page-objects')">Open Page Objects</button>
-                    {% if flow_counts.fail %}
-                    <button class="filter-btn active-fail" onclick="jumpToTestCases('fail')">Focus Failures ({{ flow_counts.fail }})</button>
-                    {% endif %}
-                    {% if flow_counts.warn %}
-                    <button class="filter-btn active-warn" onclick="jumpToTestCases('warn')">Focus Warnings ({{ flow_counts.warn }})</button>
-                    {% endif %}
-                </div>
-                <div class="input-provenance">
-                    <div class="input-provenance-title">Site Structure Summary</div>
-                    <div class="input-provenance-meta">
-                        {{ site_structure_summary.page_type_count }} page types, {{ site_structure_summary.navigation_path_count }} navigation paths, {{ site_structure_summary.flow_template_count }} flow templates
-                        {% if cross_run_comparison.has_previous_run %}
-                        · Δ {{ site_structure_summary.new_page_count }} new, {{ site_structure_summary.disappeared_page_count }} disappeared, {{ site_structure_summary.changed_locator_count }} locator changes
-                        {% endif %}
-                        {% if site_structure_summary.blocked_page_count %}
-                        · {{ site_structure_summary.blocked_page_count }} blocked pages
-                        {% endif %}
-                    </div>
-                </div>
-                {% if cross_run_comparison.has_previous_run %}
-                <div class="input-provenance">
-                    <div class="input-provenance-title">Cross-Run Comparison</div>
-                    <div class="input-provenance-meta">
-                        {{ cross_run_comparison.new_pages }} new pages, {{ cross_run_comparison.disappeared_pages }} disappeared, {{ cross_run_comparison.changed_locators }} changed locators
-                    </div>
-                    {% if cross_run_comparison.new_page_examples or cross_run_comparison.disappeared_page_examples %}
-                    <div class="diag-reason-list" style="margin-top: 0.5rem;">
-                        {% for url in cross_run_comparison.new_page_examples %}
-                        <span class="diag-chip">+ {{ url }}</span>
-                        {% endfor %}
-                        {% for url in cross_run_comparison.disappeared_page_examples %}
-                        <span class="diag-chip">- {{ url }}</span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-                {% if dashboard_top_issues %}
-                <div class="input-provenance">
-                    <div class="input-provenance-title">Top Issues</div>
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
-                        {% for issue in dashboard_top_issues %}
-                        <div class="defect-card warning">
-                            <div class="defect-header" style="display: flex; justify-content: space-between; gap: 0.5rem; align-items: center;">
-                                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                    <span class="verdict {% if issue.priority == 'high' %}fail{% elif issue.priority == 'medium' %}warn{% else %}pass{% endif %}">{{ issue.priority }}</span>
-                                    <span class="defect-name">{{ issue.title }}</span>
-                                </div>
+                </section>
+
+                <section class="dashboard-panel">
+                    <div class="panel-eyebrow">Priority Queue</div>
+                    {% if dashboard_top_issues %}
+                    <div class="issue-list">
+                        {% for issue in dashboard_top_issues[:3] %}
+                        <article class="issue-card">
+                            <div class="issue-card-header">
+                                <span class="verdict {% if issue.priority == 'high' %}fail{% elif issue.priority == 'medium' %}warn{% else %}pass{% endif %}">{{ issue.priority }}</span>
                                 {% if issue.link_kind == 'page_object' %}
-                                <button class="filter-btn" onclick="openPageObjectCard('{{ issue.link_value }}')">Open Page Object</button>
+                                <button class="filter-btn" onclick="openPageObjectCard('{{ issue.link_value }}')">Open</button>
                                 {% elif issue.link_kind == 'flow' %}
-                                <button class="filter-btn" onclick="expandTestCase('{{ issue.link_value }}')">Open Flow</button>
+                                <button class="filter-btn" onclick="expandTestCase('{{ issue.link_value }}')">Open</button>
                                 {% elif issue.link_kind == 'step' %}
-                                <button class="filter-btn" onclick="jumpToExecutionStep({{ issue.link_value }})">Open Step</button>
+                                <button class="filter-btn" onclick="jumpToExecutionStep({{ issue.link_value }})">Open</button>
                                 {% elif issue.link_kind == 'quality_anchor' %}
-                                <button class="filter-btn" onclick="setReportPage('quality'); document.getElementById('{{ issue.link_value }}')?.scrollIntoView({ behavior: 'smooth', block: 'start' });">Open Issue</button>
+                                <button class="filter-btn" onclick="setReportPage('quality'); document.getElementById('{{ issue.link_value }}')?.scrollIntoView({ behavior: 'smooth', block: 'start' });">Open</button>
                                 {% endif %}
                             </div>
-                            <div class="defect-detail">{{ issue.detail }}</div>
-                        </div>
+                            <div class="issue-title">{{ issue.title }}</div>
+                            <div class="issue-detail">{{ issue.detail }}</div>
+                        </article>
                         {% endfor %}
                     </div>
-                </div>
-                {% endif %}
-                <div class="input-provenance">
-                    <div class="input-provenance-title">Input Data Source</div>
-                    <div class="input-provenance-meta">
-                        Profile: <strong>{{ input_provenance.profile }}</strong> · Fill actions: <strong>{{ input_provenance.fill_actions }}</strong>
-                    </div>
-                    {% if input_provenance.source_breakdown %}
-                    <div class="diag-reason-list">
-                        {% for item in input_provenance.source_breakdown %}
-                        <span class="diag-chip">{{ item.source }} ({{ item.count }})</span>
-                        {% endfor %}
-                    </div>
+                    {% else %}
+                    <p class="panel-subtitle">No high-priority issues were surfaced for this run.</p>
                     {% endif %}
-                </div>
+                </section>
+            </aside>
+
+            <div class="dashboard-main">
+                <section class="dashboard-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Outcome Snapshot</div>
+                            <div class="panel-subtitle">Core test and exploration totals for this run.</div>
+                        </div>
+                    </div>
+                    <div class="metric-cards">
+                        <div class="metric-card">
+                            <div class="metric-value">{{ flows|length }}</div>
+                            <div class="metric-label">Test Cases</div>
+                            {% if flows|length > 0 %}
+                            <div class="metric-breakdown">
+                                {% if flow_counts.pass %}<div class="metric-breakdown-bar" style="width: {{ flow_counts.pass / flows|length * 100 }}%; background: var(--accent-green);"></div>{% endif %}
+                                {% if flow_counts.fail %}<div class="metric-breakdown-bar" style="width: {{ flow_counts.fail / flows|length * 100 }}%; background: var(--accent-red);"></div>{% endif %}
+                                {% if flow_counts.warn %}<div class="metric-breakdown-bar" style="width: {{ flow_counts.warn / flows|length * 100 }}%; background: var(--accent-amber);"></div>{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">{{ total_test_steps }}</div>
+                            <div class="metric-label">Test Steps</div>
+                            {% if total_test_steps > 0 %}
+                            <div class="metric-breakdown">
+                                {% if step_verdicts_summary.pass %}<div class="metric-breakdown-bar" style="width: {{ step_verdicts_summary.pass / total_test_steps * 100 }}%; background: var(--accent-green);"></div>{% endif %}
+                                {% if step_verdicts_summary.fail %}<div class="metric-breakdown-bar" style="width: {{ step_verdicts_summary.fail / total_test_steps * 100 }}%; background: var(--accent-red);"></div>{% endif %}
+                                {% if step_verdicts_summary.warn %}<div class="metric-breakdown-bar" style="width: {{ step_verdicts_summary.warn / total_test_steps * 100 }}%; background: var(--accent-amber);"></div>{% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value cyan">{{ states|length }}</div>
+                            <div class="metric-label">Pages</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value blue">{{ "%.1f"|format(duration) }}<span style="font-size: 0.75rem; font-weight: 400; color: var(--text-muted);">s</span></div>
+                            <div class="metric-label">Duration</div>
+                        </div>
+                        {% if blocked_count %}
+                        <div class="metric-card">
+                            <div class="metric-value red">{{ blocked_count }}</div>
+                            <div class="metric-label">Blocked Pages</div>
+                        </div>
+                        {% endif %}
+                        {% if inventory_total > 0 %}
+                        <div class="metric-card">
+                            <div class="metric-value green">{{ element_inventory.interactive_elements }}</div>
+                            <div class="metric-label">Interactive Elements</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value amber">{{ element_inventory.non_interactive_elements }}</div>
+                            <div class="metric-label">Content Elements</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </section>
+
+                <section class="dashboard-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Coverage And Reach</div>
+                            <div class="panel-subtitle">How much of the site and interaction space was exercised.</div>
+                        </div>
+                    </div>
+                    <div class="coverage-bars">
+                        <div class="coverage-row">
+                            <div class="coverage-label">Page Coverage</div>
+                            <div class="coverage-track">
+                                <div class="coverage-fill cyan" style="width: {{ coverage.page.pct }}%;"></div>
+                            </div>
+                            <div class="coverage-pct">{{ coverage.page.tested }}/{{ coverage.page.total }} ({{ coverage.page.pct }}%)</div>
+                        </div>
+                        <div class="coverage-row">
+                            <div class="coverage-label">Interaction</div>
+                            <div class="coverage-track">
+                                <div class="coverage-fill blue" style="width: {{ coverage.interaction.pct }}%;"></div>
+                            </div>
+                            <div class="coverage-pct">{{ coverage.interaction.executed }}/{{ coverage.interaction.total }} ({{ coverage.interaction.pct }}%)</div>
+                        </div>
+                        <div class="coverage-row">
+                            <div class="coverage-label">Pass Rate</div>
+                            <div class="coverage-track">
+                                <div class="coverage-fill green" style="width: {{ coverage.pass_rate.pct }}%;"></div>
+                            </div>
+                            <div class="coverage-pct">{{ coverage.pass_rate.passed }}/{{ coverage.pass_rate.total }} ({{ coverage.pass_rate.pct }}%)</div>
+                        </div>
+                        {% if inventory_total > 0 %}
+                        <div class="coverage-row">
+                            <div class="coverage-label">Interactive Mix</div>
+                            <div class="coverage-track">
+                                <div class="coverage-fill green" style="width: {{ element_inventory.interactive_pct }}%;"></div>
+                            </div>
+                            <div class="coverage-pct">{{ element_inventory.interactive_elements }}/{{ element_inventory.total_elements }} ({{ element_inventory.interactive_pct }}%)</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </section>
+
+                <section class="dashboard-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Run Context</div>
+                            <div class="panel-subtitle">Structure drift and input profile for this execution.</div>
+                        </div>
+                    </div>
+                    <div class="context-grid">
+                        <article class="context-card">
+                            <div class="context-card-title">Site Structure</div>
+                            <div class="context-card-body">
+                                {{ site_structure_summary.page_type_count }} page types · {{ site_structure_summary.navigation_path_count }} paths · {{ site_structure_summary.flow_template_count }} templates
+                                {% if site_structure_summary.blocked_page_count %}
+                                · {{ site_structure_summary.blocked_page_count }} blocked
+                                {% endif %}
+                            </div>
+                        </article>
+                        <article class="context-card">
+                            <div class="context-card-title">Cross-Run Comparison</div>
+                            <div class="context-card-body">
+                                {% if cross_run_comparison.has_previous_run %}
+                                {{ cross_run_comparison.new_pages }} new · {{ cross_run_comparison.disappeared_pages }} disappeared · {{ cross_run_comparison.changed_locators }} locator changes
+                                {% else %}
+                                No previous baseline run found for this start URL yet.
+                                {% endif %}
+                            </div>
+                            {% if cross_run_comparison.new_page_examples or cross_run_comparison.disappeared_page_examples %}
+                            <div class="diag-reason-list" style="margin-top: 0.55rem;">
+                                {% for url in cross_run_comparison.new_page_examples %}
+                                <span class="diag-chip">+ {{ url }}</span>
+                                {% endfor %}
+                                {% for url in cross_run_comparison.disappeared_page_examples %}
+                                <span class="diag-chip">- {{ url }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </article>
+                        <article class="context-card">
+                            <div class="context-card-title">Input Data Source</div>
+                            <div class="context-card-body">
+                                Profile: <strong>{{ input_provenance.profile }}</strong> · Fill actions: <strong>{{ input_provenance.fill_actions }}</strong>
+                            </div>
+                            {% if input_provenance.source_breakdown %}
+                            <div class="diag-reason-list" style="margin-top: 0.55rem;">
+                                {% for item in input_provenance.source_breakdown %}
+                                <span class="diag-chip">{{ item.source }} ({{ item.count }})</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </article>
+                    </div>
+                </section>
+
+                <section class="dashboard-panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Next Actions</div>
+                            <div class="panel-subtitle">Open the most relevant section without scanning the entire report.</div>
+                        </div>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="filter-btn" onclick="jumpToTestCases('all')">Open Test Cases</button>
+                        <button class="filter-btn" onclick="setReportPage('quality')">Open Quality View</button>
+                        <button class="filter-btn" onclick="setReportPage('page-objects')">Open Page Objects</button>
+                        {% if flow_counts.fail %}
+                        <button class="filter-btn active-fail" onclick="jumpToTestCases('fail')">Focus Failures ({{ flow_counts.fail }})</button>
+                        {% endif %}
+                        {% if flow_counts.warn %}
+                        <button class="filter-btn active-warn" onclick="jumpToTestCases('warn')">Focus Warnings ({{ flow_counts.warn }})</button>
+                        {% endif %}
+                        {% if blocked_count %}
+                        <button class="filter-btn active-fail" onclick="setReportPage('dashboard'); document.getElementById('blocked-pages')?.scrollIntoView({ behavior: 'smooth', block: 'start' });">Review Blocked Pages ({{ blocked_count }})</button>
+                        {% endif %}
+                    </div>
+                </section>
             </div>
         </div>
 
@@ -2750,7 +3031,7 @@
         <section id="diagnostics-section" class="section section-collapsible collapsed animate-in delay-2" data-report-page="quality">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                <h2>Exploration Diagnostics</h2>
+                <h2>Debug Trace (Collapsed)</h2>
                 <div class="section-count">{{ diagnostics.low_confidence_count }} low-confidence &middot; {{ diagnostics.flaky_paths_count }} flaky</div>
                 <div class="section-line"></div>
             </div>
@@ -2883,10 +3164,11 @@
              ============================================================ -->
         <section id="test-suites" class="section animate-in delay-2" data-report-page="test-flows">
             <div class="section-header">
-                <h2>Flow Templates</h2>
+                <h2>Generated Test Cases</h2>
                 <div class="section-count">{{ flow_template_cards|length }} templates · {{ flows|length }} instances</div>
                 <div class="section-line"></div>
             </div>
+            <div class="diag-subtext" style="margin-bottom: 0.75rem;">Flow Templates view</div>
 
             <div class="filter-toolbar" role="toolbar" aria-label="Filter test cases">
                 <button class="filter-btn active" data-filter="all" onclick="filterTestCases('all', this)">All ({{ flow_template_cards|length }})</button>
@@ -3522,8 +3804,8 @@
         <!-- ============================================================
              SECTION E: EXPLORATION MODEL (graph + pages)
              ============================================================ -->
-        <section class="section section-collapsible collapsed animate-in delay-3" id="exploration-model" data-report-page="site-map">
-            <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
+        <section class="section section-collapsible animate-in delay-3" id="exploration-model" data-report-page="site-map">
+            <div class="section-header" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
                 <h2>Site Map</h2>
                 <div class="section-count">{{ site_model_summary.total_page_types or 0 }} page types &middot; {{ site_model_summary.total_navigation_edges or 0 }} paths</div>
@@ -3531,44 +3813,81 @@
             </div>
             <div class="section-body">
                 <div class="filter-toolbar" role="toolbar" aria-label="Site map controls">
+                    <div class="button-group" role="group" aria-label="Site map view mode">
+                        <button id="site-map-view-canonical" class="filter-btn active" aria-pressed="true" onclick="setSiteMapView('canonical', this)">Canonical Map</button>
+                        <button id="site-map-view-raw" class="filter-btn" aria-pressed="false" onclick="setSiteMapView('raw', this)">Raw Crawl Map</button>
+                    </div>
                     <label class="theme-picker" for="site-map-coverage-toggle" style="margin: 0;">
                         <span class="theme-picker-label">Coverage Overlay</span>
                         <input id="site-map-coverage-toggle" type="checkbox" onchange="toggleSiteMapCoverage(this.checked)">
                     </label>
                 </div>
-                <div id="graph-container"></div>
-                <div class="graph-legend">
-                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-cyan);"></div> node size = instance count</div>
-                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-green);"></div> edge width = transition count</div>
-                    <div class="legend-item"><div class="legend-dot" style="color: var(--accent-red);"></div> uncovered edge (overlay)</div>
-                </div>
+                <div id="site-map-canonical-view">
+                    <div id="graph-container"></div>
+                    <div class="graph-legend">
+                        <div class="legend-item"><div class="legend-dot" style="color: var(--accent-cyan);"></div> node size = instance count</div>
+                        <div class="legend-item"><div class="legend-dot" style="color: var(--accent-green);"></div> edge width = transition count</div>
+                        <div class="legend-item"><div class="legend-dot" style="color: var(--accent-red);"></div> uncovered edge (overlay)</div>
+                    </div>
 
-                <!-- Page type table -->
-                <div class="data-table-wrap" style="margin-top: 1.5rem;">
-                    <div class="table-scroll">
-                        <table class="data-table">
-                            <caption class="sr-only">Page types in site model</caption>
-                            <thead>
-                                <tr>
-                                    <th>Page Type</th>
-                                    <th>Archetype</th>
-                                    <th>URL Pattern</th>
-                                    <th class="right">Instances</th>
-                                    <th class="right">Locator Quality</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for card in page_object_cards %}
-                                <tr onclick="openPageObjectCard('{{ card.anchor_id }}')" style="cursor: pointer;">
-                                    <td class="cell-action">{{ card.name }}</td>
-                                    <td class="cell-dim">{{ card.archetype }}</td>
-                                    <td class="cell-url">{{ card.url_pattern }}</td>
-                                    <td class="cell-right">{{ card.instance_count }}</td>
-                                    <td class="cell-right">{{ card.quality_score }}%</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="data-table-wrap" style="margin-top: 1.5rem;">
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <caption class="sr-only">Page types in canonical site model</caption>
+                                <thead>
+                                    <tr>
+                                        <th>Page Type</th>
+                                        <th>Archetype</th>
+                                        <th>URL Pattern</th>
+                                        <th class="right">Instances</th>
+                                        <th class="right">Locator Quality</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for card in page_object_cards %}
+                                    <tr onclick="openPageObjectCard('{{ card.anchor_id }}')" style="cursor: pointer;">
+                                        <td class="cell-action">{{ card.name }}</td>
+                                        <td class="cell-dim">{{ card.archetype }}</td>
+                                        <td class="cell-url">{{ card.url_pattern }}</td>
+                                        <td class="cell-right">{{ card.instance_count }}</td>
+                                        <td class="cell-right">{{ card.quality_score }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="site-map-raw-view" class="page-hidden">
+                    <div class="diag-subtext" style="margin-bottom: 0.75rem;">
+                        Raw crawl map follows concrete transitions exactly as captured during exploration and exported in crawl_trace.json.
+                    </div>
+                    <div class="data-table-wrap">
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <caption class="sr-only">Raw crawl transition map</caption>
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>From</th>
+                                        <th>Action</th>
+                                        <th>Outcome</th>
+                                        <th>To</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in human_execution_rows %}
+                                    <tr>
+                                        <td class="cell-dim">{{ row.index }}</td>
+                                        <td class="cell-action">{{ row.source_page }}</td>
+                                        <td class="cell-action">{{ row.action_label }}</td>
+                                        <td class="cell-dim">{{ row.outcome_label }}</td>
+                                        <td class="cell-action">{{ row.target_page }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3580,7 +3899,7 @@
         <section id="execution-log" class="section section-collapsible collapsed animate-in delay-4" data-report-page="execution-log">
             <div class="section-header" role="button" tabindex="0" aria-expanded="false" onclick="toggleSection(this.parentElement)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSection(this.parentElement)}">
                 <svg class="section-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-                <h2>All Actions (Advanced)</h2>
+                <h2>Step-by-Step Crawl Timeline</h2>
                 <div class="section-count">{{ execution_rows|length }} total &middot; {{ orphan_execution_rows|length }} unmatched</div>
                 <div class="section-line"></div>
             </div>
@@ -3698,7 +4017,7 @@
         const elementDrilldownMap = {{ element_drilldown_map|tojson }};
         const turboThemeStorageKey = 'flowscout-report-theme';
         const turboThemeDefault = 'catppuccin-mocha';
-        const turboThemeBaseUrl = 'https://unpkg.com/@lgtm-hq/turbo-themes@0.19.2/packages/css/dist/themes/';
+        const turboThemeBaseUrl = '{{ assets.theme_base_href }}';
         let graphInitialized = false;
         let siteMapNetwork = null;
         let siteMapEdges = null;
@@ -3870,6 +4189,33 @@
                     dashes: Boolean(isUncovered && enabled),
                 });
             });
+        }
+
+        function setSiteMapView(mode, btnEl = null) {
+            const canonicalView = document.getElementById('site-map-canonical-view');
+            const rawView = document.getElementById('site-map-raw-view');
+            if (!canonicalView || !rawView) return;
+
+            const canonicalActive = mode !== 'raw';
+            canonicalView.classList.toggle('page-hidden', !canonicalActive);
+            rawView.classList.toggle('page-hidden', canonicalActive);
+
+            const canonicalBtn = document.getElementById('site-map-view-canonical');
+            const rawBtn = document.getElementById('site-map-view-raw');
+            if (canonicalBtn) {
+                canonicalBtn.classList.toggle('active', canonicalActive);
+                canonicalBtn.setAttribute('aria-pressed', String(canonicalActive));
+            }
+            if (rawBtn) {
+                rawBtn.classList.toggle('active', !canonicalActive);
+                rawBtn.setAttribute('aria-pressed', String(!canonicalActive));
+            }
+            if (btnEl && btnEl.focus) {
+                btnEl.focus();
+            }
+            if (canonicalActive) {
+                initGraph();
+            }
         }
 
         function openFlowFromSiteMap(flowId, templateId = '') {
@@ -4422,7 +4768,8 @@
                     }
                 });
             }
-            setReportPage('dashboard');
+            setSiteMapView('canonical');
+            setReportPage('site-map');
             filterFlowTemplates();
         });
 
