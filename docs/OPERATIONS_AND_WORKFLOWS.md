@@ -59,6 +59,9 @@ uv run flowscout benchmark reports/<domain>/<env>/runs/<timestamp>/result.json \
 - high-impact actions are blocked,
 - submit actions are blocked,
 - screenshots are enabled and highlighted by default.
+- behavior compatibility defaults are enabled:
+  - `--outcome-mode legacy`
+  - `--link-scope-mode legacy`
 
 Use these controls explicitly:
 
@@ -68,6 +71,10 @@ Use these controls explicitly:
   disables high-impact blocking; use only with explicit approval in isolated environments.
 - `--input-profile <safe|contextual|negative>`:
   controls generated input behavior.
+- `--outcome-mode <legacy|document-only>`:
+  controls whether subresource HTTP errors count as action failures.
+- `--link-scope-mode <legacy|origin>`:
+  controls how absolute links are scoped for exploration.
 
 ## Auth and Secret Handling
 
@@ -140,6 +147,7 @@ Runs are isolated by domain and environment:
 reports/<domain>/<environment>/runs/<timestamp>/
   report.html
   result.json
+  crawl_trace.json
   evidence/actions/
   site_model.json
   tests.py
@@ -147,6 +155,11 @@ reports/<domain>/<environment>/runs/<timestamp>/
   scenario_tests.py
   pages/
 ```
+
+Report serving defaults to local-only access:
+
+- host binding is `127.0.0.1`,
+- CORS is disabled unless `--allow-cors` is explicitly passed.
 
 ## Evidence and Reliability Signals
 
@@ -163,6 +176,19 @@ Smart-mode runs also emit `element_inventory` in `result.json` with:
 - interactive vs non-interactive totals,
 - top element types by count,
 - per-page element count breakdown.
+
+## Human Review vs Machine Handoff
+
+Use artifacts by audience:
+
+- Human review: `report.html`
+- Machine contracts: `result.json`, `site_model.json`, `crawl_trace.json`,
+  and GraphWalker exports (for example `result.graphwalker.json`)
+
+Dashboard policy:
+
+- report UI is human-first and does not expose raw machine IDs in visible text,
+- machine IDs remain available in machine artifacts for deterministic replay and MBT.
 
 ## Troubleshooting
 
@@ -187,8 +213,9 @@ Unexpected risky interactions:
 ## Recommended Team Workflow
 
 1. Run baseline exploration in `dev` with safety defaults.
-2. Review `report.html`, `result.json`, and screenshot evidence.
-3. Run smart generation (`--smart --generate-tests`) for POM/scenario suites.
-4. Track reliability over repeated runs (`flowscout reliability`).
-5. Record baseline metrics in `docs/V1_BASELINE_BENCHMARKS.md`.
-6. Promote to `staging` environment workspace and compare drift before release.
+2. Review `report.html` for human-readable crawl narrative and timeline.
+3. Hand off `crawl_trace.json` and GraphWalker model exports to MBT consumers.
+4. Run smart generation (`--smart --generate-tests`) for POM/scenario suites.
+5. Track reliability over repeated runs (`flowscout reliability`).
+6. Record baseline metrics in `docs/V1_BASELINE_BENCHMARKS.md`.
+7. Promote to `staging` environment workspace and compare drift before release.

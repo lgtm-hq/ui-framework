@@ -11,7 +11,7 @@ see `V1_PRODUCT_DECISIONS.md`.
 3. Action execution produces transitions.
 4. State fingerprints identify unique pages/screens.
 5. Transition outcomes are classified.
-6. Graph artifacts are written.
+6. Graph and trace artifacts are written.
 7. Test cases are generated from graph structure.
 8. Run is persisted to SQLite history.
 
@@ -65,10 +65,15 @@ An edge links:
 
 Outcomes:
 
-- `success`
+- `navigation`
+- `dom_change`
+- `visual_change`
 - `no_change`
 - `validation_error`
-- `execution_error`
+- `network_error`
+- `console_error`
+- `timeout`
+- `exception`
 
 ## Test Case
 
@@ -103,6 +108,7 @@ Per crawl output directory:
 
 - `report.html`
 - `result.json`
+- `crawl_trace.json` (ordered machine-readable step trace sidecar)
 - `evidence/actions/*.png` (when screenshots are enabled)
 - `tests.py` (when test generation is enabled)
 - `site_model.json` (smart mode)
@@ -117,3 +123,55 @@ Per site workspace (outside run directory):
 History export:
 
 - terminal table via `flowscout history`
+
+## Human-First Report and Machine Artifacts
+
+Flowscout intentionally separates what humans read from what machines consume.
+
+- `report.html` is optimized for human review.
+- `result.json`, `site_model.json`, `crawl_trace.json`, and GraphWalker exports are machine contracts.
+- Machine identifiers remain available in machine artifacts for traceability.
+
+### UI policy: no visible machine IDs
+
+The dashboard/report UI must not render raw machine IDs in visible text, including:
+
+- state IDs,
+- action IDs,
+- database-like internal identifiers.
+
+Technical traceability remains available via machine artifacts and structured `data-*`
+hooks used by scripts, without exposing internal IDs in visible UI copy.
+
+### `crawl_trace.json` sidecar contract
+
+`crawl_trace.json` is written beside `report.html` and is stable for MBT consumers.
+
+Top-level keys:
+
+- `schema_version`
+- `result_schema_version`
+- `generated_at`
+- `summary`
+- `config`
+- `states`
+- `actions`
+- `steps`
+
+Step-level fields include ordered execution metadata:
+
+- `index`
+- `action_id`
+- `source_state_id`
+- `target_state_id`
+- `outcome`
+- `result` (full `ActionResult` payload)
+- `source_state` and `target_state` compact references
+- `action` metadata when available
+
+### GraphWalker compatibility boundary
+
+GraphWalker export behavior remains unchanged and continues to be generated from
+the canonical site model (`site_model.json` / `*.graphwalker.json`). The new
+`crawl_trace.json` sidecar complements this by preserving concrete crawl order
+for timeline-style MBT consumers.
