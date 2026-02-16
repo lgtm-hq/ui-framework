@@ -17,3 +17,6 @@ build/
 dist/
 htmlcov/
 node_modules/
+
+# Dashboard SPA has its own build toolchain (Vite + SolidJS).
+src/flowscout/reporting/dashboard/

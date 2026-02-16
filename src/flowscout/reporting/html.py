@@ -291,6 +291,35 @@ class HTMLReporter:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(html)
 
+        # Generate SPA dashboard alongside legacy report
+        self._generate_spa_report(result=result, report_dir=report_dir)
+
+    def _generate_spa_report(
+        self,
+        *,
+        result: ExplorationResult,
+        report_dir: Path,
+    ) -> None:
+        """Generate SPA dashboard report as report-spa.html + report-data.json."""
+        import logging
+
+        from flowscout.reporting.build import get_dashboard_shell, inject_report_data
+        from flowscout.reporting.data_contract import build_report_data
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            data = build_report_data(result, report_dir=report_dir)
+
+            report_json = data.model_dump_json()
+            (report_dir / "report-data.json").write_text(report_json)
+
+            shell = get_dashboard_shell()
+            spa_html = inject_report_data(html_shell=shell, report_json=report_json)
+            (report_dir / "report-spa.html").write_text(spa_html)
+        except Exception:
+            logger.debug("SPA report generation skipped", exc_info=True)
+
 
 def _materialize_report_assets(*, report_dir: Path) -> dict[str, str]:
     """Copy packaged report assets beside output HTML and return relative hrefs."""
