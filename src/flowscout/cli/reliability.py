@@ -26,8 +26,10 @@ def reliability(url: str, db_path: str) -> None:
         table.add_column("Attempts", justify="right")
         table.add_column("Nav", justify="right", style="green")
         table.add_column("DOM", justify="right", style="yellow")
+        table.add_column("Visual", justify="right", style="cyan")
         table.add_column("Errors", justify="right", style="red")
         table.add_column("No Change", justify="right", style="dim")
+        table.add_column("Other", justify="right", style="magenta")
 
         for a in actions:
             table.add_row(
@@ -35,8 +37,10 @@ def reliability(url: str, db_path: str) -> None:
                 str(a["total_attempts"]),
                 str(a["navigations"]),
                 str(a["dom_changes"]),
+                str(a.get("visual_changes", 0)),
                 str(a["errors"]),
                 str(a["no_changes"]),
+                str(a.get("other_outcomes", 0)),
             )
 
         console.print(table)

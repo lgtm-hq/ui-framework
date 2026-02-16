@@ -46,7 +46,7 @@ class IOutcomeDetector(Protocol):
         dom_hash_after: str,
         error_messages: list[str],
         console_errors: list[str],
-        network_errors: list[dict[str, str]],
+        network_errors: list[dict[str, str | bool]],
     ) -> OutcomeType: ...
 
     async def find_error_messages(self, page: object) -> list[str]: ...

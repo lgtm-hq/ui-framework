@@ -266,6 +266,21 @@ class FlowscoutDB:
             self._conn.close()
             self._conn = None
 
+    def __enter__(self) -> FlowscoutDB:
+        """Support context-managed DB usage."""
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        """Close DB connection when leaving context."""
+        self.close()
+
+    def __del__(self) -> None:
+        """Best-effort close for tests/scripts that omit explicit teardown."""
+        try:
+            self.close()
+        except Exception:
+            return
+
     # ── Saving ──
 
     def save_run(self, result: ExplorationResult) -> str:
@@ -528,13 +543,20 @@ class FlowscoutDB:
                     THEN 1 ELSE 0 END) as navigations,
                 SUM(CASE WHEN res.outcome = 'dom_change'
                     THEN 1 ELSE 0 END) as dom_changes,
+                SUM(CASE WHEN res.outcome = 'visual_change'
+                    THEN 1 ELSE 0 END) as visual_changes,
                 SUM(CASE WHEN res.outcome = 'no_change'
                     THEN 1 ELSE 0 END) as no_changes,
                 SUM(CASE WHEN res.outcome IN (
                     'timeout', 'exception',
                     'validation_error', 'network_error',
                     'console_error'
-                    ) THEN 1 ELSE 0 END) as errors
+                    ) THEN 1 ELSE 0 END) as errors,
+                SUM(CASE WHEN res.outcome NOT IN (
+                    'navigation', 'dom_change', 'visual_change', 'no_change',
+                    'timeout', 'exception',
+                    'validation_error', 'network_error', 'console_error'
+                    ) THEN 1 ELSE 0 END) as other_outcomes
             FROM results res
             JOIN actions a ON res.action_id = a.action_id AND res.run_id = a.run_id
         """

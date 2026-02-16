@@ -45,7 +45,8 @@ uv run flowscout serve reports/2026/02.February/07-02-2026/14.30.00/report.html
 ```
 
 Opens the interactive HTML dashboard in your browser. The report is
-a standalone file — you can also open it directly in any browser.
+offline-capable and self-contained: styles/themes are copied locally
+next to `report.html` under `assets/`.
 
 Report navigation model:
 
@@ -69,7 +70,7 @@ uv run flowscout explore <url> [options]
 
 | Option                             | Default                | Description                                                                            |
 | ---------------------------------- | ---------------------- | -------------------------------------------------------------------------------------- |
-| `--smart`                          | off                    | Enable smart mode: archetype recognition, contextual input, coverage-aware exploration |
+| `--smart`                          | on                     | Enable smart mode: archetype recognition, contextual input, coverage-aware exploration |
 | `--generate-tests` / `-g`          | off                    | Generate test suites from exploration results                                          |
 | `--test-framework`                 | `pytest`               | `pytest` (Python) or `playwright` (TypeScript)                                         |
 | `--max-depth` / `-d`               | 3                      | Maximum traversal depth from start URL                                                 |
@@ -86,6 +87,8 @@ uv run flowscout explore <url> [options]
 | `--no-db`                          | off                    | Skip saving to SQLite history                                                          |
 | `--verbose` / `-v`                 | off                    | Verbose output and debug logging                                                       |
 | `--input-profile`                  | `safe`                 | Input profile: `safe`, `contextual`, `negative`                                        |
+| `--outcome-mode`                   | `legacy`               | Outcome classification mode: `legacy` or `document-only`                               |
+| `--link-scope-mode`                | `legacy`               | Absolute-link scoping mode: `legacy` or `origin`                                       |
 | `--enforce-non-destructive`        | on                     | Block high-impact actions by default                                                   |
 | `--allow-form-submits`             | off                    | Allow `submit_form` actions                                                            |
 | `--config-file`                    | `.crawl-config`        | Path to TOML-style crawl defaults                                                      |
@@ -107,6 +110,14 @@ By default, exploration runs in non-destructive mode:
 - each step records a transition confidence score with a reason.
 - HTML report includes an exploration diagnostics section for
   low-confidence and flaky transitions.
+- compatibility behavior modes default to legacy in the current release:
+  `--outcome-mode legacy`, `--link-scope-mode legacy`.
+
+Compatibility rollout:
+
+- Release 1 (current): defaults are `legacy`.
+- Release 2: defaults will flip to `document-only` and `origin`.
+- Release 3: legacy behavior may be removed after migration window.
 
 **Examples:**
 
@@ -142,6 +153,9 @@ Open an HTML report in the browser.
 
 ```bash
 uv run flowscout serve <path-to-report.html>
+
+# Optional: bind a different host/interface and explicitly allow CORS
+uv run flowscout serve <path-to-report.html> --host 0.0.0.0 --allow-cors
 ```
 
 ### `generate`

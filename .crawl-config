@@ -15,6 +15,8 @@ smart_min_archetypes_before_stop = 2
 smart_min_features_before_stop = 3
 smart_archetype_instance_limit = 3
 input_profile = "safe" # safe | contextual | negative
+outcome_mode = "document-only" # legacy | document-only
+link_scope_mode = "origin" # legacy | origin
 enforce_non_destructive = true
 allow_form_submits = false
 
