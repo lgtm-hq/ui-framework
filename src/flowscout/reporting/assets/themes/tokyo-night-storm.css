@@ -1,0 +1,13 @@
+:root[data-theme="tokyo-night-storm"] {
+  --turbo-bg-base: #24283b;
+  --turbo-bg-surface: #2f354d;
+  --turbo-bg-overlay: #3b4261;
+  --turbo-border-default: #565f89;
+  --turbo-text-primary: #c0caf5;
+  --turbo-text-secondary: #9aa5ce;
+  --turbo-state-success: #9ece6a;
+  --turbo-state-warning: #e0af68;
+  --turbo-state-danger: #f7768e;
+  --turbo-state-info: #7dcfff;
+  --turbo-brand-primary: #7aa2f7;
+}

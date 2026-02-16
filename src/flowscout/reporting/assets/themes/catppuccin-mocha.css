@@ -1,0 +1,13 @@
+:root[data-theme="catppuccin-mocha"] {
+  --turbo-bg-base: #1e1e2e;
+  --turbo-bg-surface: #313244;
+  --turbo-bg-overlay: #45475a;
+  --turbo-border-default: #585b70;
+  --turbo-text-primary: #cdd6f4;
+  --turbo-text-secondary: #a6adc8;
+  --turbo-state-success: #a6e3a1;
+  --turbo-state-warning: #f9e2af;
+  --turbo-state-danger: #f38ba8;
+  --turbo-state-info: #89dceb;
+  --turbo-brand-primary: #89b4fa;
+}
