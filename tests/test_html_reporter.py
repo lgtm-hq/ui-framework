@@ -1160,12 +1160,10 @@ def _generate_zero_data_report(
 def test_default_landing_tab_is_dashboard(tmp_path: Path) -> None:
     html = _generate_zero_data_report(tmp_path)
     assert 'data-page="dashboard" onclick="setReportPage(\'dashboard\'' in html
-    assert 'class="page-btn active" data-page="dashboard"' in html, (
-        "Dashboard button should be active by default"
-    )
-    assert 'class="page-btn active" data-page="site-map"' not in html, (
-        "Site Map button should not be active by default"
-    )
+    active_dashboard = 'class="page-btn active" data-page="dashboard"'
+    assert active_dashboard in html, "Dashboard button should be active by default"
+    active_sitemap = 'class="page-btn active" data-page="site-map"'
+    assert active_sitemap not in html, "Site Map button should not be active by default"
     assert "setReportPage('dashboard')" in html
 
 
