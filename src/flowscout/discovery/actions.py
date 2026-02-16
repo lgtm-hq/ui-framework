@@ -5,6 +5,7 @@ from __future__ import annotations
 from hashlib import md5
 
 from functools import cached_property
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin, urlparse
 
@@ -142,6 +143,7 @@ def generate_actions(
     current_page_url: str = "",
     input_profile: str = "safe",
     link_scope_mode: str = "legacy",
+    allowed_domains: Sequence[str] = (),
 ) -> list[Action]:
     """Generate a list of actions from discovered elements."""
     actions: list[Action] = []
@@ -156,6 +158,7 @@ def generate_actions(
             current_page_url=current_page_url,
             input_profile=input_profile,
             link_scope_mode=link_scope_mode,
+            allowed_domains=allowed_domains,
         )
         actions.extend(new_actions)
 
@@ -171,6 +174,7 @@ def _actions_for_element(
     current_page_url: str = "",
     input_profile: str = "safe",
     link_scope_mode: str = "legacy",
+    allowed_domains: Sequence[str] = (),
 ) -> list[Action]:
     """Generate actions for a single element based on its type."""
     actions: list[Action] = []
@@ -197,7 +201,12 @@ def _actions_for_element(
         # Skip external links
         if etype == ElementType.LINK and elem.href:
             if link_scope_mode == "origin":
-                if _is_external_origin_link(
+                if allowed_domains:
+                    if not _is_domain_allowed(
+                        elem.href, current_page_url, allowed_domains
+                    ):
+                        return []
+                elif _is_external_origin_link(
                     href=elem.href,
                     current_page_url=current_page_url,
                 ):
@@ -207,7 +216,11 @@ def _actions_for_element(
                 and not elem.href.startswith(base_url)
                 and elem.href.startswith("http")
             ):
-                return []
+                if not (
+                    allowed_domains
+                    and _is_domain_allowed(elem.href, current_page_url, allowed_domains)
+                ):
+                    return []
             if elem.href.startswith("javascript:"):
                 return []
 
@@ -370,6 +383,21 @@ def _is_external_origin_link(*, href: str, current_page_url: str) -> bool:
     if current.scheme not in {"http", "https"}:
         return False
     return (resolved.scheme, resolved.netloc) != (current.scheme, current.netloc)
+
+
+def _is_domain_allowed(
+    href: str,
+    current_page_url: str,
+    allowed_domains: Sequence[str],
+) -> bool:
+    """Return True if href resolves to a domain in the allowlist or same origin."""
+    resolved = urlparse(urljoin(current_page_url, href.strip()))
+    if resolved.scheme not in {"http", "https"}:
+        return False
+    current = urlparse(current_page_url)
+    if (resolved.scheme, resolved.netloc) == (current.scheme, current.netloc):
+        return True
+    return resolved.hostname in allowed_domains
 
 
 def generate_form_submit_actions(

@@ -96,6 +96,64 @@ class TestGenerateActions:
         )
         assert len(actions) == 0
 
+    def test_allowed_domains_permits_cross_origin_link(self) -> None:
+        elem = _make_elem(
+            element_type=ElementType.LINK,
+            tag="a",
+            href="https://api.example.com/docs",
+        )
+        actions = generate_actions(
+            [elem],
+            current_page_url="https://app.example.com/home",
+            link_scope_mode="origin",
+            allowed_domains=["api.example.com"],
+        )
+        assert len(actions) == 1
+        assert actions[0].action_type == ActionType.CLICK
+
+    def test_allowed_domains_blocks_unlisted_domain(self) -> None:
+        elem = _make_elem(
+            element_type=ElementType.LINK,
+            tag="a",
+            href="https://evil.com/phish",
+        )
+        actions = generate_actions(
+            [elem],
+            current_page_url="https://app.example.com/home",
+            link_scope_mode="origin",
+            allowed_domains=["api.example.com"],
+        )
+        assert len(actions) == 0
+
+    def test_allowed_domains_always_permits_same_origin(self) -> None:
+        elem = _make_elem(
+            element_type=ElementType.LINK,
+            tag="a",
+            href="https://app.example.com/other",
+        )
+        actions = generate_actions(
+            [elem],
+            current_page_url="https://app.example.com/home",
+            link_scope_mode="origin",
+            allowed_domains=["api.example.com"],
+        )
+        assert len(actions) == 1
+
+    def test_allowed_domains_works_with_legacy_scope(self) -> None:
+        elem = _make_elem(
+            element_type=ElementType.LINK,
+            tag="a",
+            href="https://api.example.com/v2",
+        )
+        actions = generate_actions(
+            [elem],
+            base_url="https://app.example.com",
+            current_page_url="https://app.example.com/home",
+            link_scope_mode="legacy",
+            allowed_domains=["api.example.com"],
+        )
+        assert len(actions) == 1
+
     def test_input_generates_fill(self) -> None:
         elem = _make_elem(
             element_type=ElementType.INPUT_EMAIL,

@@ -291,6 +291,7 @@ class Navigator:
             current_page_url=state.url,
             input_profile=self.config.input_profile.value,
             link_scope_mode=self.config.link_scope_mode.value,
+            allowed_domains=self.config.allowed_domains,
         )
 
         # Generate form submit actions
