@@ -11,13 +11,14 @@ from pydantic import BaseModel, Field
 import networkx as nx
 
 from flowscout.analysis.narrative import FlowNarrative
+from flowscout.core.inventory import PageInventory
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 
 _MAX_PATHS_PER_LEAF = 25
 _MAX_TOTAL_LINEAR_FLOWS = 500
 _MAX_CYCLE_FLOWS = 200
-EXPLORATION_RESULT_SCHEMA_VERSION = "1.0.0"
+EXPLORATION_RESULT_SCHEMA_VERSION = "2.0.0"
 
 
 class Flow(BaseModel):
@@ -56,6 +57,7 @@ class ExplorationResult(BaseModel):
     stats: dict[str, int] = Field(default_factory=dict)
     page_catalogs: dict[str, Any] = Field(default_factory=dict)
     coverage: dict[str, Any] = Field(default_factory=dict)
+    page_inventories: dict[str, PageInventory] = Field(default_factory=dict)
     element_inventory: dict[str, Any] = Field(default_factory=dict)
     archetypes: dict[str, Any] = Field(default_factory=dict)
     smart_analyses: dict[str, Any] = Field(default_factory=dict)

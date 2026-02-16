@@ -26,6 +26,16 @@ class InputProfile(StrEnum):
     NEGATIVE = auto()
 
 
+class OutcomeMode(StrEnum):
+    LEGACY = auto()
+    DOCUMENT_ONLY = auto()
+
+
+class LinkScopeMode(StrEnum):
+    LEGACY = auto()
+    ORIGIN = auto()
+
+
 class PageBlockReason(StrEnum):
     NONE = auto()
     ACCESS_DENIED = auto()
@@ -59,6 +69,8 @@ class ExplorerConfig(BaseModel):
     smart_min_archetypes_before_stop: int = Field(default=2, ge=0)
     smart_archetype_instance_limit: int = Field(default=3, ge=1)
     input_profile: InputProfile = InputProfile.SAFE
+    outcome_mode: OutcomeMode = OutcomeMode.LEGACY
+    link_scope_mode: LinkScopeMode = LinkScopeMode.LEGACY
     stealth: bool = True
     context_path: str | None = None
     save_context_path: str | None = None
@@ -67,6 +79,7 @@ class ExplorerConfig(BaseModel):
     auth_profile: str | None = None
     auth_required: bool = False
     action_policy: ActionPolicyConfig = Field(default_factory=ActionPolicyConfig)
+    collect_bounding_boxes: bool = True
 
 
 class PageState(BaseModel):

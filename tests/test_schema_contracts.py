@@ -35,7 +35,7 @@ def test_exploration_to_model_round_trip_contract(tmp_path: Path) -> None:
     reloaded_result = ExplorationResult.model_validate_json(serialized_result)
 
     model = SiteModel.from_exploration_result(result=reloaded_result)
-    assert model.schema_version == "1.0.0"
+    assert model.schema_version == "1.0.0"  # SiteModel version, not ExplorationResult
     assert model.version == "1.0.0"
 
     serialized_model = model.model_dump_json(indent=2)
@@ -73,7 +73,7 @@ def test_model_builder_rejects_schema_version_mismatch() -> None:
 def test_model_builder_rejects_version_mismatch() -> None:
     """Ensure version and schema_version stay aligned."""
     result = ExplorationResult(
-        schema_version="1.0.0",
+        schema_version="2.0.0",
         version="0.9.0",
         states={"s1": _make_state(state_id="s1", url="https://example.com")},
     )
@@ -88,8 +88,8 @@ def test_model_builder_rejects_version_mismatch() -> None:
 def test_model_builder_requires_states() -> None:
     """Ensure required layer-1 state payload is validated."""
     result = ExplorationResult(
-        schema_version="1.0.0",
-        version="1.0.0",
+        schema_version="2.0.0",
+        version="2.0.0",
         states={},
     )
 

@@ -85,16 +85,49 @@ class CatalogElement(TypedDict, total=False):
     dom_id: str
     tag: str
     label: str
+    visible_text: str
     zone: str
     element_type: str
     aria_role: str
+    aria_label: str
     input_type: str
     is_visible: bool
+    is_interactive: bool
+    href: str
+    src: str
+    name: str
+    parent_selector: str
+    parent_tag: str
     bounding_box: BoundingBox | None
+    computed_styles: dict[str, str]
+    data_attributes: dict[str, str]
     locator_score: float
     locator_stability: str
     preferred_selector: str
     preferred_strategy: str
+
+
+class RawFormField(TypedDict, total=False):
+    """Shape of a form field returned by page_analysis.js."""
+
+    selector: str
+    name: str
+    input_type: str
+    label: str
+    is_required: bool
+    placeholder: str
+    options: list[str]
+    validation_pattern: str
+
+
+class RawFormStructure(TypedDict, total=False):
+    """Shape of a form structure returned by page_analysis.js."""
+
+    form_selector: str
+    action: str
+    method: str
+    fields: list[RawFormField]
+    submit_selector: str
 
 
 class PageAnalysis(TypedDict):
@@ -106,6 +139,7 @@ class PageAnalysis(TypedDict):
     structural_skeleton: str
     extracted_entities: list[str]
     element_catalog: list[CatalogElement]
+    form_structures: list[RawFormStructure]
 
 
 class NetworkError(TypedDict):
@@ -114,3 +148,6 @@ class NetworkError(TypedDict):
     url: str
     status: str
     method: str
+    resource_type: str
+    is_navigation: bool
+    is_document: bool

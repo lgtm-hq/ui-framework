@@ -7,6 +7,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from flowscout.analysis.element_inventory import summarize_element_inventory
 from flowscout.analysis.detector import detect_page_block
@@ -16,6 +17,7 @@ from flowscout.analysis.verdict import ObservationComputer, ObservationResult
 from flowscout.core.browser import BrowserManager
 from flowscout.core.errors import BrowserError
 from flowscout.core.frontier import FrontierManager, is_diverse_action
+from flowscout.core.inventory import PageInventory
 from flowscout.core.policy import get_action_policy_block_reason
 from flowscout.core.protocols import ITerminalReporter
 from flowscout.core.state import ExplorerConfig, PageBlockReason, PageState
@@ -27,6 +29,7 @@ from flowscout.discovery.actions import (
     generate_form_submit_actions,
 )
 from flowscout.discovery.elements import discover_elements
+from flowscout.discovery.inventory import build_page_inventory
 
 if TYPE_CHECKING:
     from flowscout.smart.planner import SmartPlanner as _SmartPlannerType
@@ -56,6 +59,7 @@ class Navigator:
         self._total_actions_executed = 0
         self._observation_computer = ObservationComputer()
         self._narrative_generator = NarrativeGenerator()
+        self._page_inventories: dict[str, PageInventory] = {}
 
         # Smart planner (only active in smart mode)
         self._smart_planner = None
@@ -174,7 +178,22 @@ class Navigator:
             results=self.graph.results,
             flows=flows,
             stats=stats,
+            page_inventories=self._page_inventories,
         )
+
+        # Attach inventory stats
+        total_inv_elements = sum(
+            len(inv.elements) for inv in self._page_inventories.values()
+        )
+        total_inv_interactive = sum(
+            sum(1 for e in inv.elements if e.is_interactive)
+            for inv in self._page_inventories.values()
+        )
+        total_inv_forms = sum(len(inv.forms) for inv in self._page_inventories.values())
+        exploration.stats["inventory_total_elements"] = total_inv_elements
+        exploration.stats["inventory_interactive_elements"] = total_inv_interactive
+        exploration.stats["inventory_forms"] = total_inv_forms
+        exploration.stats["inventory_pages"] = len(self._page_inventories)
 
         # Attach smart mode data
         if self._smart_planner:
@@ -252,16 +271,26 @@ class Navigator:
         elements = await discover_elements(self.browser.page)
         self.terminal.log_info(f"  Discovered {len(elements)} interactive elements")
 
-        base_url = (
-            state.url.split("//", 1)[-1].split("/", 1)[0] if "//" in state.url else ""
-        )
-        base_url = state.url.rsplit("/", 1)[0] if "/" in state.url else state.url
+        # Collect full page inventory
+        await self._collect_page_inventory(state)
+
+        if self.config.link_scope_mode.value == "origin":
+            parsed_url = urlparse(state.url)
+            base_url = (
+                f"{parsed_url.scheme}://{parsed_url.netloc}"
+                if parsed_url.scheme and parsed_url.netloc
+                else state.url
+            )
+        else:
+            base_url = state.url.rsplit("/", 1)[0] if "/" in state.url else state.url
 
         # Generate individual element actions
         actions = generate_actions(
             elements,
             base_url=base_url,
+            current_page_url=state.url,
             input_profile=self.config.input_profile.value,
+            link_scope_mode=self.config.link_scope_mode.value,
         )
 
         # Generate form submit actions
@@ -308,6 +337,30 @@ class Navigator:
             self.terminal.log_info(
                 f"  Policy skipped {blocked_count} high-impact actions"
             )
+
+    async def _collect_page_inventory(self, state: PageState) -> None:
+        """Run page analysis and build full element inventory for a state."""
+        try:
+            raw = await self.browser.analyze_page_structure()
+        except (BrowserError, RuntimeError):
+            logger.debug(
+                "Page inventory collection failed for %s",
+                state.state_id,
+                exc_info=True,
+            )
+            return
+
+        inventory = build_page_inventory(
+            raw,
+            url=state.url,
+            state_id=state.state_id,
+            collect_bounding_boxes=self.config.collect_bounding_boxes,
+        )
+        self._page_inventories[state.state_id] = inventory
+        self.terminal.log_info(
+            f"  Cataloged {len(inventory.elements)} elements,"
+            f" {len(inventory.forms)} forms"
+        )
 
     def _apply_action_policy(self, actions: list[Action]) -> tuple[list[Action], int]:
         """Filter actions according to non-destructive policy settings."""

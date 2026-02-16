@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 SITE_MODEL_SCHEMA_VERSION = "1.0.0"
-EXPLORATION_RESULT_SCHEMA_VERSION = "1.0.0"
+EXPLORATION_RESULT_SCHEMA_VERSION = "2.0.0"
 
 
 # ---------------------------------------------------------------------------

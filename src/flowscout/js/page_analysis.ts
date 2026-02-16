@@ -226,54 +226,112 @@
     return rect.width > 0 && rect.height > 0;
   }
 
+  // --- Interactive element check ---
+  const INTERACTIVE_TAGS = new Set(["a", "button", "input", "textarea", "select"]);
+  const INTERACTIVE_ROLES = new Set([
+    "button",
+    "link",
+    "tab",
+    "menuitem",
+    "option",
+    "switch",
+    "checkbox",
+    "radio",
+    "slider",
+    "spinbutton",
+    "combobox",
+    "searchbox",
+    "textbox",
+  ]);
+
+  function isInteractiveElement(el: Element): boolean {
+    const tag = el.tagName.toLowerCase();
+    if (INTERACTIVE_TAGS.has(tag)) return true;
+    const role = el.getAttribute("role") || "";
+    if (INTERACTIVE_ROLES.has(role)) return true;
+    if (el.hasAttribute("onclick") || el.hasAttribute("tabindex")) return true;
+    return false;
+  }
+
+  // --- Data attributes ---
+  function getDataAttributes(el: Element): Record<string, string> {
+    const attrs: Record<string, string> = {};
+    const dataset = (el as HTMLElement).dataset;
+    if (!dataset) return attrs;
+    for (const key of Object.keys(dataset)) {
+      const val = dataset[key];
+      if (val !== undefined) {
+        attrs[key] = val.slice(0, 100);
+      }
+    }
+    return attrs;
+  }
+
+  // --- Parent info ---
+  function getParentInfo(el: Element): { selector: string; tag: string } | null {
+    const parent = el.parentElement;
+    if (!parent || parent === document.body || parent === document.documentElement) {
+      return null;
+    }
+    return { selector: buildSelector(parent), tag: parent.tagName.toLowerCase() };
+  }
+
   // --- Element Catalog ---
-  function buildElementCatalog(): Array<{
+  interface CatalogItem {
     selector: string;
     xpath: string;
     dom_id: string;
     tag: string;
     label: string;
+    visible_text: string;
     zone: string;
     element_type: string;
     aria_role: string;
+    aria_label: string;
     input_type: string;
     is_visible: boolean;
+    is_interactive: boolean;
+    href: string;
+    src: string;
+    name: string;
+    parent_selector: string;
+    parent_tag: string;
     bounding_box: { x: number; y: number; width: number; height: number } | null;
-  }> {
-    const catalog: Array<{
-      selector: string;
-      xpath: string;
-      dom_id: string;
-      tag: string;
-      label: string;
-      zone: string;
-      element_type: string;
-      aria_role: string;
-      input_type: string;
-      is_visible: boolean;
-      bounding_box: { x: number; y: number; width: number; height: number } | null;
-    }> = [];
+    data_attributes: Record<string, string>;
+  }
 
+  function buildElementCatalog(): CatalogItem[] {
+    const catalog: CatalogItem[] = [];
+
+    // Query ALL semantic, interactive, and content elements
     const allElements = document.querySelectorAll(
-      "a, button, input, textarea, select, [role='button'], [role='link'], [role='tab'], " +
-        "[role='menuitem'], [role='option'], [role='search'], h1, h2, h3, h4, h5, h6, img",
+      "a, button, input, textarea, select, label, " +
+        "h1, h2, h3, h4, h5, h6, p, img, picture, video, audio, " +
+        "table, ul, ol, li, dl, dt, dd, " +
+        "nav, header, footer, main, aside, section, article, " +
+        "form, fieldset, legend, " +
+        "[role='button'], [role='link'], [role='tab'], " +
+        "[role='menuitem'], [role='option'], [role='search'], " +
+        "[role='navigation'], [role='banner'], [role='contentinfo'], " +
+        "[role='complementary'], [role='main'], " +
+        "[onclick], [tabindex]",
     );
 
     const seen = new Set<string>();
 
     allElements.forEach((el) => {
       const selector = buildSelector(el);
-      const xpath = buildXPath(el);
       if (seen.has(selector)) return;
       seen.add(selector);
 
       const tag = el.tagName.toLowerCase();
-      const label = getElementLabel(el);
-      const zone = classifyZone(el);
-      const elementType = classifyElementType(el);
-      const ariaRole = el.getAttribute("role") || "";
-      const inputType = (el as HTMLInputElement).type || "";
       const isVisible = isElementVisible(el);
+
+      // Get visible text (trimmed, max 200 chars)
+      const rawText = (el.textContent || "").trim();
+      const visibleText = rawText.length > 200 ? rawText.slice(0, 200) : rawText;
+
+      const parentInfo = getParentInfo(el);
 
       const rect = el.getBoundingClientRect();
       const bbox = isVisible
@@ -282,20 +340,134 @@
 
       catalog.push({
         selector,
-        xpath,
+        xpath: buildXPath(el),
         dom_id: el.id || "",
         tag,
-        label,
-        zone,
-        element_type: elementType,
-        aria_role: ariaRole,
-        input_type: inputType,
+        label: getElementLabel(el),
+        visible_text: visibleText,
+        zone: classifyZone(el),
+        element_type: classifyElementType(el),
+        aria_role: el.getAttribute("role") || "",
+        aria_label: el.getAttribute("aria-label") || "",
+        input_type: (el as HTMLInputElement).type || "",
         is_visible: isVisible,
+        is_interactive: isInteractiveElement(el),
+        href: (el as HTMLAnchorElement).href || el.getAttribute("href") || "",
+        src: (el as HTMLImageElement).src || el.getAttribute("src") || "",
+        name: (el as HTMLInputElement).name || el.getAttribute("name") || "",
+        parent_selector: parentInfo?.selector || "",
+        parent_tag: parentInfo?.tag || "",
         bounding_box: bbox,
+        data_attributes: getDataAttributes(el),
       });
     });
 
     return catalog;
+  }
+
+  // --- Form Structures ---
+  interface FormFieldItem {
+    selector: string;
+    name: string;
+    input_type: string;
+    label: string;
+    is_required: boolean;
+    placeholder: string;
+    options: string[];
+    validation_pattern: string;
+  }
+
+  interface FormStructureItem {
+    form_selector: string;
+    action: string;
+    method: string;
+    fields: FormFieldItem[];
+    submit_selector: string;
+  }
+
+  function buildFormStructures(): FormStructureItem[] {
+    const forms = document.querySelectorAll("form");
+    const structures: FormStructureItem[] = [];
+
+    forms.forEach((form) => {
+      const formSelector = buildSelector(form);
+      const fields: FormFieldItem[] = [];
+      let submitSelector = "";
+
+      const inputs = form.querySelectorAll("input, textarea, select");
+      inputs.forEach((input) => {
+        const inputEl = input as HTMLInputElement;
+        const inputType = inputEl.type || "text";
+
+        // Skip hidden and submit inputs from field list
+        if (inputType === "hidden" || inputType === "submit") {
+          if (inputType === "submit" && !submitSelector) {
+            submitSelector = buildSelector(input);
+          }
+          return;
+        }
+
+        // Find associated label
+        let fieldLabel = "";
+        if (inputEl.id) {
+          const labelEl = form.querySelector(`label[for="${CSS.escape(inputEl.id)}"]`);
+          if (labelEl) {
+            fieldLabel = (labelEl.textContent || "").trim().slice(0, 100);
+          }
+        }
+        if (!fieldLabel) {
+          const parentLabel = input.closest("label");
+          if (parentLabel) {
+            fieldLabel = (parentLabel.textContent || "").trim().slice(0, 100);
+          }
+        }
+        if (!fieldLabel) {
+          fieldLabel = inputEl.getAttribute("aria-label") || "";
+        }
+
+        // Collect options for selects
+        const options: string[] = [];
+        if (input.tagName.toLowerCase() === "select") {
+          const selectEl = input as HTMLSelectElement;
+          Array.from(selectEl.options).forEach((opt) => {
+            if (opt.value) {
+              options.push(opt.value);
+            }
+          });
+        }
+
+        fields.push({
+          selector: buildSelector(input),
+          name: inputEl.name || "",
+          input_type: inputType,
+          label: fieldLabel,
+          is_required: inputEl.required || inputEl.getAttribute("aria-required") === "true",
+          placeholder: inputEl.placeholder || "",
+          options,
+          validation_pattern: inputEl.pattern || "",
+        });
+      });
+
+      // Find submit button if not found yet
+      if (!submitSelector) {
+        const submitBtn = form.querySelector(
+          "button[type='submit'], input[type='submit'], button:not([type])",
+        );
+        if (submitBtn) {
+          submitSelector = buildSelector(submitBtn);
+        }
+      }
+
+      structures.push({
+        form_selector: formSelector,
+        action: form.action || "",
+        method: (form.method || "GET").toUpperCase(),
+        fields,
+        submit_selector: submitSelector,
+      });
+    });
+
+    return structures;
   }
 
   function classifyZone(el: Element): string {
@@ -342,12 +514,32 @@
     }
     if (tag === "select") return "select";
     if (tag === "textarea") return "textarea";
+    if (tag === "label") return "label";
+    if (tag === "form") return "form";
+    if (tag === "fieldset") return "fieldset";
+    if (tag === "legend") return "legend";
     if (role === "tab") return "tab";
     if (role === "menuitem") return "menuitem";
     if (role === "option") return "option";
     if (role === "search") return "search";
     if (tag.match(/^h[1-6]$/)) return "heading";
-    if (tag === "img") return "image";
+    if (tag === "img" || tag === "picture") return "image";
+    if (tag === "video") return "video";
+    if (tag === "audio") return "audio";
+    if (tag === "p") return "paragraph";
+    if (tag === "table") return "table";
+    if (tag === "ul" || tag === "ol") return "list";
+    if (tag === "li") return "list_item";
+    if (tag === "dl") return "definition_list";
+    if (tag === "dt") return "definition_term";
+    if (tag === "dd") return "definition_detail";
+    if (tag === "nav" || role === "navigation") return "navigation";
+    if (tag === "header" || role === "banner") return "header";
+    if (tag === "footer" || role === "contentinfo") return "footer";
+    if (tag === "main" || role === "main") return "main";
+    if (tag === "aside" || role === "complementary") return "aside";
+    if (tag === "section") return "section";
+    if (tag === "article") return "article";
     return "other";
   }
 
@@ -455,6 +647,7 @@
   const skeleton = getStructuralSkeleton();
   const entities = extractEntities(repeatedGroups, metrics.h2_texts);
   const catalog = buildElementCatalog();
+  const formStructures = buildFormStructures();
 
   return {
     repeated_groups: repeatedGroups,
@@ -463,5 +656,6 @@
     structural_skeleton: skeleton,
     extracted_entities: entities,
     element_catalog: catalog,
+    form_structures: formStructures,
   };
 })();

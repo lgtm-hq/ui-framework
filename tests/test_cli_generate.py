@@ -264,8 +264,8 @@ def test_generate_exports_mermaid_from_exploration_result() -> None:
         result_path.write_text(
             json.dumps(
                 {
-                    "schema_version": "1.0.0",
-                    "version": "1.0.0",
+                    "schema_version": "2.0.0",
+                    "version": "2.0.0",
                     "states": {
                         "s1": {
                             "state_id": "s1",
