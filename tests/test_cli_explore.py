@@ -8,7 +8,7 @@ from typing import Any
 from click.testing import CliRunner
 
 from flowscout.cli import main
-from flowscout.core.state import ExplorerConfig
+from flowscout.core.state import ExplorerConfig, LinkScopeMode, OutcomeMode
 import flowscout.cli.explore as explore_cli
 
 
@@ -249,3 +249,67 @@ def test_explore_cdp_endpoint_passes_through(
     )
 
     assert config.cdp_endpoint == endpoint
+
+
+def test_explore_outcome_mode_defaults_to_legacy(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    """Outcome mode should default to legacy for compatibility release."""
+    config, _ = _run_explore(
+        runner=CliRunner(),
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        extra_args=[],
+    )
+    assert config.outcome_mode == OutcomeMode.LEGACY
+
+
+def test_explore_outcome_mode_document_only_is_applied(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    """`--outcome-mode document-only` should map to document_only enum value."""
+    config, _ = _run_explore(
+        runner=CliRunner(),
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        extra_args=["--outcome-mode", "document-only"],
+    )
+    assert config.outcome_mode == OutcomeMode.DOCUMENT_ONLY
+
+
+def test_explore_link_scope_mode_defaults_to_legacy(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    """Link scope mode should default to legacy for compatibility release."""
+    config, _ = _run_explore(
+        runner=CliRunner(),
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        extra_args=[],
+    )
+    assert config.link_scope_mode == LinkScopeMode.LEGACY
+
+
+def test_explore_link_scope_mode_origin_is_applied(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    """`--link-scope-mode origin` should use origin link scoping."""
+    config, _ = _run_explore(
+        runner=CliRunner(),
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        extra_args=["--link-scope-mode", "origin"],
+    )
+    assert config.link_scope_mode == LinkScopeMode.ORIGIN
+
+
+def test_explore_help_lists_behavior_mode_options() -> None:
+    """CLI help should include outcome and link behavior mode options."""
+    result = CliRunner().invoke(main, ["explore", "--help"])
+    assert result.exit_code == 0, result.output
+    assert "--outcome-mode [legacy|document-only]" in result.output
+    assert "--link-scope-mode [legacy|origin]" in result.output

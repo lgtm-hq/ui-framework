@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Generator
 
+import pytest
 
 from flowscout.analysis.graph import ExplorationResult, Flow
 from flowscout.core.state import PageState
@@ -14,11 +16,23 @@ from flowscout.storage.db import FlowscoutDB
 # Helpers
 # ---------------------------------------------------------------------------
 
+_OPEN_DBS: list[FlowscoutDB] = []
+
 
 def _in_memory_db() -> FlowscoutDB:
     """Create a FlowscoutDB backed by an in-memory SQLite connection."""
     conn = sqlite3.connect(":memory:")
-    return FlowscoutDB.from_connection(conn)
+    db = FlowscoutDB.from_connection(conn)
+    _OPEN_DBS.append(db)
+    return db
+
+
+@pytest.fixture(autouse=True)
+def _close_open_dbs() -> Generator[None, None, None]:
+    """Ensure test-created DB connections are always closed."""
+    yield
+    while _OPEN_DBS:
+        _OPEN_DBS.pop().close()
 
 
 def _make_result(
@@ -319,8 +333,30 @@ class TestCrossRunAnalysis:
         db.save_run(_make_result(num_actions=2, num_states=3))
 
         reliability = db.get_action_reliability()
-        assert len(reliability) > 0
-        assert reliability[0]["total_attempts"] >= 1
+        assert len(reliability) == 2
+        first = reliability[0]
+        assert first["total_attempts"] == 1
+        assert first["navigations"] in {0, 1}
+        assert first["dom_changes"] == 0
+        assert first["visual_changes"] == 0
+        assert first["errors"] == 0
+        assert first["no_changes"] in {0, 1}
+        assert first["other_outcomes"] == 0
+
+    def test_get_action_reliability_counts_visual_changes(self) -> None:
+        db = _in_memory_db()
+        result = _make_result(num_actions=1, num_states=1)
+        result.results[0].outcome = OutcomeType.VISUAL_CHANGE
+        db.save_run(result)
+
+        reliability = db.get_action_reliability()
+        assert len(reliability) == 1
+        row = reliability[0]
+        assert row["visual_changes"] == 1
+        assert row["navigations"] == 0
+        assert row["dom_changes"] == 0
+        assert row["errors"] == 0
+        assert row["other_outcomes"] == 0
 
     def test_get_action_reliability_filtered_by_url(self) -> None:
         db = _in_memory_db()
@@ -329,7 +365,8 @@ class TestCrossRunAnalysis:
 
         reliability = db.get_action_reliability(start_url="https://a.com")
         # Should only include actions from the a.com run
-        assert len(reliability) >= 1
+        assert len(reliability) == 1
+        assert reliability[0]["total_attempts"] == 1
 
     def test_get_flaky_actions_requires_min_runs(self) -> None:
         db = _in_memory_db()

@@ -24,7 +24,7 @@ class _MockDetector:
         dom_hash_after: str,
         error_messages: list[str],
         console_errors: list[str],
-        network_errors: list[dict[str, str]],
+        network_errors: list[dict[str, str | bool]],
     ) -> OutcomeType:
         return OutcomeType.NO_CHANGE
 
