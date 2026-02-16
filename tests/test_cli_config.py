@@ -7,6 +7,7 @@ import pytest
 from click.core import ParameterSource
 
 from flowscout.cli import (
+    CrawlConfig,
     _domain_match_score,
     _load_crawl_config,
     _resolve_auth_bootstrap,
@@ -16,6 +17,7 @@ from flowscout.cli import (
     _resolve_int_config,
     _resolve_int_option,
     _resolve_str_option,
+    validate_crawl_config,
 )
 
 
@@ -231,3 +233,106 @@ def test_resolve_domain_scoped_config_respects_cli_environment() -> None:
 
     assert resolved["environment"] == "staging"
     assert resolved["max_states"] == 40
+
+
+# --- CrawlConfig Pydantic validation tests ---
+
+
+class TestCrawlConfig:
+    def test_defaults_are_valid(self) -> None:
+        config = CrawlConfig()
+        assert config.max_depth == 3
+        assert config.max_states == 50
+        assert config.input_profile.value == "safe"
+
+    def test_valid_config_accepted(self) -> None:
+        config = CrawlConfig.model_validate(
+            {
+                "max_depth": 5,
+                "max_states": 100,
+                "input_profile": "safe",
+                "outcome_mode": "legacy",
+                "link_scope_mode": "origin",
+            }
+        )
+        assert config.max_depth == 5
+        assert config.max_states == 100
+
+    def test_rejects_max_depth_too_high(self) -> None:
+        with pytest.raises(Exception, match="less than or equal to 20"):
+            CrawlConfig(max_depth=999)
+
+    def test_rejects_max_depth_too_low(self) -> None:
+        with pytest.raises(Exception, match="greater than or equal to 1"):
+            CrawlConfig(max_depth=0)
+
+    def test_rejects_max_states_too_high(self) -> None:
+        with pytest.raises(Exception, match="less than or equal to 500"):
+            CrawlConfig(max_states=9999)
+
+    def test_rejects_invalid_input_profile(self) -> None:
+        with pytest.raises(Exception, match="input_profile"):
+            CrawlConfig.model_validate({"input_profile": "bogus"})
+
+    def test_rejects_invalid_outcome_mode(self) -> None:
+        with pytest.raises(Exception, match="outcome_mode"):
+            CrawlConfig.model_validate({"outcome_mode": "invalid"})
+
+    def test_rejects_unknown_keys(self) -> None:
+        with pytest.raises(Exception, match="extra_field"):
+            CrawlConfig.model_validate({"extra_field": "unexpected"})
+
+    def test_rejects_timeout_below_minimum(self) -> None:
+        with pytest.raises(Exception, match="greater than or equal to 1000"):
+            CrawlConfig(navigation_timeout_ms=100)
+
+    def test_allowed_domains_defaults_empty(self) -> None:
+        config = CrawlConfig()
+        assert config.allowed_domains == []
+
+    def test_allowed_domains_accepted(self) -> None:
+        config = CrawlConfig(allowed_domains=["api.example.com", "cdn.example.com"])
+        assert config.allowed_domains == ["api.example.com", "cdn.example.com"]
+
+    def test_domains_passthrough_accepted(self) -> None:
+        config = CrawlConfig(
+            domains={"*.example.com": {"max_depth": 5}},
+        )
+        assert "*.example.com" in config.domains
+
+    def test_document_only_outcome_mode_accepted(self) -> None:
+        config = CrawlConfig.model_validate({"outcome_mode": "document_only"})
+        assert config.outcome_mode.value == "document_only"
+
+
+class TestValidateCrawlConfig:
+    def test_missing_file_returns_defaults(self, tmp_path: Path) -> None:
+        config = validate_crawl_config(
+            config_file=str(tmp_path / ".crawl-config"),
+        )
+        assert config.max_depth == 3
+
+    def test_valid_file_parsed(self, tmp_path: Path) -> None:
+        config_path = tmp_path / ".crawl-config"
+        config_path.write_text("max_depth = 7\nmax_states = 200\n")
+        config = validate_crawl_config(config_file=str(config_path))
+        assert config.max_depth == 7
+        assert config.max_states == 200
+
+    def test_invalid_values_raise_click_exception(self, tmp_path: Path) -> None:
+        config_path = tmp_path / ".crawl-config"
+        config_path.write_text("max_depth = 999\n")
+        with pytest.raises(click.ClickException, match="Invalid .crawl-config"):
+            validate_crawl_config(config_file=str(config_path))
+
+    def test_unknown_keys_raise_click_exception(self, tmp_path: Path) -> None:
+        config_path = tmp_path / ".crawl-config"
+        config_path.write_text("typo_key = true\n")
+        with pytest.raises(click.ClickException, match="typo_key"):
+            validate_crawl_config(config_file=str(config_path))
+
+    def test_invalid_enum_raises_click_exception(self, tmp_path: Path) -> None:
+        config_path = tmp_path / ".crawl-config"
+        config_path.write_text('input_profile = "bogus"\n')
+        with pytest.raises(click.ClickException, match="Invalid .crawl-config"):
+            validate_crawl_config(config_file=str(config_path))

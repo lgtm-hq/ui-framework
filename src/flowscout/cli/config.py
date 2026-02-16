@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import click
 from click.core import ParameterSource
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from flowscout.cli.app import console
 from flowscout.core.auth import (
@@ -20,6 +21,89 @@ from flowscout.core.auth import (
     sanitize_auth_summary,
     select_auth_profile,
 )
+from flowscout.core.state import InputProfile, LinkScopeMode, OutcomeMode
+
+
+class CrawlConfig(BaseModel):
+    """Validated crawl configuration from .crawl-config TOML."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # Budget
+    max_depth: int = Field(default=3, ge=1, le=20)
+    max_states: int = Field(default=50, ge=1, le=500)
+    max_actions_per_state: int = Field(default=20, ge=1, le=100)
+
+    # Runtime
+    headless: bool = True
+    smart: bool = True
+    smart_stop_on_saturation: bool = True
+    smart_min_archetypes_before_stop: int = Field(default=2, ge=0)
+    smart_min_features_before_stop: int = Field(default=3, ge=0)
+    smart_archetype_instance_limit: int = Field(default=3, ge=1)
+    input_profile: InputProfile = InputProfile.SAFE
+    outcome_mode: OutcomeMode = OutcomeMode.LEGACY
+    link_scope_mode: LinkScopeMode = LinkScopeMode.LEGACY
+
+    # Timing
+    navigation_timeout_ms: int = Field(default=10000, ge=1000)
+    action_timeout_ms: int = Field(default=5000, ge=500)
+    stability_timeout_ms: int = Field(default=2000, ge=200)
+    load_wait_timeout_ms: int = Field(default=3000, ge=500)
+
+    # Policy
+    enforce_non_destructive: bool = True
+    allow_form_submits: bool = False
+
+    # Persistence
+    output_dir: str = "reports"
+    environment: str = "dev"
+    capture_screenshots: bool = True
+    persist_history: bool = True
+    db_path: str = ".flowscout/history.db"
+
+    # Auth
+    auth_config_file: str | None = None
+    auth_required: bool = False
+
+    # Domain management
+    allowed_domains: list[str] = Field(default_factory=list)
+
+    # Phase 1
+    collect_bounding_boxes: bool = True
+
+    # Domain/environment overrides (passthrough)
+    domains: dict[str, Any] = Field(default_factory=dict)
+
+
+def _format_validation_errors(exc: ValidationError) -> str:
+    """Format Pydantic validation errors as human-readable lines."""
+    lines: list[str] = []
+    for error in exc.errors():
+        loc = ".".join(str(part) for part in error["loc"])
+        msg = error["msg"]
+        lines.append(f"  {loc}: {msg}")
+    return "\n".join(lines)
+
+
+def validate_crawl_config(*, config_file: str = ".crawl-config") -> CrawlConfig:
+    """Load .crawl-config and validate with Pydantic.
+
+    Returns:
+        Validated CrawlConfig instance.
+
+    Raises:
+        click.ClickException: On invalid TOML or validation failure.
+    """
+    raw = _load_crawl_config(config_file=config_file)
+    if not raw:
+        return CrawlConfig()
+    try:
+        return CrawlConfig(**raw)
+    except ValidationError as exc:
+        raise click.ClickException(
+            f"Invalid .crawl-config:\n{_format_validation_errors(exc)}",
+        ) from None
 
 
 def _load_crawl_config(*, config_file: str) -> dict[str, Any]:

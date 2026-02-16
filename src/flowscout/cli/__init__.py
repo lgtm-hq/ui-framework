@@ -19,6 +19,7 @@ import flowscout.cli.serve as _serve_mod  # noqa: F401
 
 # Re-export config helpers used by tests
 from flowscout.cli.config import (
+    CrawlConfig,
     _domain_match_score,
     _load_crawl_config,
     _resolve_auth_bootstrap,
@@ -28,6 +29,7 @@ from flowscout.cli.config import (
     _resolve_int_config,
     _resolve_int_option,
     _resolve_str_option,
+    validate_crawl_config,
 )
 
 # Re-export explore helpers used by tests
@@ -40,7 +42,9 @@ from flowscout.cli.benchmark import (
 )
 
 __all__ = [
+    "CrawlConfig",
     "main",
+    "validate_crawl_config",
     "_build_output_dirs",
     "_compute_benchmark_metrics",
     "_domain_match_score",

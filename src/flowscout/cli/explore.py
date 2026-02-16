@@ -25,7 +25,6 @@ from flowscout.cli.config import (
     _came_from_cli,
     _coerce_bool,
     _find_config_value,
-    _load_crawl_config,
     _resolve_auth_bootstrap,
     _resolve_bool_config,
     _resolve_bool_option,
@@ -33,6 +32,7 @@ from flowscout.cli.config import (
     _resolve_int_option,
     _resolve_str_option,
     _resolve_domain_scoped_config,
+    validate_crawl_config,
 )
 from flowscout.codegen.playwright_tests import generate_test_suite
 from flowscout.core.auth import AuthBootstrap
@@ -263,7 +263,8 @@ def explore(
             console.print(f"  - {name}")
         return
     ctx = click.get_current_context()
-    raw_crawl_config = _load_crawl_config(config_file=config_file)
+    validated_config = validate_crawl_config(config_file=config_file)
+    raw_crawl_config = validated_config.model_dump(exclude_defaults=False)
     crawl_config = _resolve_domain_scoped_config(
         ctx=ctx,
         start_url=url,
@@ -579,6 +580,7 @@ def explore(
             enforce_non_destructive=resolved_enforce_non_destructive,
             block_form_submissions=not resolved_allow_form_submits,
         ),
+        allowed_domains=validated_config.allowed_domains,
     )
 
     auth_bootstrap, auth_profile_summary = _resolve_auth_bootstrap(
