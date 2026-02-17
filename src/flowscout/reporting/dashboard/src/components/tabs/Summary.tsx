@@ -2,7 +2,7 @@
 
 import { For, Show } from "solid-js";
 import type { ReportData } from "../../types";
-import { formatDuration, formatPercent, pluralize, verdictColor } from "../../lib/format";
+import { formatDuration, formatPercent, pluralize } from "../../lib/format";
 import StatCard from "../ui/StatCard";
 import Badge from "../ui/Badge";
 import SectionCard from "../ui/SectionCard";
