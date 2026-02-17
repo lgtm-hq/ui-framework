@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* turbo-themes base tokens */
+@import "@turbo/turbo-core.css";
+@import "@turbo/turbo-base.css";
+
+/* Theme overrides (activated via data-theme attribute on <html>) */
+@import "@turbo/themes/catppuccin-mocha.css";
+@import "@turbo/themes/tokyo-night-storm.css";
+
+/*
+ * Bridge turbo-themes CSS custom properties into Tailwind's theme system.
+ * @theme inline emits var() references literally so runtime theme switching
+ * via the data-theme attribute continues to work.
+ *
+ * Usage: bg-bg-base, text-text-primary, border-border, text-success, etc.
+ */
+@theme inline {
+  --color-bg-base: var(--turbo-bg-base);
+  --color-bg-surface: var(--turbo-bg-surface);
+  --color-bg-overlay: var(--turbo-bg-overlay);
+  --color-border: var(--turbo-border-default);
+  --color-text-primary: var(--turbo-text-primary);
+  --color-text-secondary: var(--turbo-text-secondary);
+  --color-success: var(--turbo-state-success);
+  --color-warning: var(--turbo-state-warning);
+  --color-danger: var(--turbo-state-danger);
+  --color-info: var(--turbo-state-info);
+  --color-brand: var(--turbo-brand-primary);
+  --color-pass: var(--turbo-state-success);
+  --color-fail: var(--turbo-state-danger);
+  --color-warn: var(--turbo-state-warning);
+  --color-muted: var(--turbo-text-secondary);
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", monospace;
+  --font-body: "DM Sans", "SF Pro Display", -apple-system, sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--turbo-bg-base);
+  color: var(--turbo-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
