@@ -42,9 +42,9 @@ export function outcomeIcon(outcome: string): string {
 
 export function verdictColor(verdict: string): string {
   const map: Record<string, string> = {
-    pass: "var(--color-pass, #22c55e)",
-    fail: "var(--color-fail, #ef4444)",
-    warn: "var(--color-warn, #f59e0b)",
+    pass: "var(--color-pass)",
+    fail: "var(--color-fail)",
+    warn: "var(--color-warn)",
   };
-  return map[verdict] ?? "var(--color-muted, #6b7280)";
+  return map[verdict] ?? "var(--color-muted)";
 }

@@ -1,7 +1,14 @@
-/** Theme switching — reads turbo-themes CSS via relative asset paths. */
+/** Theme switching via data-theme attribute on <html>. */
+
+import { createSignal } from "solid-js";
 
 const STORAGE_KEY = "flowscout-report-theme";
 const DEFAULT_THEME = "catppuccin-mocha";
+
+export const AVAILABLE_THEMES = [
+  { id: "catppuccin-mocha", label: "Catppuccin Mocha" },
+  { id: "tokyo-night-storm", label: "Tokyo Night Storm" },
+] as const;
 
 export function getCurrentTheme(): string {
   try {
@@ -11,21 +18,19 @@ export function getCurrentTheme(): string {
   }
 }
 
+const [currentTheme, setCurrentTheme] = createSignal(getCurrentTheme());
+
+export { currentTheme };
+
 export function setTheme(theme: string): void {
   try {
     localStorage.setItem(STORAGE_KEY, theme);
   } catch {
     // localStorage may be unavailable in file:// context
   }
-
-  const link = document.getElementById("theme-css") as HTMLLinkElement | null;
-  if (link) {
-    const base = link.getAttribute("data-theme-base") ?? "assets/themes/";
-    link.href = `${base}${theme}.css`;
-  }
+  document.documentElement.dataset.theme = theme;
+  setCurrentTheme(theme);
 }
 
-export const AVAILABLE_THEMES = [
-  { id: "catppuccin-mocha", label: "Catppuccin Mocha" },
-  { id: "tokyo-night-storm", label: "Tokyo Night Storm" },
-] as const;
+// Apply saved theme on load
+document.documentElement.dataset.theme = getCurrentTheme();
