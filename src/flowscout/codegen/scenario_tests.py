@@ -10,11 +10,11 @@ from typing import Any
 from flowscout.modeling.archetype import CatalogEntry, PageArchetype, ZoneType
 from flowscout.modeling.site_model import SiteModel
 from flowscout.modeling.flows import FlowTemplate
-from flowscout.codegen.page_objects import (
-    _catalog_to_class_name,
-    _group_by_zone,
-    _selector_to_property_name,
-    _to_snake_case,
+from flowscout.codegen.primitives import (
+    catalog_to_class_name as _catalog_to_class_name,
+    group_by_zone as _group_by_zone,
+    selector_to_property_name as _selector_to_property_name,
+    to_snake_case as _to_snake_case,
 )
 from flowscout.modeling.scenarios import FlowScenario
 
