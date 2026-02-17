@@ -1,8 +1,11 @@
 /** Dashboard overview — stats, pass rate, top issues. */
 
 import { For, Show } from "solid-js";
-import type { ReportData } from "../types";
-import { formatDuration, formatPercent, pluralize, verdictColor } from "../lib/format";
+import type { ReportData } from "../../types";
+import { formatDuration, formatPercent, pluralize, verdictColor } from "../../lib/format";
+import StatCard from "../ui/StatCard";
+import Badge from "../ui/Badge";
+import SectionCard from "../ui/SectionCard";
 
 interface Props {
   data: ReportData;
@@ -22,24 +25,24 @@ export default function Summary(props: Props) {
   const structure = () => s().site_structure;
 
   return (
-    <div class="summary">
-      <header class="summary-header">
-        <h2>Crawl Summary</h2>
-        <p class="summary-url">{m().start_url}</p>
-        <p class="summary-meta">
+    <div class="space-y-6">
+      <header>
+        <h2 class="text-lg font-semibold text-text-primary">Crawl Summary</h2>
+        <p class="mt-1 text-sm text-brand">{m().start_url}</p>
+        <p class="mt-0.5 text-xs text-text-secondary">
           {formatDuration(m().duration_seconds)} &middot; {m().strategy} strategy &middot;{" "}
           {m().environment} &middot; {m().input_profile} profile
         </p>
       </header>
 
-      <div class="stat-grid">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="States" value={s().total_states} />
         <StatCard label="Actions" value={s().total_actions} />
         <StatCard label="Flows" value={s().total_flows} />
         <StatCard label="Test Steps" value={s().total_test_steps} />
       </div>
 
-      <div class="coverage-grid">
+      <div class="grid grid-cols-3 gap-3">
         <CoverageCard
           label="Page Coverage"
           pct={coverage().page.pct}
@@ -57,66 +60,60 @@ export default function Summary(props: Props) {
         />
       </div>
 
-      <div class="verdict-row">
+      <div class="flex gap-3">
         <For each={["pass", "fail", "warn"] as const}>
           {(v) => (
-            <span class="verdict-badge" style={{ color: verdictColor(v) }}>
+            <Badge tone={v}>
               {v}: {s().flow_counts[v] ?? 0}
-            </span>
+            </Badge>
           )}
         </For>
       </div>
 
       <Show when={structure().page_type_count}>
-        <div class="structure-summary">
-          <h3>Site Structure</h3>
-          <p>
+        <SectionCard title="Site Structure">
+          <p class="text-sm text-text-secondary">
             {pluralize(structure().page_type_count ?? 0, "page type")},{" "}
             {pluralize(structure().navigation_path_count ?? 0, "navigation path")},{" "}
             {pluralize(structure().flow_template_count ?? 0, "flow template")}
           </p>
           <Show when={(structure().blocked_page_count ?? 0) > 0}>
-            <p class="blocked-note">
+            <p class="text-sm text-warning">
               {pluralize(structure().blocked_page_count ?? 0, "blocked page")}
             </p>
           </Show>
-        </div>
+        </SectionCard>
       </Show>
 
       <Show when={s().top_issues.length > 0}>
-        <div class="top-issues">
-          <h3>Top Issues</h3>
-          <ul>
+        <SectionCard title="Top Issues">
+          <ul class="space-y-2">
             <For each={s().top_issues}>
               {(issue) => (
-                <li class={`issue-${issue.priority}`}>
-                  <strong>{issue.title}</strong>
-                  <span>{issue.detail}</span>
+                <li class="flex items-start gap-2 text-sm">
+                  <Badge tone={issue.priority === "high" ? "danger" : issue.priority === "medium" ? "warn" : "info"}>
+                    {issue.priority}
+                  </Badge>
+                  <div>
+                    <strong class="text-text-primary">{issue.title}</strong>
+                    <span class="ml-1 text-text-secondary">{issue.detail}</span>
+                  </div>
                 </li>
               )}
             </For>
           </ul>
-        </div>
+        </SectionCard>
       </Show>
-    </div>
-  );
-}
-
-function StatCard(props: { label: string; value: number }) {
-  return (
-    <div class="stat-card">
-      <div class="stat-value">{props.value}</div>
-      <div class="stat-label">{props.label}</div>
     </div>
   );
 }
 
 function CoverageCard(props: { label: string; pct: number; detail: string }) {
   return (
-    <div class="coverage-card">
-      <div class="coverage-pct">{formatPercent(props.pct)}</div>
-      <div class="coverage-label">{props.label}</div>
-      <div class="coverage-detail">{props.detail}</div>
+    <div class="rounded-lg border border-border bg-bg-surface p-4 text-center">
+      <div class="text-2xl font-bold text-brand">{formatPercent(props.pct)}</div>
+      <div class="mt-1 text-xs font-medium text-text-primary">{props.label}</div>
+      <div class="mt-0.5 text-xs text-text-secondary">{props.detail}</div>
     </div>
   );
 }

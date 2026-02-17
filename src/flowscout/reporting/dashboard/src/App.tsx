@@ -1,15 +1,17 @@
 /** App shell with tab navigation. */
 
-import { createSignal, For, Show, lazy, Suspense } from "solid-js";
+import { createSignal, lazy, Suspense } from "solid-js";
 import type { Component } from "solid-js";
 import { reportData } from "./stores/report";
-import Summary from "./components/Summary";
+import AppShell from "./components/layout/AppShell";
+import TabBar from "./components/layout/TabBar";
+import Summary from "./components/tabs/Summary";
 
-const Timeline = lazy(() => import("./components/Timeline"));
-const FlowView = lazy(() => import("./components/FlowView"));
-const GraphView = lazy(() => import("./components/GraphView"));
-const Quality = lazy(() => import("./components/Quality"));
-const PageList = lazy(() => import("./components/PageList"));
+const Timeline = lazy(() => import("./components/tabs/Timeline"));
+const FlowView = lazy(() => import("./components/tabs/FlowView"));
+const GraphView = lazy(() => import("./components/tabs/GraphView"));
+const Quality = lazy(() => import("./components/tabs/quality/QualityTab"));
+const PageList = lazy(() => import("./components/tabs/PageList"));
 
 interface Tab {
   id: string;
@@ -33,35 +35,16 @@ export default function App() {
   const currentTab = () => TABS.find((t) => t.id === activeTab()) ?? TABS[0];
 
   return (
-    <div class="app">
-      <nav class="tab-bar">
-        <div class="tab-bar-brand">
-          <strong>Flowscout</strong>
-          <Show when={data().meta.version}>
-            <span class="version">v{data().meta.version}</span>
-          </Show>
-        </div>
-        <div class="tab-bar-tabs">
-          <For each={TABS}>
-            {(tab) => (
-              <button
-                class={`tab-btn ${activeTab() === tab.id ? "active" : ""}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </button>
-            )}
-          </For>
-        </div>
-      </nav>
-      <main class="tab-content">
-        <Suspense fallback={<div class="loading">Loading...</div>}>
-          {(() => {
-            const Tab = currentTab().component;
-            return <Tab data={data()} />;
-          })()}
-        </Suspense>
-      </main>
-    </div>
+    <AppShell
+      version={data().meta.version}
+      tabBar={<TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />}
+    >
+      <Suspense fallback={<div class="py-12 text-center text-text-secondary">Loading...</div>}>
+        {(() => {
+          const Tab = currentTab().component;
+          return <Tab data={data()} />;
+        })()}
+      </Suspense>
+    </AppShell>
   );
 }
