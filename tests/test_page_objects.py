@@ -5,66 +5,48 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from conftest import make_catalog
 
+from flowscout.codegen.adapters.playwright_python import PlaywrightPythonAdapter
+from flowscout.codegen.adapters.playwright_ts import PlaywrightTSAdapter
+from flowscout.codegen.page_objects import (
+    generate_page_objects,
+    generate_page_object_previews,
+)
+from flowscout.codegen.pom_builder import build_page_class
+from flowscout.codegen.primitives import (
+    catalog_to_class_name,
+    selector_to_property_name,
+)
 from flowscout.core.archetypes import (
     CatalogEntry,
     PageArchetype,
     PageCatalog,
     ZoneType,
 )
-from flowscout.codegen.page_objects import (
-    _catalog_to_class_name,
-    _generate_python_pom,
-    _generate_typescript_pom,
-    _selector_to_property_name,
-    generate_page_objects,
-    generate_page_object_previews,
-)
 from flowscout.modeling.components import InteractionPattern, SharedComponent
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
-
-def _make_catalog(
-    archetype: PageArchetype = PageArchetype.LISTING,
-    entries: list[CatalogEntry] | None = None,
-    url_pattern: str = "",
-) -> PageCatalog:
-    if entries is None:
-        entries = [
-            CatalogEntry(
-                selector="a[href='/home']",
-                tag="a",
-                label="Home",
-                zone_type=ZoneType.NAVIGATION,
-                element_type="link",
-                semantic_name="home",
-            ),
-            CatalogEntry(
-                selector="input[type='search']",
-                tag="input",
-                label="Search",
-                zone_type=ZoneType.SEARCH,
-                element_type="input_search",
-                input_type="search",
-                semantic_name="search",
-            ),
-            CatalogEntry(
-                selector=".movie-card",
-                tag="div",
-                label="Movie 1",
-                zone_type=ZoneType.MAIN_CONTENT,
-                element_type="other",
-                semantic_name="movie_1",
-            ),
-        ]
-    return PageCatalog(
-        archetype=archetype,
-        url_pattern=url_pattern,
-        entries=entries,
+def _render_python(catalog: PageCatalog, class_name: str, base_url: str) -> str:
+    """Build a standalone POMClass and render as Python."""
+    pom_class = build_page_class(
+        catalog=catalog,
+        class_name=class_name,
+        base_url=base_url,
     )
+    pom_class = pom_class.model_copy(update={"parent_class": ""})
+    return PlaywrightPythonAdapter().render_page(pom_class)
+
+
+def _render_typescript(catalog: PageCatalog, class_name: str, base_url: str) -> str:
+    """Build a standalone POMClass and render as TypeScript."""
+    pom_class = build_page_class(
+        catalog=catalog,
+        class_name=class_name,
+        base_url=base_url,
+    )
+    pom_class = pom_class.model_copy(update={"parent_class": ""})
+    return PlaywrightTSAdapter().render_page(pom_class)
 
 
 # ---------------------------------------------------------------------------
@@ -76,24 +58,24 @@ class TestClassNameGeneration:
     """Class name generation from catalogs."""
 
     def test_listing_archetype(self) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING)
-        name = _catalog_to_class_name(catalog)
+        catalog = make_catalog(PageArchetype.LISTING)
+        name = catalog_to_class_name(catalog)
         assert "Listing" in name
         assert "Page" in name
 
     def test_detail_archetype(self) -> None:
-        catalog = _make_catalog(PageArchetype.DETAIL)
-        name = _catalog_to_class_name(catalog)
+        catalog = make_catalog(PageArchetype.DETAIL)
+        name = catalog_to_class_name(catalog)
         assert "Detail" in name
 
     def test_with_url_pattern(self) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
-        name = _catalog_to_class_name(catalog)
+        catalog = make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        name = catalog_to_class_name(catalog)
         assert "Movies" in name
 
     def test_name_is_pascal_case(self) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING)
-        name = _catalog_to_class_name(catalog)
+        catalog = make_catalog(PageArchetype.LISTING)
+        name = catalog_to_class_name(catalog)
         assert name[0].isupper()
         assert "_" not in name
 
@@ -102,31 +84,31 @@ class TestPropertyNameGeneration:
     """Property name generation from selectors/labels."""
 
     def test_from_label(self) -> None:
-        name = _selector_to_property_name("a[href='/']", "Home", "a")
+        name = selector_to_property_name("a[href='/']", "Home", "a")
         assert name == "home"
 
     def test_from_aria_label(self) -> None:
-        name = _selector_to_property_name("[aria-label='Search']", "", "button")
+        name = selector_to_property_name("[aria-label='Search']", "", "button")
         assert name == "search"
 
     def test_from_id_selector(self) -> None:
-        name = _selector_to_property_name("#main-nav", "", "nav")
+        name = selector_to_property_name("#main-nav", "", "nav")
         assert name == "main_nav"
 
     def test_from_href(self) -> None:
-        name = _selector_to_property_name("a[href='/about']", "", "a")
+        name = selector_to_property_name("a[href='/about']", "", "a")
         assert name == "about"
 
     def test_fallback_to_tag(self) -> None:
-        name = _selector_to_property_name("div:nth-of-type(3)", "", "div")
+        name = selector_to_property_name("div:nth-of-type(3)", "", "div")
         assert name.startswith("div")
 
     def test_max_length(self) -> None:
-        name = _selector_to_property_name("div", "A" * 50, "div")
+        name = selector_to_property_name("div", "A" * 50, "div")
         assert len(name) <= 40
 
     def test_special_chars_cleaned(self) -> None:
-        name = _selector_to_property_name("div", "Click Here!", "div")
+        name = selector_to_property_name("div", "Click Here!", "div")
         assert "!" not in name
         assert " " not in name
 
@@ -135,45 +117,45 @@ class TestPythonPOMGeneration:
     """Python POM class output."""
 
     def test_has_class_definition(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_python(catalog, "ListingPage", "https://example.com")
         assert "class ListingPage:" in output
 
     def test_has_constructor(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_python(catalog, "ListingPage", "https://example.com")
         assert "def __init__(self, page: Page)" in output
 
     def test_has_locator_assignments(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_python(catalog, "ListingPage", "https://example.com")
         assert "page.locator(" in output
 
     def test_has_navigate_method(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_python(catalog, "ListingPage", "https://example.com")
         assert "def navigate(self)" in output
 
     def test_has_search_method(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_python(catalog, "ListingPage", "https://example.com")
         assert "def search(self, query: str)" in output
 
     def test_has_select_item_method(self) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING)
-        output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog(PageArchetype.LISTING)
+        output = _render_python(catalog, "ListingPage", "https://example.com")
         assert "def select_item(self, index: int" in output
 
     def test_zone_comments(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_python_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_python(catalog, "ListingPage", "https://example.com")
         assert "# Navigation" in output
         assert "# Search" in output
         assert "# Content" in output
 
     def test_no_base_url_no_navigate(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_python_pom(catalog, "ListingPage", "")
+        catalog = make_catalog()
+        output = _render_python(catalog, "ListingPage", "")
         assert "def navigate" not in output
 
     def test_deduplication(self) -> None:
@@ -195,8 +177,8 @@ class TestPythonPOMGeneration:
                 semantic_name="link",
             ),
         ]
-        catalog = _make_catalog(entries=entries)
-        output = _generate_python_pom(catalog, "TestPage", "https://example.com")
+        catalog = make_catalog(entries=entries)
+        output = _render_python(catalog, "TestPage", "https://example.com")
         assert "self.link " in output or "self.link=" in output
         assert "self.link_2" in output
 
@@ -205,24 +187,24 @@ class TestTypeScriptPOMGeneration:
     """TypeScript POM class output."""
 
     def test_has_class_definition(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_typescript(catalog, "ListingPage", "https://example.com")
         assert "export class ListingPage" in output
 
     def test_has_readonly_properties(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_typescript(catalog, "ListingPage", "https://example.com")
         assert "readonly" in output
         assert ": Locator;" in output
 
     def test_has_constructor(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_typescript(catalog, "ListingPage", "https://example.com")
         assert "constructor(public readonly page: Page)" in output
 
     def test_has_navigate(self) -> None:
-        catalog = _make_catalog()
-        output = _generate_typescript_pom(catalog, "ListingPage", "https://example.com")
+        catalog = make_catalog()
+        output = _render_typescript(catalog, "ListingPage", "https://example.com")
         assert "async navigate()" in output
 
 
@@ -230,7 +212,7 @@ class TestFileGeneration:
     """End-to-end file generation."""
 
     def test_generates_python_files(self) -> None:
-        catalog = _make_catalog(url_pattern="/movies")
+        catalog = make_catalog(url_pattern="/movies")
         with tempfile.TemporaryDirectory() as tmpdir:
             paths = generate_page_objects(
                 {"sig1": catalog.model_dump()},
@@ -249,7 +231,7 @@ class TestFileGeneration:
             assert "class" in content
 
     def test_generates_typescript_files(self) -> None:
-        catalog = _make_catalog()
+        catalog = make_catalog()
         with tempfile.TemporaryDirectory() as tmpdir:
             paths = generate_page_objects(
                 {"sig1": catalog.model_dump()},
@@ -271,8 +253,8 @@ class TestFileGeneration:
             assert len(paths) == 0
 
     def test_multiple_catalogs(self) -> None:
-        catalog1 = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
-        catalog2 = _make_catalog(PageArchetype.DETAIL, url_pattern="/movie/1")
+        catalog1 = make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        catalog2 = make_catalog(PageArchetype.DETAIL, url_pattern="/movie/1")
         with tempfile.TemporaryDirectory() as tmpdir:
             paths = generate_page_objects(
                 {
@@ -286,7 +268,7 @@ class TestFileGeneration:
             assert len(paths) == 3
 
     def test_generates_component_classes_and_composes_pages(self) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        catalog = make_catalog(PageArchetype.LISTING, url_pattern="/movies")
         navigation_component = SharedComponent(
             component_id="component-navigation",
             name="NavigationBar",
@@ -351,7 +333,7 @@ class TestFileGeneration:
             assert "self.home = page.locator(\"a[href='/home']\")" not in page_content
 
     def test_base_page_contains_high_frequency_components(self) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        catalog = make_catalog(PageArchetype.LISTING, url_pattern="/movies")
         base_component = SharedComponent(
             component_id="component-navigation",
             name="NavigationBar",
@@ -399,7 +381,7 @@ class TestFileGeneration:
             assert "super().navigate(self.URL)" in page_content
 
     def test_uses_preferred_locator_from_model_when_available(self) -> None:
-        catalog = _make_catalog(
+        catalog = make_catalog(
             PageArchetype.LISTING,
             entries=[
                 CatalogEntry(
@@ -435,7 +417,7 @@ class TestFileGeneration:
             )
 
     def test_component_pattern_methods_are_generated(self) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        catalog = make_catalog(PageArchetype.LISTING, url_pattern="/movies")
         dropdown_component = SharedComponent(
             component_id="component-theme",
             name="ThemeDropdown",
@@ -489,7 +471,7 @@ class TestPreviewGeneration:
     def test_generate_page_object_previews_returns_python_and_typescript(
         self,
     ) -> None:
-        catalog = _make_catalog(PageArchetype.LISTING, url_pattern="/movies")
+        catalog = make_catalog(PageArchetype.LISTING, url_pattern="/movies")
         previews = generate_page_object_previews(
             page_types=[
                 {

@@ -9,11 +9,49 @@ from typing import Any
 import pytest
 
 from flowscout.analysis.graph import ExplorationResult, Flow
+from flowscout.core.archetypes import CatalogEntry, PageArchetype, PageCatalog, ZoneType
 from flowscout.core.state import PageState
 from flowscout.discovery.actions import Action, ActionResult, ActionType, OutcomeType
 from flowscout.discovery.elements import InteractiveElement
 
 TEST_URL = "https://example.com"
+
+
+def make_catalog(
+    archetype: PageArchetype = PageArchetype.LISTING,
+    entries: list[CatalogEntry] | None = None,
+    url_pattern: str = "",
+) -> PageCatalog:
+    """Create a PageCatalog with sensible defaults."""
+    if entries is None:
+        entries = [
+            CatalogEntry(
+                selector="a[href='/home']",
+                tag="a",
+                label="Home",
+                zone_type=ZoneType.NAVIGATION,
+                element_type="link",
+                semantic_name="home",
+            ),
+            CatalogEntry(
+                selector="input[type='search']",
+                tag="input",
+                label="Search",
+                zone_type=ZoneType.SEARCH,
+                element_type="input_search",
+                input_type="search",
+                semantic_name="search",
+            ),
+            CatalogEntry(
+                selector=".movie-card",
+                tag="div",
+                label="Movie 1",
+                zone_type=ZoneType.MAIN_CONTENT,
+                element_type="other",
+                semantic_name="movie_1",
+            ),
+        ]
+    return PageCatalog(archetype=archetype, url_pattern=url_pattern, entries=entries)
 
 
 def make_state(
