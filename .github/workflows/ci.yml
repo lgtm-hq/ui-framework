@@ -9,6 +9,7 @@ name: CI
 
 jobs:
   quality:
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       packages: read
@@ -16,4 +17,15 @@ jobs:
     # yamllint disable-line rule:line-length
     uses: lgtm-hq/lgtm-ci/.github/workflows/reusable-quality.yml@fc73b3ab8342a24597c12d137d6ff7fca84b9fe2
     with:
+      tooling-ref: "fc73b3ab8342a24597c12d137d6ff7fca84b9fe2"
+
+  quality-push:
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: read
+    # yamllint disable-line rule:line-length
+    uses: lgtm-hq/lgtm-ci/.github/workflows/reusable-quality.yml@fc73b3ab8342a24597c12d137d6ff7fca84b9fe2
+    with:
+      post-pr-comment: false
       tooling-ref: "fc73b3ab8342a24597c12d137d6ff7fca84b9fe2"
