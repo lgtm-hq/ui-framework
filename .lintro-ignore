@@ -12,3 +12,7 @@ env
 
 __pycache__
 .lintro/*
+
+# lgtm-ci tooling sparse checkout (created inside reusable workflow jobs)
+.lgtm-ci-tooling/**
+**/.lgtm-ci-tooling/**
