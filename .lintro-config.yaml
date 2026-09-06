@@ -1,3 +1,4 @@
+---
 # ui-framework lintro configuration.
 # JS/TS sources are gated by Biome and the frontend toolchain; lintro covers
 # the cross-language checks. No first-party Python lives here — the only
