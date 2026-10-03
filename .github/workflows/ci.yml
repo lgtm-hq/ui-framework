@@ -16,5 +16,5 @@ jobs:
     # yamllint disable-line rule:line-length
     uses: lgtm-hq/lgtm-ci/.github/workflows/reusable-quality-lint.yml@234e84901ae4ac14f2d44f02fad517d95712cec3 # v0.75.0
     with:
-      tooling-ref: 'f0e999fd9934a43c8d1d6a1c68ee2d1a8a978f36' # # v0.69.8
+      tooling-ref: '234e84901ae4ac14f2d44f02fad517d95712cec3' # v0.75.0
       job-name: '🛠️ Lintro Code Quality'
