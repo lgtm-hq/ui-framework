@@ -14,8 +14,8 @@ jobs:
       contents: read
       packages: read # pull lintro-image from GHCR in reusable-quality-lint
     # yamllint disable-line rule:line-length
-    uses: lgtm-hq/lgtm-ci/.github/workflows/reusable-quality-lint.yml@8f0fd9339df5d30a529aa572ceb51345b8be33a0 # v0.79.2
+    uses: lgtm-hq/lgtm-ci/.github/workflows/reusable-quality-lint.yml@c40cd60334b5b5f2952e1af99e2e083be50c1620 # v0.80.0
     with:
       egress-policy: block
-      tooling-ref: '8f0fd9339df5d30a529aa572ceb51345b8be33a0' # v0.79.2
+      tooling-ref: 'c40cd60334b5b5f2952e1af99e2e083be50c1620' # v0.80.0
       job-name: '🛠️ Lintro Code Quality'
